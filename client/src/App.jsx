@@ -12,6 +12,8 @@ import ProductDetailPage from './pages/ProductDetailPage'; // DETAY SAYFASI EKLE
 import WhatsAppWidget from './components/WhatsAppWidget';
 import API from './api/api';
 import './index.css';
+import ProfileDashboard from './components/ProfileDashboard';
+import ProductsPage from './pages/ProductsPage';
 
 const customTheme = createTheme({
   palette: {
@@ -115,6 +117,15 @@ export default function App() {
               path="/product/:id"
               element={<ProductDetailPage />}
             />
+
+            <Route
+              path="/profile"
+              element={<ProfileDashboard />}
+            />
+
+            <Route path="/products"
+            element={<ProductsPage />} />
+
           </Routes>
         </Box>
 

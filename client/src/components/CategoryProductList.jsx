@@ -72,7 +72,8 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
     setVisibleCount((prev) => prev + 4);
   };
 
-  const displayedProducts = filteredProducts.slice(0, visibleCount);
+  // ✅ Düzeltilmiş Satır:
+const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : []).slice(0, visibleCount);
   const hasMore = visibleCount < filteredProducts.length;
 
   // 5. AKTİF KATEGORİ BİLGİSİNİ ÇEK (Başlık İçin)

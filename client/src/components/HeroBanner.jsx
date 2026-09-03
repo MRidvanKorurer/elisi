@@ -264,7 +264,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
                   variant="outlined"
                   size="medium"
                   endIcon={<ArrowForward sx={{ fontSize: '18px !important' }} />}
-                  href="#urunler"
+                  href="/products"
                   fullWidth
                   sx={{
                     borderRadius: '12px',
