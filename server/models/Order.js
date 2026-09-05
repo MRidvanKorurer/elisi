@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
-  user: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User',
-    // required: true YAZMAMALI! (Eğer varsa bu satırı sil)
-  },
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   name: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
@@ -14,6 +9,13 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  // Giriş yapmış kullanıcılar; misafir siparişlerinde boş kalır
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true
+  },
   // Müşteri İletişim Bilgileri
   customerInfo: {
     firstName: { type: String, required: true },
