@@ -4,10 +4,10 @@ const { createOrder, iyzicoCallback, getMyOrders, getOrderById } = require('../c
 
 
 
-const { protect } = require('../middleware/authMiddleware');
+const { protect, optionalProtect } = require('../middleware/authMiddleware');
 
 
-router.post('/create', createOrder);
+router.post('/create', optionalProtect, createOrder);
 // İyzico ödeme sonrası kendi sunucularından bu adrese POST atar
 router.post('/payment/callback', iyzicoCallback); 
 
