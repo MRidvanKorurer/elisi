@@ -1,0 +1,15 @@
+# Şifreler ve Gizli Dosyalar
+.env
+*/.env
+
+# Node.js Kütüphaneleri
+node_modules/
+*/node_modules/
+
+# Derlenmiş Frontend Dosyaları
+client/dist/
+dist/
+
+# İşletim Sistemi Kalıntıları
+.DS_Store
+Thumbs.db
