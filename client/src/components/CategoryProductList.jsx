@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Container, Typography, Grid, Button, CircularProgress } from '@mui/material';
+import { Box, Container, Typography, Button, CircularProgress } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CategoryBar from './CategoryBar';
-import ProductCard from './ProductCard';
+import ProductCard, { productCardGridSx } from './ProductCard';
 import { productService } from '../api/productService'; 
 import { motion } from 'framer-motion';
 
@@ -80,7 +80,7 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
   const activeCatInfo = CATEGORY_INFO[selectedCategory] || CATEGORY_INFO['all'];
 
   return (
-    <Box sx={{ pb: 8 }}>
+    <Box sx={{ pb: { xs: 5, md: 8 } }}>
       {/* KATEGORİ BAR */}
       <CategoryBar 
         selectedCategory={selectedCategory} 
@@ -88,7 +88,7 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
       />
 
       {/* ÜRÜN LİSTESİ VE BAŞLIK ALANI */}
-      <Container maxWidth="lg" sx={{ mt: 1 }}>
+      <Container maxWidth="lg" sx={{ mt: 1, px: { xs: 2, sm: 3 } }}>
 
         {/* ========================================================= */}
         {/* ŞIK KATEGORİ BAŞLIĞI (Sadece yükleme bittiyse görünür) */}
@@ -104,10 +104,10 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
               sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: 2.5, 
-                mb: 4, 
-                p: 2.5, 
-                borderRadius: '24px', 
+                gap: { xs: 1.5, sm: 2.5 }, 
+                mb: 3, 
+                p: { xs: 1.6, sm: 2.5 }, 
+                borderRadius: { xs: '20px', sm: '24px' }, 
                 backgroundColor: '#FFFFFF', 
                 border: '1.5px solid rgba(148, 109, 109, 0.08)', 
                 boxShadow: '0 12px 35px rgba(46, 59, 85, 0.04)' 
@@ -116,8 +116,8 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
               {/* İkon Kutusu (Kategoriye Özel Renkli) */}
               <Box 
                 sx={{ 
-                  width: 68, 
-                  height: 68, 
+                  width: { xs: 52, sm: 68 }, 
+                  height: { xs: 52, sm: 68 }, 
                   borderRadius: '18px', 
                   backgroundColor: activeCatInfo.bg, 
                   color: activeCatInfo.color, 
@@ -132,7 +132,7 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
 
               {/* Metin Alanı */}
               <Box>
-                <Typography variant="h5" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px' }}>
+                <Typography variant="h5" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
                   {activeCatInfo.name}
                 </Typography>
                 <Typography variant="body2" fontWeight="600" sx={{ color: '#6E5252', mt: 0.5 }}>
@@ -160,18 +160,18 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
           </Box>
         ) : displayedProducts.length > 0 ? (
           /* Ürünler Varsa Grid Halinde Göster */
-          <Grid container spacing={3.5}>
+          <Box sx={productCardGridSx}>
             {displayedProducts.map((product) => (
-              <Grid item key={product._id} xs={12} sm={6} md={4} lg={3}>
+              <Box key={product._id}>
                 <ProductCard 
                   product={product} 
                   onAddToCart={onAddToCart}
                   onToggleFavorite={onToggleFavorite}
                   isFavorite={favorites.includes(product._id)}
                 />
-              </Grid>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         ) : (
           /* Ürün Yoksa Bilgi Ver */
           <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -189,9 +189,9 @@ const displayedProducts = (Array.isArray(filteredProducts) ? filteredProducts : 
               onClick={handleLoadMore}
               endIcon={<ExpandMoreIcon />}
               sx={{
-                px: 4, py: 1.5, borderRadius: '20px',
+                px: { xs: 2.5, sm: 4 }, py: 1.4, borderRadius: '20px',
                 borderColor: '#946D6D', color: '#946D6D',
-                fontWeight: 800, fontSize: '0.98rem', borderWidth: '2px',
+                fontWeight: 800, fontSize: { xs: '0.88rem', sm: '0.98rem' }, borderWidth: '2px',
                 '&:hover': {
                   borderWidth: '2px', borderColor: '#946D6D', backgroundColor: '#946D6D', color: '#FFFFFF'
                 }

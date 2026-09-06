@@ -66,7 +66,7 @@ const userSchema = new mongoose.Schema({
     kampanyaKodu: { type: String, unique: true },
     rol: { 
         type: String, 
-        enum: ['user', 'admin'], 
+        enum: ['user', 'seller', 'admin'], 
         default: 'user' 
     },
     

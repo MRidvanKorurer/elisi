@@ -243,7 +243,7 @@
 
 import React from 'react';
 import { 
-  Box, Container, Grid, Typography, IconButton, 
+  Box, Container, Typography, IconButton, 
   Link, TextField, Button, Divider, SvgIcon
 } from '@mui/material';
 import InstagramIcon from '@mui/icons-material/Instagram';
@@ -314,8 +314,8 @@ export default function Footer({ setPage }) {
       component="footer" 
       sx={{ 
         width: '100%',
-        mt: 10,
-        pt: 8,
+        mt: { xs: 6, md: 10 },
+        pt: { xs: 5, md: 8 },
         pb: 4,
         // HAFİF KAHVERENGİ ARKA PLAN (KREM / KAHVE GEÇİŞİ)
         background: 'linear-gradient(180deg, rgba(148, 109, 109, 0.08) 0%, rgba(148, 109, 109, 0.18) 100%)',
@@ -323,11 +323,11 @@ export default function Footer({ setPage }) {
         borderTop: '1px solid rgba(148, 109, 109, 0.25)',
       }}
     >
-      <Container maxWidth="lg"> 
-        <Grid container spacing={{ xs: 4, md: 3, lg: 4 }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}> 
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1.35fr 0.8fr 0.8fr 1.05fr' }, gap: { xs: 3.5, md: 4 } }}>
           
           {/* 1. SÜTUN: LOGO VE SOSYAL MEDYA */}
-          <Grid item xs={12} sm={12} md={4}>
+          <Box sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}>
             <Box 
               sx={{ 
                 mb: 2, 
@@ -362,23 +362,24 @@ export default function Footer({ setPage }) {
                 <EtsyIcon />
               </IconButton>
             </Box>
-          </Grid>
+          </Box>
 
           {/* 2. SÜTUN: HIZLI LİNKLER */}
-          <Grid item xs={6} sm={4} md={2.5}>
+          <Box>
             <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', mb: 2.5, fontSize: '1.1rem' }}>
               Kurumsal
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <Link onClick={() => setPage && setPage('about')} sx={footerLinkSx}>Hakkımızda</Link>
+              <Link onClick={() => setPage && setPage('satici-ol')} sx={footerLinkSx}>Satıcı Ol</Link>
               <Link onClick={() => setPage && setPage('shop')} sx={footerLinkSx}>Tüm Ürünler</Link>
               <Link onClick={() => setPage && setPage('contact')} sx={footerLinkSx}>İletişim</Link>
               <Link onClick={() => setPage && setPage('blog')} sx={footerLinkSx}>Blog & Atölye</Link>
             </Box>
-          </Grid>
+          </Box>
 
           {/* 3. SÜTUN: YARDIM & DESTEK */}
-          <Grid item xs={6} sm={4} md={2.5}>
+          <Box>
             <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', mb: 2.5, fontSize: '1.1rem' }}>
               Yardım & Destek
             </Typography>
@@ -389,10 +390,10 @@ export default function Footer({ setPage }) {
               <Link sx={footerLinkSx}>Gizlilik Sözleşmesi</Link>
               <Link sx={footerLinkSx}>Mesafeli Satış Sözleşmesi</Link>
             </Box>
-          </Grid>
+          </Box>
 
           {/* 4. SÜTUN: İLETİŞİM & BÜLTEN */}
-          <Grid item xs={12} sm={4} md={3}>
+          <Box sx={{ gridColumn: { xs: '1 / -1', md: 'auto' } }}>
             <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', mb: 2, fontSize: '1.1rem' }}>
               Bize Ulaşın
             </Typography>
@@ -439,9 +440,9 @@ export default function Footer({ setPage }) {
                 <SendOutlinedIcon fontSize="small" />
               </Button>
             </Box>
-          </Grid>
+          </Box>
 
-        </Grid>
+        </Box>
 
         <Divider sx={{ my: 4, borderColor: 'rgba(148, 109, 109, 0.25)' }} />
 

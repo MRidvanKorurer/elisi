@@ -408,6 +408,16 @@ import userService from '../api/userService';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80';
 
+export const PRODUCT_CARD_WIDTH = 260;
+export const PRODUCT_CARD_HEIGHT = 440;
+
+export const productCardGridSx = {
+  display: 'grid',
+  gridTemplateColumns: `repeat(auto-fill, ${PRODUCT_CARD_WIDTH}px)`,
+  justifyContent: 'center',
+  gap: { xs: 2, md: 3 }
+};
+
 // =========================================================================
 // OPTİMİZASYON: Tüm kartların aynı anda API'ye saldırmasını engellemek için
 // Favori listesini sadece 1 kez çekecek Global Cache (Önbellek) Mekanizması
@@ -542,6 +552,17 @@ export default function ProductCard({ product }) {
     setToast({ ...toast, open: false });
   };
 
+  const clampSx = (lines, height) => ({
+    display: '-webkit-box',
+    WebkitLineClamp: lines,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    wordBreak: 'break-word',
+    height,
+    lineHeight: 1.3
+  });
+
   return (
     <>
       <Snackbar open={toast.open} autoHideDuration={3000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
@@ -553,22 +574,55 @@ export default function ProductCard({ product }) {
       <Card 
         onClick={handleCardClick}
         sx={{ 
-          width: 260, minWidth: 260, maxWidth: 260, height: 440,
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          overflow: 'hidden', borderRadius: '24px', cursor: 'pointer',
-          backgroundColor: '#FFFFFF !important', border: '1px solid rgba(148, 109, 109, 0.15)',
-          boxShadow: '0 10px 25px -5px rgba(46, 59, 85, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 20px 35px -10px rgba(148, 109, 109, 0.22)', borderColor: '#946D6D' },
-          boxSizing: 'border-box', mx: 'auto'
+          width: PRODUCT_CARD_WIDTH,
+          minWidth: PRODUCT_CARD_WIDTH,
+          maxWidth: PRODUCT_CARD_WIDTH,
+          height: PRODUCT_CARD_HEIGHT,
+          minHeight: PRODUCT_CARD_HEIGHT,
+          maxHeight: PRODUCT_CARD_HEIGHT,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          borderRadius: '22px',
+          cursor: 'pointer',
+          backgroundColor: '#FFFFFF !important',
+          border: '1px solid rgba(148, 109, 109, 0.15)',
+          boxShadow: '0 10px 25px -5px rgba(46, 59, 85, 0.08)',
+          transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
+          '&:hover': { boxShadow: '0 18px 32px -10px rgba(148, 109, 109, 0.22)', borderColor: '#946D6D' },
+          boxSizing: 'border-box'
         }}
       >
-        <Box sx={{ position: 'relative', height: 190, minHeight: 190, width: '100%', overflow: 'hidden', backgroundColor: '#F8F5F0' }}>
-          <CardMedia component="img" height="190" image={image} alt={title}
+        <Box sx={{ position: 'relative', height: 190, minHeight: 190, maxHeight: 190, width: '100%', flexShrink: 0, overflow: 'hidden', backgroundColor: '#F8F5F0' }}>
+          <CardMedia component="img" image={image} alt={title}
             onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-            sx={{ objectFit: 'cover', width: '100%', height: '100%', transition: 'transform 0.5s ease', '&:hover': { transform: 'scale(1.06)' } }}
+            sx={{ objectFit: 'cover', width: '100%', height: '100%' }}
           />
-          <Chip label={category} size="small" sx={{ position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255, 255, 255, 0.95)', color: '#2E3B55', fontWeight: 800, fontSize: '0.7rem', textTransform: 'capitalize', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} />
+          <Box sx={{ position: 'absolute', top: 10, left: 10, maxWidth: 'calc(100% - 52px)' }}>
+            <Tooltip title={category} arrow placement="top" enterDelay={200}>
+              <Chip
+                label={category}
+                size="small"
+                sx={{
+                  maxWidth: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  color: '#2E3B55',
+                  fontWeight: 800,
+                  fontSize: '0.7rem',
+                  textTransform: 'capitalize',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  '& .MuiChip-label': {
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    px: 1
+                  }
+                }}
+              />
+            </Tooltip>
+          </Box>
           
           {/* FAVORİ BUTONU (KALP) */}
           <Box 
@@ -578,15 +632,11 @@ export default function ProductCard({ product }) {
                 backgroundColor: 'rgba(255, 255, 255, 0.95)', display: 'flex', alignItems: 'center', 
                 justifyContent: 'center', cursor: favLoading ? 'wait' : 'pointer', 
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-                
-                // Favoriyse kırmızı (#D32F2F), değilse kahvemsi (#6E5252)
                 color: isFavorite ? '#D32F2F' : '#6E5252', 
-                
                 transition: 'all 0.2s ease',
                 '&:hover': { 
                     backgroundColor: isFavorite ? '#B71C1C' : '#946D6D', 
-                    color: '#FFF', 
-                    transform: 'scale(1.1)' 
+                    color: '#FFF'
                 } 
             }}
           >
@@ -600,29 +650,31 @@ export default function ProductCard({ product }) {
           </Box>
         </Box>
 
-        <CardContent sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#FFFFFF' }}>
+        <CardContent sx={{ p: 2, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#FFFFFF' }}>
           <Box>
-            <Tooltip title={title} arrow placement="top">
-              <Typography variant="h6" fontWeight="800" sx={{ color: '#2E3B55', fontSize: '0.92rem', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', height: '2.6em' }}>
+            <Tooltip title={title} arrow placement="top" enterDelay={200}>
+              <Box sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.92rem', ...clampSx(2, '2.6em') }}>
                 {title}
-              </Typography>
+              </Box>
             </Tooltip>
-            <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#6E5252', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', mt: 0.8, height: '1.4em' }}>
-              {description}
-            </Typography>
+            <Tooltip title={description} arrow placement="top" enterDelay={200}>
+              <Box sx={{ fontSize: '0.75rem', color: '#6E5252', mt: 0.8, ...clampSx(2, '2.1em') }}>
+                {description}
+              </Box>
+            </Tooltip>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mt: 1 }}>
-            <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem' }}>ÖZEL FİYAT</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1, minWidth: 0 }}>
+            <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem', whiteSpace: 'nowrap' }}>ÖZEL FİYAT</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0 }}>
               {product?.discountPercentage > 0 && (
-                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600 }}>₺{price}</Typography>
+                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap' }}>₺{price}</Typography>
               )}
-              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: '1.2rem' }}>₺{finalPrice}</Typography>
+              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: '1.15rem', whiteSpace: 'nowrap' }}>₺{finalPrice}</Typography>
             </Box>
           </Box>
         </CardContent>
 
-        <CardActions sx={{ px: 2, pb: 2, pt: 0, backgroundColor: '#FFFFFF' }}>
+        <CardActions sx={{ px: 2, pb: 2, pt: 0, flexShrink: 0, backgroundColor: '#FFFFFF' }}>
           <Button 
             fullWidth variant="contained" 
             disabled={loading}

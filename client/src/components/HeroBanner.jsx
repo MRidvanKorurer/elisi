@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, IconButton, CircularProgress,
-  Modal, Grid, Card, CardMedia, CardContent, Chip
+  Modal, Card, CardMedia, CardContent, Chip
 } from '@mui/material';
 import CardGiftcard from '@mui/icons-material/CardGiftcard';
 import ArrowForward from '@mui/icons-material/ArrowForward';
@@ -90,7 +90,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
 
   if (loading) {
     return (
-      <Box sx={{ position: 'relative', width: '100vw', left: '50%', right: '50%', marginLeft: '-50vw', marginRight: '-50vw', height: '80vh', minHeight: '580px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDF4D2' }}>
+      <Box sx={{ position: 'relative', width: '100%', height: { xs: 'min(92svh, 720px)', md: '82vh' }, minHeight: { xs: 520, md: 580 }, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDF4D2' }}>
         <CircularProgress sx={{ color: '#946D6D' }} />
       </Box>
     );
@@ -100,17 +100,13 @@ export default function HeroBanner({ user, onNavigateAuth }) {
     <Box
       sx={{
         position: 'relative',
-        width: '100vw',
-        left: '50%',
-        right: '50%',
-        marginLeft: '-50vw',
-        marginRight: '-50vw',
-        height: { xs: '70vh', md: '80vh' },
-        minHeight: '520px',
+        width: '100%',
+        height: { xs: 'min(92svh, 720px)', md: '82vh' },
+        minHeight: { xs: 520, md: 580 },
         mt: 0,
-        mb: 6,
+        mb: { xs: 4, md: 7 },
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         overflow: 'hidden',
         backgroundColor: '#1E2738'
       }}
@@ -135,7 +131,10 @@ export default function HeroBanner({ user, onNavigateAuth }) {
             sx={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to right, rgba(30, 39, 56, 0.75) 0%, rgba(30, 39, 56, 0.3) 50%, rgba(0,0,0,0) 100%)',
+              background: {
+                xs: 'linear-gradient(180deg, rgba(30, 39, 56, 0.35) 0%, rgba(30, 39, 56, 0.78) 100%)',
+                md: 'linear-gradient(to right, rgba(30, 39, 56, 0.78) 0%, rgba(30, 39, 56, 0.28) 52%, rgba(0,0,0,0) 100%)'
+              },
               zIndex: 1
             }}
           />
@@ -150,14 +149,17 @@ export default function HeroBanner({ user, onNavigateAuth }) {
           width: '100%',
           maxWidth: '1200px',
           mx: 'auto',
-          px: { xs: 2.5, sm: 5, md: 7 }
+          px: { xs: 2, sm: 4, md: 7 },
+          pb: { xs: 8, md: 10 },
+          pt: { xs: 10, md: 0 },
+          alignSelf: { md: 'center' }
         }}
       >
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          style={{ maxWidth: '420px' }} // Maksimum genişlik 500px'den 420px'e düşürüldü
+          style={{ width: '100%', maxWidth: '460px' }}
         >
           <Box
             sx={{
@@ -189,7 +191,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               sx={{
                 color: '#946D6D',
                 mb: 1.5,
-                fontSize: { xs: '2.2rem', sm: '2.8rem', md: '3.3rem' }, // Başlık boyutu küçültüldü
+                fontSize: { xs: '2rem', sm: '2.6rem', md: '3.3rem' },
                 fontWeight: 800,
                 letterSpacing: '-1px',
                 lineHeight: 1.05
@@ -264,7 +266,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
                   variant="outlined"
                   size="medium"
                   endIcon={<ArrowForward sx={{ fontSize: '18px !important' }} />}
-                  href="/products"
+                  onClick={() => navigate('/products')}
                   fullWidth
                   sx={{
                     borderRadius: '12px',
@@ -292,7 +294,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
 
       {/* 3. SAĞ ALT SLIDER YÖNLENDİRME BUTONLARI */}
       {heroImages.length > 1 && (
-        <Box sx={{ position: 'absolute', bottom: { xs: 16, md: 24 }, right: { xs: 16, md: 32 }, display: 'flex', gap: 1, zIndex: 10 }}>
+        <Box sx={{ position: 'absolute', bottom: { xs: 18, md: 28 }, right: { xs: 14, md: 32 }, display: { xs: 'none', sm: 'flex' }, gap: 1, zIndex: 10 }}>
           <IconButton onClick={handlePrev} sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 }, backgroundColor: 'rgba(253, 244, 210, 0.85)', color: '#946D6D', backdropFilter: 'blur(8px)', transition: 'all 0.3s', '&:hover': { backgroundColor: '#B0CDE6', color: '#1E2738' } }}>
             <ArrowBackIosNewOutlined sx={{ fontSize: '16px' }} />
           </IconButton>
@@ -365,10 +367,10 @@ export default function HeroBanner({ user, onNavigateAuth }) {
             outline: 'none'
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AutoAwesomeIcon sx={{ color: '#946D6D' }} />
-              <Typography id="sponsored-modal-title" variant="h5" fontWeight="800" sx={{ color: '#1E2738' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+              <AutoAwesomeIcon sx={{ color: '#946D6D', flexShrink: 0 }} />
+              <Typography id="sponsored-modal-title" variant="h5" fontWeight="800" sx={{ color: '#1E2738', fontSize: { xs: '1.15rem', sm: '1.45rem' } }}>
                 Öne Çıkan Tedarikçi Tasarımları
               </Typography>
             </Box>
@@ -386,11 +388,11 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               <CircularProgress sx={{ color: '#946D6D' }} />
             </Box>
           ) : (
-            <Grid container spacing={2.5}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
               {sponsoredProducts.map((product) => (
-                <Grid item xs={12} sm={6} md={4} key={product._id}>
-                  <Card
-                    sx={{
+                <Card
+                  key={product._id}
+                  sx={{
                       borderRadius: '16px',
                       boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
                       transition: 'transform 0.3s, box-shadow 0.3s',
@@ -440,9 +442,8 @@ export default function HeroBanner({ user, onNavigateAuth }) {
                       </Box>
                     </CardContent>
                   </Card>
-                </Grid>
               ))}
-            </Grid>
+            </Box>
           )}
         </Box>
       </Modal>

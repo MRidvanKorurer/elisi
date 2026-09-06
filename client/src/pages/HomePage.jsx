@@ -1,18 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import HeroBanner from '../components/HeroBanner';
-import BestSellers from '../components/BestSellers'; 
+import BestSellers from '../components/BestSellers';
 import CategoryProductList from '../components/CategoryProductList';
+import NewArrivals from '../components/NewArrivals';
+import HowItWorks from '../components/HowItWorks';
+import SellerCtaBanner from '../components/SellerCtaBanner';
+import TrustStrip from '../components/TrustStrip';
 import API from '../api/api';
 
-export default function HomePage({ 
-    user, 
-    searchQuery, 
-    onNavigateAuth, // Çift yazım düzeltildi (Sadece 1 kere var)
+export default function HomePage({
+    user,
+    searchQuery,
+    onNavigateAuth,
     onAddToCart = (urun) => console.log("Sepete eklenen ürün:", urun),
     onToggleFavorite = (id) => console.log("Favori tıklanan id:", id),
-    favorites = [] 
+    favorites = []
 }) {
     const [products, setProducts] = useState([]);
 
@@ -28,36 +31,38 @@ export default function HomePage({
         fetchProducts();
     }, []);
 
-    // SADECE ARAMA (SEARCH) FİLTRESİ
-    // (Kategori filtrelemesini CategoryProductList kendi içinde yapıyor)
     const searchFilteredProducts = products.filter((product) => {
         if (!searchQuery) return true;
-        
+
         const query = searchQuery.toLowerCase();
         return (
             product.baslik?.toLowerCase().includes(query) ||
-            product.title?.toLowerCase().includes(query) || // Backend'den title mi baslik mi geliyor emin olmak için ikisini de ekledik
+            product.title?.toLowerCase().includes(query) ||
             product.kategori?.toLowerCase().includes(query) ||
             product.renk?.toLowerCase().includes(query)
         );
     });
 
     return (
-        <Box sx={{ width: '100%', overflowX: 'hidden' }}>
-            {/* 1. HERO BANNER */}
+        <Box sx={{ width: '100%', overflowX: 'hidden', pb: { xs: 2, md: 0 } }}>
             <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
 
-            {/* 2. KAYDIRILABİLİR EN ÇOK SATAN ÜRÜNLER (BEST SELLERS) */}
-            <BestSellers products={products} onAddToCart={onAddToCart} />
-
-            {/* 3. KATEGORİ BAR VE ÜRÜNLER VİTRİNİ (Hepsi Bir Arada) */}
-            {/* Ürünleri manuel Grid ile basmak yerine akıllı bileşenimize gönderiyoruz */}
             <CategoryProductList
-                products={searchFilteredProducts} // Navbar'dan arama yapıldıysa süzülmüş liste, yapılmadıysa tüm liste gider
+                products={searchFilteredProducts}
                 onAddToCart={onAddToCart}
                 onToggleFavorite={onToggleFavorite}
                 favorites={favorites}
             />
+
+            <NewArrivals products={searchFilteredProducts} onAddToCart={onAddToCart} />
+
+            <BestSellers products={products} onAddToCart={onAddToCart} />
+
+            <HowItWorks />
+
+            <SellerCtaBanner user={user} />
+
+            <TrustStrip />
         </Box>
     );
 }

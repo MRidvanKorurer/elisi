@@ -37,6 +37,7 @@ app.use('/api/banners', require('./routes/bannerRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/sellers', require('./routes/sellerRoutes'));
 
 // 4. Sunucuyu Başlat
 const PORT = process.env.PORT || 5000;

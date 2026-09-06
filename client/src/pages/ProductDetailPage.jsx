@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Typography, Button, IconButton, 
   CircularProgress, Rating, Divider, Accordion, AccordionSummary, 
-  AccordionDetails, Chip, Breadcrumbs, Link, Paper, Grid, Snackbar, Alert
+  AccordionDetails, Chip, Breadcrumbs, Link, Paper, Snackbar, Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
@@ -23,7 +23,7 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
 import productServiceDefault, { productService as productServiceNamed } from '../api/productService'; 
 import cartServiceDefault, { cartService as cartServiceNamed } from '../api/cartServices'; // 's' HARFİ DÜZELTİLDİ
-import ProductCard from '../components/ProductCard';
+import ProductCard, { productCardGridSx } from '../components/ProductCard';
 
 // Esnek servis içe aktarımları (named vs default)
 const productService = productServiceNamed || productServiceDefault;
@@ -378,13 +378,13 @@ export default function ProductDetailPage({ onAddToCart }) {
               Aynı kategorideki diğer eşsiz tasarımlarımızı keşfedin.
             </Typography>
             
-            <Grid container spacing={3}>
+            <Box sx={productCardGridSx}>
               {similarProducts.map(simProduct => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={simProduct._id || simProduct.id}>
+                <Box key={simProduct._id || simProduct.id}>
                   <ProductCard product={simProduct} onAddToCart={onAddToCart} />
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </Box>
         )}
 

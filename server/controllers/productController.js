@@ -22,10 +22,14 @@ const getFilteredProducts = async (req, res) => {
         const matchStage = {};
 
         if (search && search.trim() !== '') {
+            const term = search.trim();
             matchStage.$or = [
-                { title: { $regex: search.trim(), $options: 'i' } },
-                { name: { $regex: search.trim(), $options: 'i' } },
-                { description: { $regex: search.trim(), $options: 'i' } }
+                { title: { $regex: term, $options: 'i' } },
+                { name: { $regex: term, $options: 'i' } },
+                { description: { $regex: term, $options: 'i' } },
+                { category: { $regex: term, $options: 'i' } },
+                { colors: { $regex: term, $options: 'i' } },
+                { productCode: { $regex: term, $options: 'i' } }
             ];
         }
 

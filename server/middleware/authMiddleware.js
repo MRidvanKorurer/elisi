@@ -24,7 +24,7 @@ exports.protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 4. Kullanıcıyı bul ve req.user içine ekle (Şifreyi hariç tut)
-    req.user = await User.findById(decoded.id).select('-password');
+    req.user = await User.findById(decoded.id).select('-sifre');
     
     next(); // İşleme devam et
   } catch (error) {
@@ -42,7 +42,7 @@ exports.optionalProtect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+    req.user = await User.findById(decoded.id).select('-sifre');
   } catch (error) {
     req.user = null;
   }

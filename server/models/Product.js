@@ -138,6 +138,11 @@ const slugify = require('slugify');
 
 const productSchema = new mongoose.Schema(
     {
+        seller: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            index: true
+        },
         // Temel Bilgiler
         title: {
             type: String,

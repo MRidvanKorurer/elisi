@@ -49,11 +49,11 @@ export default function CategoryBar({ selectedCategory, onSelectCategory, onCate
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mb: 7, mt: 3, position: 'relative' }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 3 }}>
-        <Box>
+    <Container maxWidth="lg" sx={{ mb: { xs: 4, md: 6 }, mt: { xs: 1, md: 2 }, position: 'relative', px: { xs: 2, sm: 3 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 3, gap: 2 }}>
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="overline" sx={{ letterSpacing: 2, color: '#A290B7', fontWeight: 800 }}>ÖZEL ATÖLYELER</Typography>
-          <Typography variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px' }}>Kategorilere Göre Keşfet</Typography>
+          <Typography variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>Kategorilere Göre Keşfet</Typography>
         </Box>
         <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1.5 }}>
           <IconButton onClick={() => handleScroll('left')} sx={{ backgroundColor: '#FFFFFF', border: '1.5px solid rgba(148, 109, 109, 0.2)', color: '#2E3B55' }}><ArrowBackIosNewOutlined fontSize="small" /></IconButton>
@@ -64,13 +64,13 @@ export default function CategoryBar({ selectedCategory, onSelectCategory, onCate
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress sx={{ color: '#A290B7' }} /></Box>
       ) : (
-        <Box ref={scrollRef} sx={{ display: 'flex', gap: 2.5, overflowX: 'auto', scrollBehavior: 'smooth', py: 1.5, px: 0.5, WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        <Box ref={scrollRef} sx={{ display: 'flex', gap: { xs: 1.5, sm: 2.5 }, overflowX: 'auto', scrollBehavior: 'smooth', py: 1.5, px: 0.5, mx: { xs: -0.5, sm: 0 }, WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           {categories.map((cat, idx) => {
             const isSelected = (selectedCategory || 'all') === cat.categoryId;
 
             return (
-              <motion.div key={cat.categoryId} whileHover={{ y: -8, scale: 1.03 }} whileTap={{ scale: 0.97 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: idx * 0.06 }}>
-                <Card onClick={() => onSelectCategory && onSelectCategory(cat.categoryId)} sx={{ minWidth: { xs: 170, sm: 200 }, height: 210, p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', borderRadius: '28px', position: 'relative', overflow: 'hidden', background: isSelected ? '#946D6D' : 'rgba(253, 244, 210, 0.55)', backdropFilter: 'blur(16px)', border: isSelected ? '2px solid #946D6D' : '1px solid rgba(162, 144, 183, 0.3)', boxShadow: isSelected ? '0 18px 35px -10px rgba(148, 109, 109, 0.45)' : '0 8px 25px rgba(148, 109, 109, 0.06)', transition: 'all 0.35s ease', userSelect: 'none' }}>
+              <motion.div key={cat.categoryId} whileHover={{ y: -6, scale: 1.02 }} whileTap={{ scale: 0.97 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: idx * 0.06 }} style={{ flex: '0 0 auto' }}>
+                <Card onClick={() => onSelectCategory && onSelectCategory(cat.categoryId)} sx={{ width: { xs: 148, sm: 200 }, minWidth: { xs: 148, sm: 200 }, height: { xs: 176, sm: 210 }, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', borderRadius: { xs: '22px', sm: '28px' }, position: 'relative', overflow: 'hidden', background: isSelected ? '#946D6D' : 'rgba(253, 244, 210, 0.55)', backdropFilter: 'blur(16px)', border: isSelected ? '2px solid #946D6D' : '1px solid rgba(162, 144, 183, 0.3)', boxShadow: isSelected ? '0 18px 35px -10px rgba(148, 109, 109, 0.45)' : '0 8px 25px rgba(148, 109, 109, 0.06)', transition: 'all 0.35s ease', userSelect: 'none' }}>
                   <Box sx={{ position: 'absolute', top: -20, right: -20, width: 90, height: 90, borderRadius: '50%', background: cat.bgGradient || '#ccc', opacity: isSelected ? 0.35 : 0.25, filter: 'blur(12px)' }} />
                   <Box sx={{ width: 52, height: 52, borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : '#FFFFFF', color: isSelected ? '#FFFFFF' : '#946D6D', transition: 'all 0.3s ease', '& svg': { fontSize: '28px' } }}>
                     <DynamicIcon iconName={cat.iconName} />

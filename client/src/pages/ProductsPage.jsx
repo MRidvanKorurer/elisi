@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-    Box, Container, Grid, Paper, Typography, Slider, Checkbox,
+    Box, Container, Paper, Typography, Slider, Checkbox,
     FormControlLabel, FormGroup, TextField, InputAdornment,
     Button, Select, MenuItem, FormControl, Divider,
     CircularProgress
@@ -11,7 +12,7 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import SortOutlinedIcon from '@mui/icons-material/SortOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
-import ProductCard from '../components/ProductCard';
+import ProductCard, { productCardGridSx } from '../components/ProductCard';
 import productServiceDefault, { productService as productServiceNamed } from '../api/productService';
 
 // İçe aktarma güvenliği (default veya named export ikisini de destekler)
@@ -20,6 +21,7 @@ const productService = productServiceNamed || productServiceDefault;
 const ITEMS_PER_PAGE = 12;
 
 export default function ProductsPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]); // EKSİK OLAN STATE EKLENDİ
     const [loading, setLoading] = useState(true);
@@ -27,8 +29,13 @@ export default function ProductsPage() {
     const [categoriesLoading, setCategoriesLoading] = useState(true);
 
     // Filtre State'leri
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+    useEffect(() => {
+        const q = searchParams.get('q') || '';
+        setSearchTerm(q);
+    }, [searchParams]);
 
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [priceRange, setPriceRange] = useState([0, 10000]);
@@ -129,7 +136,14 @@ export default function ProductsPage() {
                     size="small"
                     placeholder="Vazo, mum..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setSearchTerm(value);
+                        const next = new URLSearchParams(searchParams);
+                        if (value.trim()) next.set('q', value);
+                        else next.delete('q');
+                        setSearchParams(next, { replace: true });
+                    }}
                     InputProps={{
                         startAdornment: <InputAdornment position="start"><SearchOutlinedIcon sx={{ color: '#946D6D', fontSize: '1.1rem' }} /></InputAdornment>,
                         sx: { borderRadius: '12px', backgroundColor: '#FDF4D2', fontSize: '0.85rem' }
@@ -270,24 +284,22 @@ export default function ProductsPage() {
                             </Box>
                         ) : (
                             <>
-                                <Grid container spacing={2}>
+                                <Box sx={productCardGridSx}>
                                     <AnimatePresence>
                                         {products.map((product) => (
-                                            <Grid item xs={6} sm={6} md={4} lg={3} key={product._id || product.id}>
-                                                <motion.div
-                                                    layout
-                                                    initial={{ opacity: 0, scale: 0.9 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.9 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    style={{ width: '100%' }}
-                                                >
-                                                    <ProductCard product={product} />
-                                                </motion.div>
-                                            </Grid>
+                                            <motion.div
+                                                key={product._id || product.id}
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.9 }}
+                                                transition={{ duration: 0.3 }}
+                                            >
+                                                <ProductCard product={product} />
+                                            </motion.div>
                                         ))}
                                     </AnimatePresence>
-                                </Grid>
+                                </Box>
 
                                 {products.length < (pagination.totalProducts || 0) && (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>

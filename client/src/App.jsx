@@ -14,6 +14,7 @@ import API from './api/api';
 import './index.css';
 import ProfileDashboard from './components/ProfileDashboard';
 import ProductsPage from './pages/ProductsPage';
+import BecomeSellerPage from './pages/BecomeSellerPage';
 
 const customTheme = createTheme({
   palette: {
@@ -60,9 +61,11 @@ export default function App() {
     }
   };
 
-  const handleLoginSuccess = (userData) => {
+  const handleLoginSuccess = (userData, options = {}) => {
     setUser(userData);
-    navigate('/'); // Giriş yapınca Anasayfaya gönder
+    if (options.redirect !== false) {
+      navigate('/');
+    }
   };
 
   // UYUM SAĞLAYICI: Diğer componentlerdeki (Navbar, Footer vs.) setPage('home') komutlarını URL yönlendirmesine çevirir
@@ -125,6 +128,11 @@ export default function App() {
 
             <Route path="/products"
             element={<ProductsPage />} />
+
+            <Route
+              path="/satici-ol"
+              element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
+            />
 
           </Routes>
         </Box>
