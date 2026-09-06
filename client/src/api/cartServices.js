@@ -1,43 +1,54 @@
 import API from './api';
 
-// --- MİSAFİR (GUEST) YARDIMCI FONKSİYONLARI ---
 const getLocalCart = () => JSON.parse(localStorage.getItem('guestCart')) || [];
 const saveLocalCart = (cart) => localStorage.setItem('guestCart', JSON.stringify(cart));
 
+const itemKey = (item) =>
+  `${item.product?._id || item.product || item.id || ''}|${item.color || ''}|${item.size || ''}`;
+
+const matchesItem = (item, productId, color = '', size = '') =>
+  String(item.product?._id || item.product || item.id) === String(productId) &&
+  (item.color || '') === (color || '') &&
+  (item.size || '') === (size || '');
+
 export const cartService = {
-  // 1. SEPETİ GETİR
   getCart: async () => {
     try {
       const response = await API.get('/cart');
-      return response.data; 
+      return response.data;
     } catch (error) {
-      // Backend'e ulaşılamazsa (Giriş yapılmamışsa vs.) DİREKT yerel sepeti döndür
-      return { success: true, items: getLocalCart(), isGuest: true };
+      if (error.response?.status === 401) {
+        return { success: true, items: getLocalCart(), isGuest: true };
+      }
+      throw error;
     }
   },
 
-  // 2. SEPETE EKLE
   addToCart: async (productData) => {
     try {
       const response = await API.post('/cart', productData);
       return response.data;
     } catch (error) {
-      // Hata alınırsa DİREKT misafir sepetine (localStorage) kaydet
-      let cart = getLocalCart();
-      const existingIndex = cart.findIndex(item => 
-        (item.product?._id || item.product || item.id) === productData.productId
+      if (error.response?.status && error.response.status !== 401) {
+        throw error.response?.data || error;
+      }
+      const cart = getLocalCart();
+      const existingIndex = cart.findIndex((item) =>
+        matchesItem(item, productData.productId, productData.color, productData.size)
       );
-      
+
       if (existingIndex > -1) {
         cart[existingIndex].quantity += (productData.quantity || 1);
       } else {
         cart.push({
-          product: { _id: productData.productId }, // Checkout ile uyumlu olması için
+          product: { _id: productData.productId },
           id: productData.productId,
           name: productData.name,
           price: productData.price,
           image: productData.image,
-          quantity: productData.quantity || 1
+          quantity: productData.quantity || 1,
+          color: productData.color || '',
+          size: productData.size || ''
         });
       }
       saveLocalCart(cart);
@@ -45,23 +56,24 @@ export const cartService = {
     }
   },
 
-  // 3. SEPETTEN SİL / AZALT
-  removeFromCart: async (productId) => {
+  removeFromCart: async (productId, options = {}) => {
+    const { all = false, color = '', size = '' } = options;
     try {
-      const response = await API.delete(`/cart/${productId}`);
+      const response = await API.delete(`/cart/${productId}`, {
+        params: { all: all ? 'true' : undefined, color, size }
+      });
       return response.data;
     } catch (error) {
-      // Hata alınırsa misafir sepetinden sil/azalt
-      let cart = getLocalCart();
-      const itemIndex = cart.findIndex(item => 
-        (item.product?._id || item.product || item.id) === productId
-      );
-      
+      if (error.response?.status && error.response.status !== 401) {
+        throw error.response?.data || error;
+      }
+      const cart = getLocalCart();
+      const itemIndex = cart.findIndex((item) => matchesItem(item, productId, color, size));
       if (itemIndex > -1) {
-        if (cart[itemIndex].quantity > 1) {
-          cart[itemIndex].quantity -= 1;
-        } else {
+        if (all || cart[itemIndex].quantity <= 1) {
           cart.splice(itemIndex, 1);
+        } else {
+          cart[itemIndex].quantity -= 1;
         }
         saveLocalCart(cart);
       }
@@ -69,7 +81,24 @@ export const cartService = {
     }
   },
 
-  // 4. SEPETİ TAMAMEN BOŞALT
+  updateCartItem: async (productId, { quantity, color = '', size = '' }) => {
+    try {
+      const response = await API.patch(`/cart/${productId}`, { quantity, color, size });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status && error.response.status !== 401) {
+        throw error.response?.data || error;
+      }
+      const cart = getLocalCart();
+      const itemIndex = cart.findIndex((item) => matchesItem(item, productId, color, size));
+      if (itemIndex > -1) {
+        cart[itemIndex].quantity = Math.max(1, quantity);
+        saveLocalCart(cart);
+      }
+      return { success: true, items: cart, isGuest: true };
+    }
+  },
+
   clearCart: async () => {
     try {
       const response = await API.delete('/cart/clear');
@@ -81,4 +110,5 @@ export const cartService = {
   }
 };
 
+export { itemKey };
 export default cartService;

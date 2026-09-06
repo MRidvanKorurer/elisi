@@ -1,9 +1,12 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Fab, Tooltip } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { motion } from 'framer-motion';
 
 export default function WhatsAppWidget() {
+  const location = useLocation();
+  const liftForOverlay = location.pathname.startsWith('/product/') || location.pathname.startsWith('/checkout');
   const PHONE_NUMBER = "905XXXXXXXXX"; // WhatsApp Numarası (Ülke kodu ile)
   const defaultMessage = encodeURIComponent("Merhaba NKBag! Tasarımlarınız hakkında bilgi almak istiyorum.");
 
@@ -14,8 +17,8 @@ export default function WhatsAppWidget() {
       transition={{ delay: 1, duration: 0.5 }}
       style={{
         position: 'fixed',
-        bottom: 28,
-        right: 28,
+        bottom: liftForOverlay ? 96 : 28,
+        right: 16,
         zIndex: 1200
       }}
     >

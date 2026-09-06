@@ -43,6 +43,16 @@ export const productService = {
     const response = await API.get('/products/categories');
     return response.data;
   },
+
+  getLookbook: async () => {
+    const response = await API.get('/products/lookbook');
+    return response.data;
+  },
+
+  getFilterOptions: async () => {
+    const response = await API.get('/products/filter-options');
+    return response.data;
+  },
 };
 
 export default productService;

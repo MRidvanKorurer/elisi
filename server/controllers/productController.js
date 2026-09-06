@@ -1,9 +1,23 @@
+const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const Lookbook = require('../models/Lookbook');
+const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
+
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value) && String(new mongoose.Types.ObjectId(value)) === String(value);
+
+// Onay bekleyen veya reddedilen satıcı ürünleri vitrinde görünmez
+const publicMatch = (extra = {}) => ({
+    isActive: true,
+    approvalStatus: { $nin: ['pending', 'rejected'] },
+    ...extra
+});
 
 // GET ALL PRODUCTS
 const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isActive: true }).sort({ createdAt: -1 });
+        const products = await Product.find(publicMatch()).sort({ createdAt: -1 });
         res.status(200).json(products);
     } catch (error) {
         res.status(500).json({ message: 'Server error while fetching products.', error: error.message });
@@ -12,17 +26,30 @@ const getAllProducts = async (req, res) => {
 
 const getFilteredProducts = async (req, res) => {
     try {
-        const { search, category, minPrice, maxPrice, sort = 'newest', page = 1, limit = 12 } = req.query;
+        const {
+            search,
+            category,
+            minPrice,
+            maxPrice,
+            sort = 'newest',
+            page = 1,
+            limit = 12,
+            inStock,
+            onSale,
+            isNew,
+            immediateDelivery,
+            color,
+            minRating
+        } = req.query;
 
         const currentPage = Math.max(1, parseInt(page, 10) || 1);
         const pageSize = Math.max(1, parseInt(limit, 10) || 12);
         const skip = (currentPage - 1) * pageSize;
 
-        // $match koşulları
-        const matchStage = {};
+        const matchStage = publicMatch();
 
         if (search && search.trim() !== '') {
-            const term = search.trim();
+            const term = escapeRegex(search.trim());
             matchStage.$or = [
                 { title: { $regex: term, $options: 'i' } },
                 { name: { $regex: term, $options: 'i' } },
@@ -34,17 +61,60 @@ const getFilteredProducts = async (req, res) => {
         }
 
         if (category) {
-            const categories = category.split(',').map(c => new RegExp(`^${c.trim()}$`, 'i'));
-            matchStage.category = { $in: categories };
+            const categories = category.split(',')
+                .map((c) => c.trim())
+                .filter(Boolean)
+                .map((c) => new RegExp(`^${escapeRegex(c)}$`, 'i'));
+            if (categories.length) {
+                matchStage.category = { $in: categories };
+            }
+        }
+
+        if (color) {
+            const colors = color.split(',').map((c) => c.trim()).filter(Boolean);
+            if (colors.length) {
+                matchStage.colors = {
+                    $in: colors.map((c) => new RegExp(`^${escapeRegex(c)}$`, 'i'))
+                };
+            }
+        }
+
+        if (inStock === 'true' || inStock === '1') {
+            matchStage.stock = { $gt: 0 };
+        }
+        if (onSale === 'true' || onSale === '1') {
+            matchStage.discountPercentage = { $gt: 0 };
+        }
+        if (isNew === 'true' || isNew === '1') {
+            matchStage.isNewProduct = true;
+        }
+        if (immediateDelivery === 'true' || immediateDelivery === '1') {
+            matchStage.immediateDelivery = true;
+        }
+
+        if (minRating !== undefined && minRating !== '') {
+            const ratingValue = parseFloat(minRating);
+            if (!Number.isNaN(ratingValue)) {
+                matchStage.rating = { $gte: ratingValue };
+            }
         }
 
         const priceFilter = {};
-        if (minPrice !== undefined && minPrice !== '') priceFilter.$gte = parseFloat(minPrice);
-        if (maxPrice !== undefined && maxPrice !== '') priceFilter.$lte = parseFloat(maxPrice);
+        if (minPrice !== undefined && minPrice !== '') {
+            const n = parseFloat(minPrice);
+            if (!Number.isNaN(n)) priceFilter.$gte = n;
+        }
+        if (maxPrice !== undefined && maxPrice !== '') {
+            const n = parseFloat(maxPrice);
+            if (!Number.isNaN(n)) priceFilter.$lte = n;
+        }
 
         let sortStage = { createdAt: -1 };
         if (sort === 'priceAsc') sortStage = { finalPrice: 1 };
         if (sort === 'priceDesc') sortStage = { finalPrice: -1 };
+        if (sort === 'rating') sortStage = { rating: -1, soldCount: -1 };
+        if (sort === 'popular') sortStage = { soldCount: -1, rating: -1 };
+        if (sort === 'discount') sortStage = { discountPercentage: -1, finalPrice: 1 };
 
         // Pipeline Çalıştırma
         const pipeline = [
@@ -98,19 +168,23 @@ const getFilteredProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const { id } = req.params;
+        const query = isObjectId(id)
+            ? publicMatch({ $or: [{ _id: id }, { slug: id }] })
+            : publicMatch({ slug: id });
+
+        const product = await Product.findOne(query);
 
         if (!product) {
-            return res.status(404).json({ message: 'Ürün bulunamadı.' });
+            return res.status(404).json({ success: false, message: 'Ürün bulunamadı.' });
         }
 
-        res.status(200).json(product);
+        res.status(200).json({ success: true, product });
     } catch (error) {
-        // Eğer gönderilen ID formatı MongoDB ID'si formatında değilse (CastError) hata çökmesini engelliyoruz
         if (error.name === 'CastError') {
-            return res.status(404).json({ message: 'Geçersiz ürün ID formatı.' });
+            return res.status(404).json({ success: false, message: 'Geçersiz ürün ID formatı.' });
         }
-        res.status(500).json({ message: 'Ürün detayı getirilirken hata oluştu.', error: error.message });
+        res.status(500).json({ success: false, message: 'Ürün detayı getirilirken hata oluştu.', error: error.message });
     }
 };
 
@@ -118,7 +192,7 @@ const getProductById = async (req, res) => {
 const getBestSellers = async (req, res) => {
     try {
         // Sadece aktif ürünleri getir, çok satandan (soldCount) aza doğru sırala
-        const bestSellers = await Product.find({ isActive: true })
+        const bestSellers = await Product.find(publicMatch())
             .sort({ soldCount: -1 })
             .limit(12); // İhtiyacına göre limiti artırabilirsin
 
@@ -154,10 +228,7 @@ const createProduct = async (req, res) => {
 const getSponsoredProducts = async (req, res) => {
     try {
         // isSponsored: true olan aktif ürünleri çek
-        const sponsoredProducts = await Product.find({
-            isSponsored: true,
-            isActive: true
-        }).limit(6);
+        const sponsoredProducts = await Product.find(publicMatch({ isSponsored: true })).limit(6);
 
         res.status(200).json({
             success: true,
@@ -174,10 +245,7 @@ const getSponsoredProducts = async (req, res) => {
 
 const getCategories = async (req, res) => {
     try {
-        // Veritabanındaki ürünlerden benzersiz kategori listesini çek
-        const categories = await Product.distinct('category');
-        
-        // Boş veya null olanları temizle
+        const categories = await Product.distinct('category', publicMatch());
         const validCategories = categories.filter(c => c && c.trim() !== '');
 
         res.status(200).json({
@@ -193,6 +261,171 @@ const getCategories = async (req, res) => {
     }
 };
 
+const getFilterOptions = async (req, res) => {
+    try {
+        const [categories, colors, priceAgg] = await Promise.all([
+            Product.distinct('category', publicMatch()),
+            Product.distinct('colors', publicMatch()),
+            Product.aggregate([
+                { $match: publicMatch() },
+                { $group: { _id: null, maxPrice: { $max: '$price' }, minPrice: { $min: '$price' } } }
+            ])
+        ]);
+
+        const price = priceAgg[0] || { minPrice: 0, maxPrice: 10000 };
+
+        res.status(200).json({
+            success: true,
+            categories: (categories || []).filter(Boolean).sort(),
+            colors: (colors || []).filter(Boolean).sort(),
+            minPrice: Math.max(0, Math.floor(price.minPrice || 0)),
+            maxPrice: Math.max(100, Math.ceil(price.maxPrice || 10000))
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Filtre seçenekleri alınamadı.',
+            error: error.message
+        });
+    }
+};
+
+const getLookbook = async (req, res) => {
+    try {
+        const clips = await Lookbook.find({ isActive: true }).sort({ order: 1, createdAt: -1 }).limit(12);
+        return res.status(200).json({
+            success: true,
+            products: clips.map((clip) => ({
+                _id: clip.product || clip._id,
+                productId: clip.product || null,
+                title: clip.title,
+                lookbookLabel: clip.label || clip.title,
+                video: clip.videoUrl,
+                image: clip.posterUrl || ''
+            }))
+        });
+    } catch (error) {
+        console.error('getLookbook hatası:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lookbook ürünleri getirilemedi.',
+            products: []
+        });
+    }
+};
+
+const getMyProducts = async (req, res) => {
+    try {
+        const products = await Product.find({ seller: req.user._id }).sort({ createdAt: -1 });
+        return res.json({ success: true, products });
+    } catch (error) {
+        return res.status(500).json({ success: false, mesaj: 'Ürünler alınamadı.', hata: error.message });
+    }
+};
+
+const createMyProduct = async (req, res) => {
+    try {
+        const {
+            title,
+            description,
+            category,
+            price,
+            stock,
+            discountPercentage = 0,
+            immediateDelivery = 'true',
+            colors = '',
+            sizes = '',
+            careInstructions = ''
+        } = req.body;
+
+        const mainFile = req.files?.image?.[0];
+        const galleryFiles = req.files?.gallery || [];
+
+        if (!title || !description || !category || price == null || stock == null || !mainFile) {
+            galleryFiles.concat(mainFile ? [mainFile] : []).forEach((file) => removeUpload(publicPath(file)));
+            return res.status(400).json({ mesaj: 'Başlık, açıklama, kategori, fiyat, stok ve ana görsel zorunludur.' });
+        }
+
+        const toList = (value) =>
+            String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean);
+
+        const product = await Product.create({
+            seller: req.user._id,
+            title: String(title).trim(),
+            description: String(description).trim(),
+            category: String(category).toLowerCase(),
+            price: Number(price),
+            stock: Number(stock),
+            image: publicPath(mainFile),
+            additionalImages: galleryFiles.map(publicPath),
+            colors: toList(colors),
+            sizes: toList(sizes),
+            careInstructions: String(careInstructions).trim(),
+            discountPercentage: Math.min(100, Math.max(0, Number(discountPercentage) || 0)),
+            immediateDelivery: String(immediateDelivery) !== 'false',
+            approvalStatus: 'pending',
+            isActive: false
+        });
+        return res.status(201).json({
+            success: true,
+            mesaj: 'Ürün onaya gönderildi. Süper admin onayladığında yayına alınır.',
+            product
+        });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Ürün eklenemedi.', hata: error.message });
+    }
+};
+
+// Satıcı fiyat, stok ve açıklamayı yönetir; görsel/başlık/kategori süper adminde kalır
+const SELLER_EDITABLE = ['description', 'price', 'stock', 'discountPercentage', 'immediateDelivery'];
+
+const updateMyProduct = async (req, res) => {
+    try {
+        const product = await Product.findOne({ _id: req.params.id, seller: req.user._id });
+        if (!product) {
+            return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
+        }
+
+        SELLER_EDITABLE.forEach((field) => {
+            if (req.body[field] === undefined) return;
+            if (field === 'price' || field === 'stock') product[field] = Number(req.body[field]);
+            else if (field === 'discountPercentage') product[field] = Math.min(100, Math.max(0, Number(req.body[field]) || 0));
+            else if (field === 'immediateDelivery') product[field] = Boolean(req.body[field]);
+            else product[field] = String(req.body[field]).trim();
+        });
+
+        if (req.body.isActive !== undefined) {
+            if (product.approvalStatus !== 'approved') {
+                return res.status(403).json({ mesaj: 'Ürün onaylanmadan yayına alınamaz.' });
+            }
+            product.isActive = Boolean(req.body.isActive);
+        }
+
+        await product.save();
+        return res.json({ success: true, mesaj: 'Ürün güncellendi.', product });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Ürün güncellenemedi.', hata: error.message });
+    }
+};
+
+const deleteMyProduct = async (req, res) => {
+    try {
+        const product = await Product.findOne({ _id: req.params.id, seller: req.user._id });
+        if (!product) {
+            return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
+        }
+        removeUpload(product.image);
+        (product.additionalImages || []).forEach(removeUpload);
+        await product.deleteOne();
+        return res.json({ success: true, mesaj: 'Ürün silindi.', id: req.params.id });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Ürün silinemedi.', hata: error.message });
+    }
+};
+
 module.exports = {
     getAllProducts,
     createProduct,
@@ -200,5 +433,11 @@ module.exports = {
     getBestSellers,
     getSponsoredProducts,
     getFilteredProducts,
-    getCategories
+    getCategories,
+    getFilterOptions,
+    getLookbook,
+    getMyProducts,
+    createMyProduct,
+    updateMyProduct,
+    deleteMyProduct
 };

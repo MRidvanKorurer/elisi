@@ -1,13 +1,100 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
+    <meta name="theme-color" content="#FDF4D2" />
+
+    <!-- data-default-seo etiketleri JS yüklenince Seo bileşeni tarafından kaldırılır -->
+    <title>Nik Bag | El Yapımı Çanta ve Tasarım Atölyesi</title>
+    <meta
+      name="description"
+      data-default-seo
+      content="Nik Bag; el örgüsü çantalar, ahşap saplı tasarımlar, makrome, seramik ve el yapımı takılar sunan butik tasarım atölyesi. Sınırlı sayıda üretilen özel parçaları keşfedin."
+    />
+    <meta name="robots" data-default-seo content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="author" content="Nik Bag" />
+    <link rel="canonical" data-default-seo href="https://www.nikbag.com/" />
+
+    <meta property="og:type" data-default-seo content="website" />
+    <meta property="og:site_name" data-default-seo content="Nik Bag" />
+    <meta property="og:locale" data-default-seo content="tr_TR" />
+    <meta property="og:title" data-default-seo content="Nik Bag | El Yapımı Çanta ve Tasarım Atölyesi" />
+    <meta
+      property="og:description"
+      data-default-seo
+      content="El örgüsü çantalar, ahşap saplı tasarımlar ve el emeği tasarım parçalar. Güvenli ödeme, hızlı kargo."
+    />
+    <meta property="og:url" data-default-seo content="https://www.nikbag.com/" />
+    <meta property="og:image" data-default-seo content="https://www.nikbag.com/og-cover.jpg" />
+    <meta name="twitter:card" data-default-seo content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "OnlineStore",
+            "@id": "https://www.nikbag.com/#organization",
+            "name": "Nik Bag",
+            "url": "https://www.nikbag.com",
+            "logo": "https://www.nikbag.com/favicon.svg",
+            "image": "https://www.nikbag.com/og-cover.jpg",
+            "description": "El örgüsü çantalar, ahşap saplı tasarımlar, makrome, seramik ve el yapımı takılar sunan butik tasarım atölyesi.",
+            "email": "info@nikbag.com",
+            "address": { "@type": "PostalAddress", "addressLocality": "İstanbul", "addressCountry": "TR" },
+            "sameAs": [
+              "https://www.instagram.com/nikbag",
+              "https://www.facebook.com/nikbag",
+              "https://tr.pinterest.com/nikbag"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.nikbag.com/#website",
+            "name": "Nik Bag",
+            "url": "https://www.nikbag.com",
+            "inLanguage": "tr-TR",
+            "publisher": { "@id": "https://www.nikbag.com/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://www.nikbag.com/products?search={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- JavaScript kapalıyken de içerik görünsün -->
+      <noscript>
+        <h1>Nik Bag | El Yapımı Çanta ve Tasarım Atölyesi</h1>
+        <p>
+          Nik Bag; el örgüsü çantalar, ahşap saplı tasarımlar, makrome, seramik ve el yapımı takılar sunan butik bir
+          tasarım atölyesidir. Siteyi görüntülemek için tarayıcınızda JavaScript'i etkinleştirin.
+        </p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

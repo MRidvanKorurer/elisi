@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Seller = require('../models/Seller');
+const Product = require('../models/Product');
+const Order = require('../models/Order');
+const { isSuperAdmin } = require('../utils/roles');
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -221,7 +224,7 @@ const registerSeller = async (req, res) => {
                 durum: 'pending'
             });
 
-            if (user.rol !== 'admin') {
+            if (!isSuperAdmin(user.rol)) {
                 user.rol = 'seller';
             }
             if (!user.telefon && telefon) {
@@ -266,4 +269,160 @@ const getMySeller = async (req, res) => {
     }
 };
 
-module.exports = { registerSeller, getMySeller, MAGAZA_ETIKET };
+const updateMySeller = async (req, res) => {
+    try {
+        const seller = await Seller.findOne({ user: req.user._id });
+        if (!seller) {
+            return res.status(404).json({ mesaj: 'Bu hesaba bağlı satıcı kaydı bulunamadı.' });
+        }
+        if (seller.durum !== 'approved') {
+            return res.status(403).json({ mesaj: 'Mağaza onaylandıktan sonra bilgileri güncelleyebilirsiniz.' });
+        }
+
+        const {
+            magazaAdi,
+            magazaTuru,
+            aciklama = '',
+            telefon,
+            sehir,
+            ilce,
+            adres,
+            iban,
+            instagram = '',
+            website = ''
+        } = req.body;
+
+        if (!magazaAdi || String(magazaAdi).trim().length < 3) {
+            return res.status(400).json({ mesaj: 'Mağaza adı en az 3 karakter olmalıdır.' });
+        }
+        if (!magazaTuru) {
+            return res.status(400).json({ mesaj: 'Lütfen mağaza türünü seçin.' });
+        }
+        if (!telefon || !isValidPhone(telefon)) {
+            return res.status(400).json({ mesaj: 'Geçerli bir telefon numarası girin.' });
+        }
+        if (!sehir || !ilce || !adres) {
+            return res.status(400).json({ mesaj: 'Şehir, ilçe ve adres zorunludur.' });
+        }
+        const cleanIban = sanitizeIban(iban);
+        if (!isValidIbanTr(cleanIban)) {
+            return res.status(400).json({ mesaj: 'Geçerli bir TR IBAN girin (TR + 24 hane).' });
+        }
+
+        const magazaAdiTrim = String(magazaAdi).trim();
+        const escapedName = magazaAdiTrim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const magazaExists = await Seller.findOne({
+            magazaAdi: new RegExp(`^${escapedName}$`, 'i'),
+            _id: { $ne: seller._id }
+        });
+        if (magazaExists) {
+            return res.status(400).json({ mesaj: 'Bu mağaza adı kullanılıyor.' });
+        }
+
+        seller.magazaAdi = magazaAdiTrim;
+        seller.magazaTuru = String(magazaTuru).toLowerCase();
+        seller.aciklama = String(aciklama).trim();
+        seller.telefon = String(telefon).trim();
+        seller.sehir = String(sehir).trim();
+        seller.ilce = String(ilce).trim();
+        seller.adres = String(adres).trim();
+        seller.iban = cleanIban;
+        seller.instagram = String(instagram).trim();
+        seller.website = String(website).trim();
+        await seller.save();
+
+        if (telefon && req.user.telefon !== String(telefon).trim()) {
+            req.user.telefon = String(telefon).trim();
+            await req.user.save();
+        }
+
+        return res.json({
+            mesaj: 'Mağaza bilgileri güncellendi.',
+            satici: serializeSeller(seller, req.user)
+        });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Mağaza güncellenemedi.', hata: error.message });
+    }
+};
+
+// Satıcı yalnızca kendi ürünlerinin geçtiği siparişleri ve kendi tutarını görür
+const buildSellerOrders = (orders, productIds) => {
+    const owned = new Set(productIds.map(String));
+    return orders
+        .map((order) => {
+            const items = (order.orderItems || []).filter((item) => owned.has(String(item.product)));
+            if (!items.length) return null;
+            const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            return {
+                _id: order._id,
+                createdAt: order.createdAt,
+                orderStatus: order.orderStatus,
+                paymentStatus: order.paymentStatus,
+                paymentMethod: order.paymentMethod,
+                customerInfo: {
+                    firstName: order.customerInfo?.firstName,
+                    lastName: order.customerInfo?.lastName,
+                    phone: order.customerInfo?.phone
+                },
+                shippingAddress: {
+                    city: order.shippingAddress?.city,
+                    district: order.shippingAddress?.district
+                },
+                orderItems: items,
+                sellerTotal: total
+            };
+        })
+        .filter(Boolean);
+};
+
+const getMyOrders = async (req, res) => {
+    try {
+        const productIds = await Product.find({ seller: req.user._id }).distinct('_id');
+        if (!productIds.length) return res.json({ success: true, orders: [] });
+
+        const orders = await Order.find({ 'orderItems.product': { $in: productIds } })
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean();
+
+        return res.json({ success: true, orders: buildSellerOrders(orders, productIds) });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Siparişler alınamadı.', hata: error.message });
+    }
+};
+
+const getMyOverview = async (req, res) => {
+    try {
+        const products = await Product.find({ seller: req.user._id })
+            .select('_id price stock isActive approvalStatus')
+            .lean();
+        const productIds = products.map((p) => p._id);
+
+        const orders = productIds.length
+            ? await Order.find({ 'orderItems.product': { $in: productIds } }).sort({ createdAt: -1 }).limit(200).lean()
+            : [];
+        const sellerOrders = buildSellerOrders(orders, productIds);
+        const revenue = sellerOrders
+            .filter((order) => order.paymentStatus === 'completed')
+            .reduce((sum, order) => sum + order.sellerTotal, 0);
+
+        return res.json({
+            success: true,
+            overview: {
+                products: products.length,
+                published: products.filter((p) => p.isActive && p.approvalStatus !== 'pending').length,
+                pendingApproval: products.filter((p) => p.approvalStatus === 'pending').length,
+                rejected: products.filter((p) => p.approvalStatus === 'rejected').length,
+                lowStock: products.filter((p) => p.stock <= 5).length,
+                orders: sellerOrders.length,
+                openOrders: sellerOrders.filter((order) => order.orderStatus === 'processing').length,
+                revenue,
+                recentOrders: sellerOrders.slice(0, 6)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Mağaza özeti alınamadı.', hata: error.message });
+    }
+};
+
+module.exports = { registerSeller, getMySeller, updateMySeller, getMyOrders, getMyOverview, MAGAZA_ETIKET };

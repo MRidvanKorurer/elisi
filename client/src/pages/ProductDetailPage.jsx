@@ -1,118 +1,252 @@
-
-
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Box, Container, Typography, Button, IconButton, 
-  CircularProgress, Rating, Divider, Accordion, AccordionSummary, 
-  AccordionDetails, Chip, Breadcrumbs, Link, Paper, Snackbar, Alert
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Breadcrumbs,
+  Button,
+  Chip,
+  CircularProgress,
+  Container,
+  Divider,
+  IconButton,
+  Link,
+  Rating,
+  Snackbar,
+  Typography
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import CheckCircleOutlineRounded from '@mui/icons-material/CheckCircleOutlineRounded';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import IosShareRounded from '@mui/icons-material/IosShareRounded';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import RemoveIcon from '@mui/icons-material/Remove';
+import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import VerifiedOutlined from '@mui/icons-material/VerifiedOutlined';
+import ZoomInRounded from '@mui/icons-material/ZoomInRounded';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import Lightbox from 'yet-another-react-lightbox';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import 'yet-another-react-lightbox/styles.css';
 
-import Lightbox from "yet-another-react-lightbox";
-import "yet-another-react-lightbox/styles.css";
-import Zoom from "yet-another-react-lightbox/plugins/zoom"; 
+import productService from '../api/productService';
+import { cartService } from '../api/cartServices';
+import userService from '../api/userService';
+import ProductCard from '../components/ProductCard';
+import { imgBagOrange } from '../assets/media';
+import Seo from '../components/Seo';
+import { breadcrumbSchema, productSchema } from '../utils/schema';
+import { productDescription } from '../utils/seo';
 
-import productServiceDefault, { productService as productServiceNamed } from '../api/productService'; 
-import cartServiceDefault, { cartService as cartServiceNamed } from '../api/cartServices'; // 's' HARFİ DÜZELTİLDİ
-import ProductCard, { productCardGridSx } from '../components/ProductCard';
+const FALLBACK_IMAGE = imgBagOrange;
 
-// Esnek servis içe aktarımları (named vs default)
-const productService = productServiceNamed || productServiceDefault;
-const cartService = cartServiceNamed || cartServiceDefault;
+const CATEGORY_LABELS = {
+  seramik: 'Seramik',
+  makrome: 'Makrome',
+  ahsap: 'Ahşap',
+  taki: 'Takı',
+  mum: 'Mum',
+  canta: 'Çanta',
+  deri: 'Deri',
+  aksesuar: 'Aksesuar',
+  diger: 'Diğer'
+};
+
+const formatPrice = (value) =>
+  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+const categoryLabel = (value) => CATEGORY_LABELS[String(value || '').toLowerCase()] || value || 'Tüm Ürünler';
 
 export default function ProductDetailPage({ onAddToCart }) {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [activeImage, setActiveImage] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
-
-  // Toast Bildirimi State'i
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
-  // Benzer Ürünler State'i
   const [similarProducts, setSimilarProducts] = useState([]);
-
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // URL'deki ID değiştiğinde sayfanın en üstüne kaydır
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
-  // Ana ürün ve benzer ürün verilerini çekme
   useEffect(() => {
     const fetchProductData = async () => {
+      if (!id) return;
+
       try {
         setLoading(true);
         setError(null);
 
-        // 1. Ana ürünü çek
         const response = await productService.getProductById(id);
         const productData = response?.product || response?.data || response;
 
         if (!productData || (!productData._id && !productData.id)) {
-          throw new Error("Ürün bulunamadı");
+          throw new Error('Ürün bulunamadı');
         }
 
         setProduct(productData);
-        setActiveImage(productData.image || productData.gorsel || ''); 
+        setActiveImage(productData.image || productData.gorsel || '');
         setQuantity(1);
+        setSelectedColor(Array.isArray(productData.colors) && productData.colors[0] ? productData.colors[0] : '');
+        setSelectedSize(Array.isArray(productData.sizes) && productData.sizes[0] ? productData.sizes[0] : '');
 
-        // 2. Benzer Ürünleri Çek
         try {
           const categoryParam = productData.category || productData.kategori;
-          let similarList = [];
-
-          if (productService.getFilteredProducts) {
-            const similarRes = await productService.getFilteredProducts({
-              category: categoryParam,
-              limit: 5
-            });
-            const fetched = similarRes?.products || similarRes?.data || [];
-            similarList = fetched.filter(p => (p._id || p.id) !== (productData._id || productData.id));
-          } else {
-            const allRes = await productService.getAllProducts();
-            const allFetched = Array.isArray(allRes) ? allRes : (allRes?.products || []);
-            similarList = allFetched
-              .filter(p => (p.category === categoryParam || p.kategori === categoryParam) && (p._id || p.id) !== (productData._id || productData.id))
-              .slice(0, 4);
-          }
-
-          setSimilarProducts(similarList.slice(0, 4));
+          const similarRes = await productService.getFilteredProducts({
+            category: categoryParam,
+            limit: 8
+          });
+          const fetched = similarRes?.products || similarRes?.data || [];
+          const currentId = String(productData._id || productData.id);
+          setSimilarProducts(
+            fetched.filter((item) => String(item._id || item.id) !== currentId).slice(0, 4)
+          );
         } catch (simErr) {
-          console.warn("Benzer ürünler çekilemedi:", simErr);
+          console.warn('Benzer ürünler çekilemedi:', simErr);
           setSimilarProducts([]);
         }
-
       } catch (err) {
-        console.error("Ürün detayı çekilirken hata:", err);
-        setError("Ürün bulunamadı veya bir hata oluştu.");
+        console.error('Ürün detayı çekilirken hata:', err);
+        setProduct(null);
+        setError(err?.response?.data?.message || err.message || 'Ürün bulunamadı veya bir hata oluştu.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchProductData();
-    }
+    fetchProductData();
   }, [id]);
+
+  useEffect(() => {
+    const syncFavorite = async () => {
+      const productId = product?._id || product?.id;
+      if (!productId) return;
+
+      try {
+        const favRes = await userService.getFavorites();
+        const favList = favRes?.favorites || [];
+        setIsFavorite(favList.some((item) => String(item?._id || item?.id || item) === String(productId)));
+      } catch {
+        setIsFavorite(false);
+      }
+    };
+
+    syncFavorite();
+  }, [product]);
+
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const extras = Array.isArray(product.additionalImages) ? product.additionalImages : [];
+    return [product.image || product.gorsel, ...extras].filter(Boolean);
+  }, [product]);
+
+  const rawPrice = Number(product?.price || product?.fiyat || 0);
+  const discountRate = Number(product?.discountPercentage || product?.indirimOrani || 0);
+  const discountedPrice = discountRate > 0 ? rawPrice - rawPrice * (discountRate / 100) : rawPrice;
+  const stock = Number(product?.stock ?? 0);
+  const outOfStock = stock <= 0;
+  const title = product?.title || product?.name || 'Ürün';
+  const mainImg = allImages[0] || FALLBACK_IMAGE;
+  const displayImage = activeImage || mainImg;
+
+  const showToast = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleAddToCart = async () => {
+    if (!product || outOfStock || addingToCart) return;
+    setAddingToCart(true);
+
+    const payload = {
+      productId: product._id || product.id,
+      name: title,
+      price: discountedPrice,
+      image: mainImg,
+      quantity,
+      color: selectedColor,
+      size: selectedSize
+    };
+
+    try {
+      const response = await cartService.addToCart(payload);
+      if (!response?.success) {
+        throw new Error(response?.message || 'Ürün sepete eklenemedi.');
+      }
+
+      window.dispatchEvent(new Event('cartUpdated'));
+      if (onAddToCart) {
+        onAddToCart({ ...product, quantity, finalPrice: discountedPrice, color: selectedColor, size: selectedSize });
+      }
+      showToast(`${title} sepete eklendi.`);
+    } catch (err) {
+      showToast(err?.response?.data?.message || err.message || 'Ürün sepete eklenirken bir sorun oluştu.', 'error');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    const productId = product?._id || product?.id;
+    if (!productId || favLoading) return;
+
+    setFavLoading(true);
+    try {
+      if (isFavorite) {
+        await userService.removeFavorite(productId);
+        setIsFavorite(false);
+        showToast('Ürün favorilerden çıkarıldı.', 'info');
+      } else {
+        await userService.addFavorite(productId);
+        setIsFavorite(true);
+        showToast('Ürün favorilere eklendi.');
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || err?.mesaj) {
+        showToast('Favorilere eklemek için giriş yapmalısınız.', 'warning');
+      } else {
+        showToast(err?.response?.data?.message || 'Favori işlemi başarısız.', 'error');
+      }
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast('Ürün bağlantısı kopyalandı.', 'info');
+    } catch {
+      showToast('Paylaşım iptal edildi.', 'info');
+    }
+  };
+
+  const handleOpenLightbox = (index = 0) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   if (loading) {
     return (
@@ -124,295 +258,516 @@ export default function ProductDetailPage({ onAddToCart }) {
 
   if (error || !product) {
     return (
-      <Box sx={{ textAlign: 'center', py: 15 }}>
-        <Typography variant="h5" color="error" fontWeight="600">{error || "Ürün bulunamadı."}</Typography>
-        <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mt: 3, color: '#946D6D', borderColor: '#946D6D', textTransform: 'none', borderRadius: '12px' }}>Geri Dön</Button>
+      <Box sx={{ textAlign: 'center', py: { xs: 12, md: 16 }, px: 3 }}>
+        <Seo title="Ürün bulunamadı" path={`/product/${id || ''}`} noindex />
+        <Typography variant="h5" fontWeight={800} sx={{ color: '#2E3B55' }}>
+          {error || 'Ürün bulunamadı.'}
+        </Typography>
+        <Typography sx={{ color: '#6E5252', mt: 1.5, mb: 3 }}>
+          Aradığınız ürün kaldırılmış veya bağlantı hatalı olabilir.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/products')}
+          sx={{ bgcolor: '#946D6D', borderRadius: '14px', px: 3, fontWeight: 800, '&:hover': { bgcolor: '#7c5a5a' } }}
+        >
+          Ürünlere dön
+        </Button>
       </Box>
     );
   }
 
-  // Resim dizisini güvenli oluşturma
-  const additionalImgs = Array.isArray(product.additionalImages) ? product.additionalImages : [];
-  const mainImg = product.image || product.gorsel || '';
-  const allImages = [mainImg, ...additionalImgs].filter(Boolean);
-  const lightboxSlides = allImages.map(img => ({ src: img }));
-  
-  // İndirimli Fiyat Hesabı
-  const rawPrice = Number(product.price || product.fiyat || 0);
-  const discountRate = Number(product.discountPercentage || product.indirimOrani || 0);
-  const discountedPrice = discountRate > 0 
-    ? rawPrice - (rawPrice * (discountRate / 100))
-    : rawPrice;
+  const lightboxSlides = allImages.map((img) => ({ src: img }));
+  const features = Array.isArray(product.features) ? product.features.filter(Boolean) : [];
+  const colors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
+  const sizes = Array.isArray(product.sizes) ? product.sizes.filter(Boolean) : [];
 
-  // --- SEPETE EKLEME İŞLEMİ (NAVBAR SAYACINI DİNAMİK ARTTIRAN YAPI) ---
-  const handleAddToCart = async () => {
-    setAddingToCart(true);
-
-    const payload = {
-      productId: product._id || product.id,
-      name: product.title || product.name,
-      price: discountedPrice,
-      image: mainImg,
-      quantity: quantity
-    };
-
-    try {
-      // 1. Doğrudan cartService üzerinden istek at veya yerel sepete (localStorage) yaz
-      await cartService.addToCart(payload);
-
-      // 🚨 2. NAVBAR SAYACINI CANLI GÜNCELLEYEN OLAY (EVENT)
-      window.dispatchEvent(new Event('cartUpdated'));
-
-      // 3. Eğer üst bileşene (App.jsx vb.) bildirmek gerekiyorsa handler'ı çağır
-      if (onAddToCart) {
-        onAddToCart({
-          ...product,
-          quantity,
-          finalPrice: discountedPrice
-        });
-      }
-
-      setSnackbar({
-        open: true,
-        message: `${product.title || 'Ürün'} başarıyla sepete eklendi!`,
-        severity: 'success'
-      });
-    } catch (err) {
-      console.error("Sepete ekleme hatası:", err);
-      setSnackbar({
-        open: true,
-        message: 'Ürün sepete eklenirken bir sorun oluştu.',
-        severity: 'error'
-      });
-    } finally {
-      setAddingToCart(false);
-    }
-  };
-
-  const handleOpenLightbox = () => {
-    const idx = allImages.indexOf(activeImage);
-    setLightboxIndex(idx >= 0 ? idx : 0);
-    setLightboxOpen(true);
-  };
-
-  const handleToggleFavorite = () => {
-    setIsFavorite(prev => !prev);
-    setSnackbar({
-      open: true,
-      message: !isFavorite ? 'Ürün favorilere eklendi.' : 'Ürün favorilerden çıkarıldı.',
-      severity: 'info'
-    });
-  };
+  const productPath = `/product/${product._id || product.id}`;
+  const seoDescription = productDescription(product);
 
   return (
-    <Box sx={{ pt: { xs: 12, md: 15 }, pb: 10, minHeight: '100vh', backgroundColor: '#FDF4D2' }}>
+    <Box sx={{ pt: { xs: 11, md: 14 }, pb: { xs: 14, md: 10 }, minHeight: '100vh' }}>
+      <Seo
+        title={`${title}${product.category ? ` - El Yapımı ${categoryLabel(product.category)}` : ''}`}
+        description={seoDescription}
+        path={productPath}
+        image={mainImg}
+        type="product"
+        keywords={[title, product.category, 'el yapımı', 'Nik Bag'].filter(Boolean)}
+        jsonLd={[
+          productSchema(product, {
+            path: productPath,
+            price: discountedPrice,
+            images: allImages,
+            description: seoDescription
+          }),
+          breadcrumbSchema([
+            { name: 'Ana Sayfa', path: '/' },
+            { name: 'Ürünler', path: '/products' },
+            { name: categoryLabel(product.category), path: `/products?category=${encodeURIComponent(product.category || '')}` },
+            { name: title, path: productPath }
+          ])
+        ]}
+      />
       <Container maxWidth="lg">
-        
-        {/* BREADCRUMBS */}
-        <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 4, color: '#A290B7', fontWeight: 500 }}>
-          <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>Anasayfa</Link>
-          <Typography color="inherit" onClick={() => navigate('/products')} sx={{ textTransform: 'capitalize', cursor: 'pointer' }}>
-            {product.category || 'Tüm Ürünler'}
-          </Typography>
-          <Typography sx={{ color: '#2E3B55', fontWeight: 700 }}>{product.title}</Typography>
+        <Breadcrumbs
+          separator={<NavigateNextIcon fontSize="small" />}
+          sx={{ mb: { xs: 3, md: 4 }, color: '#A290B7', fontWeight: 600, '& .MuiBreadcrumbs-ol': { flexWrap: 'wrap' } }}
+        >
+          <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
+            Anasayfa
+          </Link>
+          <Link
+            underline="hover"
+            color="inherit"
+            onClick={() => navigate(`/products?category=${encodeURIComponent(product.category || '')}`)}
+            sx={{ cursor: 'pointer', textTransform: 'capitalize' }}
+          >
+            {categoryLabel(product.category)}
+          </Link>
+          <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>{title}</Typography>
         </Breadcrumbs>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: { xs: 4, md: 6, lg: 8 }, alignItems: 'start' }}>
-          
-          {/* RESİM GALERİSİ */}
-          <Box sx={{ minWidth: 0, position: { md: 'sticky' }, top: 100 }}>
-            <Box onClick={handleOpenLightbox} sx={{ width: '100%', aspectRatio: { xs: '1/1', md: '4/5' }, borderRadius: '24px', overflow: 'hidden', position: 'relative', backgroundColor: '#FFF', boxShadow: '0 12px 30px rgba(0,0,0,0.05)', cursor: 'zoom-in', '&:hover': { opacity: 0.95 }, transition: 'opacity 0.2s' }}>
-              <Box sx={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {product.isNewProduct && <Chip label="YENİ" sx={{ bgcolor: '#2E3B55', color: '#fff', fontWeight: 800, borderRadius: '8px' }} />}
-                {discountRate > 0 && <Chip label={`%${discountRate} İNDİRİM`} sx={{ bgcolor: '#946D6D', color: '#fff', fontWeight: 800, borderRadius: '8px' }} />}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.05fr) minmax(0, 0.95fr)' },
+            gap: { xs: 3, md: 5, lg: 7 },
+            alignItems: 'start'
+          }}
+        >
+          <Box sx={{ minWidth: 0, position: { lg: 'sticky' }, top: { lg: 108 } }}>
+            <Box
+              onClick={() => handleOpenLightbox(Math.max(0, allImages.indexOf(displayImage)))}
+              sx={{
+                width: '100%',
+                aspectRatio: { xs: '1 / 1', md: '4 / 5' },
+                borderRadius: { xs: '22px', md: '28px' },
+                overflow: 'hidden',
+                position: 'relative',
+                backgroundColor: '#fff',
+                border: '1px solid rgba(148,109,109,0.12)',
+                boxShadow: '0 22px 50px -24px rgba(46,59,85,0.35)',
+                cursor: 'zoom-in'
+              }}
+            >
+              <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '70%' }}>
+                {product.isNewProduct && <Chip label="Yeni" sx={badgeSx('#2E3B55')} />}
+                {discountRate > 0 && <Chip label={`%${discountRate} indirim`} sx={badgeSx('#946D6D')} />}
+                {outOfStock && <Chip label="Tükendi" sx={badgeSx('#6E5252')} />}
               </Box>
-              <img src={activeImage || mainImg} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <Box sx={zoomHintSx}>
+                <ZoomInRounded sx={{ fontSize: 18 }} />
+              </Box>
+              <Box
+                component="img"
+                src={displayImage}
+                alt={title}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
             </Box>
 
             {allImages.length > 1 && (
-              <Box sx={{ display: 'flex', gap: 2, mt: 2, overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' } }}>
-                {allImages.map((img, idx) => (
-                  <Box key={idx} onClick={() => setActiveImage(img)} sx={{ width: 80, height: 80, borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', flexShrink: 0, border: activeImage === img ? '2px solid #946D6D' : '2px solid transparent', opacity: activeImage === img ? 1 : 0.6 }}>
-                    <img src={img} alt={`Görsel ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </Box>
-                ))}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'repeat(4, minmax(0, 1fr))', sm: 'repeat(6, minmax(0, 1fr))' },
+                  gap: 1.2,
+                  mt: 1.5
+                }}
+              >
+                {allImages.map((img, idx) => {
+                  const active = displayImage === img;
+                  return (
+                    <Box
+                      key={`${img}-${idx}`}
+                      onClick={() => setActiveImage(img)}
+                      sx={{
+                        aspectRatio: '1 / 1',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: active ? '2px solid #946D6D' : '2px solid transparent',
+                        opacity: active ? 1 : 0.72,
+                        transition: 'opacity 0.2s ease, border-color 0.2s ease'
+                      }}
+                    >
+                      <Box component="img" src={img} alt={`${title} görsel ${idx + 1}`} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </Box>
+                  );
+                })}
               </Box>
             )}
           </Box>
 
-          {/* ÜRÜN BİLGİLERİ & DETAYLARI */}
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h3" fontWeight="800" sx={{ color: '#2E3B55', mb: 1.5, fontSize: { xs: '1.8rem', md: '2.3rem' }, lineHeight: 1.2 }}>
-              {product.title}
+            <Typography sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.08em', fontSize: '0.75rem', textTransform: 'uppercase', mb: 1 }}>
+              {categoryLabel(product.category)} {product.productCode ? `• ${product.productCode}` : ''}
             </Typography>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Rating value={Number(product.rating || 5)} precision={0.1} readOnly sx={{ color: '#DDA15E' }} />
-              <Typography variant="body2" sx={{ color: '#A290B7', fontWeight: 600 }}>({product.numReviews || 0} Değerlendirme)</Typography>
-            </Box>
+            <Typography
+              component="h1"
+              fontWeight={800}
+              sx={{ color: '#2E3B55', fontSize: { xs: '1.7rem', sm: '2.05rem', md: '2.4rem' }, lineHeight: 1.15, letterSpacing: '-0.03em', mb: 1.5 }}
+            >
+              {title}
+            </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-              <Typography variant="h3" fontWeight="800" sx={{ color: '#946D6D' }}>
-                {discountedPrice.toLocaleString('tr-TR')} ₺
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+              <Rating value={Number(product.rating || 5)} precision={0.1} readOnly sx={{ color: '#DDA15E' }} />
+              <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 700 }}>
+                {Number(product.rating || 5).toFixed(1)} · {product.numReviews || 0} değerlendirme
               </Typography>
-              {discountRate > 0 && (
-                <Typography variant="h5" sx={{ textDecoration: 'line-through', color: '#A290B7', fontWeight: 600 }}>
-                  {rawPrice.toLocaleString('tr-TR')} ₺
+              {product.soldCount > 0 && (
+                <Typography variant="body2" sx={{ color: '#A290B7', fontWeight: 700 }}>
+                  {product.soldCount} satış
                 </Typography>
               )}
             </Box>
 
-            <Divider sx={{ mb: 4, borderColor: 'rgba(148, 109, 109, 0.15)' }} />
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 1.5, mb: 3 }}>
+              <Typography className="custom-gradient-text" fontWeight={800} sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, lineHeight: 1 }}>
+                {formatPrice(discountedPrice)} ₺
+              </Typography>
+              {discountRate > 0 && (
+                <Typography sx={{ textDecoration: 'line-through', color: '#A290B7', fontWeight: 700, fontSize: '1.15rem' }}>
+                  {formatPrice(rawPrice)} ₺
+                </Typography>
+              )}
+            </Box>
 
-            {/* ADET SEÇİMİ VE SEPETE EKLE BUTTON GRUBU */}
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'nowrap', gap: 2, mb: 4, width: '100%', alignItems: 'stretch' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '2px solid rgba(148, 109, 109, 0.2)', borderRadius: '16px', px: 1, height: '56px', width: { xs: '100%', sm: '120px' }, flexShrink: 0, bgcolor: '#FFF' }}>
-                <IconButton onClick={() => setQuantity(q => Math.max(1, q - 1))} sx={{ color: '#2E3B55', padding: '5px' }}>
+            <Typography sx={{ color: '#6E5252', lineHeight: 1.75, mb: 3, maxWidth: 560 }}>
+              {product.description || product.aciklama || 'Bu ürün için henüz detaylı bir açıklama eklenmedi.'}
+            </Typography>
+
+            {colors.length > 0 && (
+              <Box sx={{ mb: 2.5 }}>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1, fontSize: '0.92rem' }}>Renk</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {colors.map((color) => (
+                    <Chip
+                      key={color}
+                      label={color}
+                      onClick={() => setSelectedColor(color)}
+                      sx={choiceChipSx(selectedColor === color)}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            {sizes.length > 0 && (
+              <Box sx={{ mb: 2.5 }}>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1, fontSize: '0.92rem' }}>Beden / ölçü</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {sizes.map((size) => (
+                    <Chip
+                      key={size}
+                      label={size}
+                      onClick={() => setSelectedSize(size)}
+                      sx={choiceChipSx(selectedSize === size)}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            <Typography sx={{ color: outOfStock ? '#946D6D' : '#81B29A', fontWeight: 800, mb: 2, fontSize: '0.92rem' }}>
+              {outOfStock ? 'Stokta yok' : `Stokta ${stock} adet`}
+            </Typography>
+
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                flexWrap: 'wrap',
+                gap: 1.2,
+                mb: 3
+              }}
+            >
+              <Box sx={qtyBoxSx}>
+                <IconButton onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} sx={{ color: '#2E3B55' }}>
                   <RemoveIcon />
                 </IconButton>
-                <Typography fontWeight="800" sx={{ fontSize: '1.1rem', color: '#2E3B55' }}>{quantity}</Typography>
-                <IconButton 
-                  onClick={() => setQuantity(q => Math.min(product.stock || 99, q + 1))} 
-                  disabled={product.stock !== undefined && quantity >= product.stock} 
-                  sx={{ color: '#2E3B55', padding: '5px' }}
+                <Typography fontWeight={800} sx={{ minWidth: 24, textAlign: 'center' }}>{quantity}</Typography>
+                <IconButton
+                  onClick={() => setQuantity((q) => Math.min(stock || 1, q + 1))}
+                  disabled={outOfStock || quantity >= stock}
+                  sx={{ color: '#2E3B55' }}
                 >
                   <AddIcon />
                 </IconButton>
               </Box>
 
-              <Button 
-                variant="contained" 
-                onClick={handleAddToCart} 
-                disabled={product.stock === 0 || addingToCart} 
-                startIcon={addingToCart ? <CircularProgress size={20} color="inherit" /> : <ShoppingBagOutlinedIcon />} 
-                sx={{ 
-                  bgcolor: product.stock === 0 ? '#ccc' : '#946D6D', 
-                  color: '#fff', 
-                  height: '56px', 
-                  borderRadius: '16px', 
-                  fontWeight: 800, 
-                  fontSize: '1.05rem', 
-                  flexGrow: 1, 
-                  flexShrink: 1, 
-                  minWidth: 0, 
-                  boxShadow: 'none', 
-                  '&:hover': { bgcolor: '#7c5a5a', boxShadow: 'none' } 
-                }}
+              <Button
+                variant="contained"
+                onClick={handleAddToCart}
+                disabled={outOfStock || addingToCart}
+                startIcon={addingToCart ? <CircularProgress size={18} color="inherit" /> : <ShoppingBagOutlinedIcon />}
+                sx={cartButtonSx}
               >
-                {product.stock === 0 ? 'TÜKENDİ' : addingToCart ? 'EKLENİYOR...' : 'SEPETE EKLE'}
+                {outOfStock ? 'Tükendi' : addingToCart ? 'Ekleniyor...' : 'Sepete ekle'}
               </Button>
 
-              <IconButton 
-                onClick={handleToggleFavorite}
-                sx={{ 
-                  border: '2px solid rgba(148, 109, 109, 0.2)', 
-                  borderRadius: '16px', 
-                  height: '56px', 
-                  width: { xs: '100%', sm: '56px' }, 
-                  flexShrink: 0, 
-                  bgcolor: '#FFF', 
-                  '&:hover': { borderColor: '#946D6D' } 
-                }}
-              >
+              <IconButton onClick={handleToggleFavorite} disabled={favLoading} sx={iconActionSx}>
                 {isFavorite ? <FavoriteIcon sx={{ color: '#946D6D' }} /> : <FavoriteBorderOutlinedIcon sx={{ color: '#946D6D' }} />}
+              </IconButton>
+              <IconButton onClick={handleShare} sx={iconActionSx}>
+                <IosShareRounded sx={{ color: '#946D6D' }} />
               </IconButton>
             </Box>
 
-            {/* KARGO VE ÜRETİM BİLGİ KARTI */}
-            <Paper elevation={0} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2.5, mb: 4, borderRadius: '16px', bgcolor: '#FFF', border: '1px solid rgba(148, 109, 109, 0.15)' }}>
+            <Box sx={infoCardSx}>
               <Box sx={{ color: '#DDA15E' }}>
-                {product.immediateDelivery ? <LocalShippingOutlinedIcon fontSize="large" /> : <HandymanOutlinedIcon fontSize="large" />}
+                {product.immediateDelivery ? <LocalShippingOutlinedIcon /> : <HandymanOutlinedIcon />}
               </Box>
               <Box>
-                <Typography variant="subtitle2" fontWeight="800" sx={{ color: '#2E3B55' }}>
-                  {product.immediateDelivery ? 'Hemen Teslim Edilebilir' : 'Kişiye Özel Üretim'}
+                <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>
+                  {product.immediateDelivery ? 'Hemen kargoda' : 'Kişiye özel üretim'}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#6E5252' }}>
-                  {product.immediateDelivery 
-                    ? 'Siparişiniz 24 saat içinde kargoya verilir.' 
-                    : `Üretim ve kargo süresi: ${product.customProductionTime || '3-5 iş günü'}`}
+                <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>
+                  {product.immediateDelivery
+                    ? 'Sipariş 24 saat içinde kargoya verilir.'
+                    : `Üretim süresi: ${product.customProductionTime || '1-3 iş günü'}`}
                 </Typography>
               </Box>
-            </Paper>
-
-            {/* AKORDİYON ALANLARI */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Accordion elevation={0} defaultExpanded sx={{ bgcolor: 'transparent', '&:before': { display: 'none' } }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  <Typography fontWeight="800" sx={{ color: '#2E3B55' }}>ÜRÜN ÖZELLİKLERİ</Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ px: 0, pt: 2 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed rgba(162, 144, 183, 0.3)' }}>
-                      <Typography variant="body2" fontWeight="700" color="#2E3B55">Ürün Kodu</Typography>
-                      <Typography variant="body2" color="#6E5252" fontWeight="600">{product.productCode || product._id || product.id}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed rgba(162, 144, 183, 0.3)' }}>
-                      <Typography variant="body2" fontWeight="700" color="#2E3B55">Kategori</Typography>
-                      <Typography variant="body2" color="#6E5252" sx={{ textTransform: 'capitalize' }}>{product.category || product.kategori || 'Genel'}</Typography>
-                    </Box>
-                  </Box>
-                </AccordionDetails>
-              </Accordion>
-              
-              <Accordion elevation={0} sx={{ bgcolor: 'transparent', '&:before': { display: 'none' } }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  <Typography fontWeight="800" sx={{ color: '#2E3B55' }}>ÜRÜN AÇIKLAMASI</Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ px: 0, pt: 2, color: '#6E5252', lineHeight: 1.7 }}>
-                  {product.description || product.aciklama || 'Bu ürün için henüz detaylı bir açıklama eklenmedi.'}
-                </AccordionDetails>
-              </Accordion>
             </Box>
 
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.2, mb: 3 }}>
+              <Box sx={miniFactSx}>
+                <VerifiedOutlined sx={{ color: '#946D6D', fontSize: 20 }} />
+                <Typography variant="body2" fontWeight={700} sx={{ color: '#2E3B55' }}>El işçiliği, sınırlı üretim</Typography>
+              </Box>
+              <Box sx={miniFactSx}>
+                <CheckCircleOutlineRounded sx={{ color: '#946D6D', fontSize: 20 }} />
+                <Typography variant="body2" fontWeight={700} sx={{ color: '#2E3B55' }}>Güvenli ödeme ve iade</Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 1, borderColor: 'rgba(148,109,109,0.12)' }} />
+
+            <Accordion elevation={0} defaultExpanded sx={accordionSx}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Ürün özellikleri</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <SpecRow label="Ürün kodu" value={product.productCode || product._id} />
+                <SpecRow label="Kategori" value={categoryLabel(product.category)} />
+                {features.length > 0 && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, pt: 1.5 }}>
+                    {features.map((feature) => (
+                      <Chip key={feature} label={feature} sx={{ bgcolor: '#fff', fontWeight: 700, borderRadius: '10px' }} />
+                    ))}
+                  </Box>
+                )}
+              </AccordionDetails>
+            </Accordion>
+
+            {product.careInstructions ? (
+              <Accordion elevation={0} sx={accordionSx}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Bakım önerisi</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography sx={{ color: '#6E5252', lineHeight: 1.7 }}>{product.careInstructions}</Typography>
+                </AccordionDetails>
+              </Accordion>
+            ) : null}
           </Box>
         </Box>
 
-        {/* BENZER ÜRÜNLER ALANI */}
         {similarProducts.length > 0 && (
-          <Box sx={{ mt: 12, pt: 6, borderTop: '1px solid rgba(148, 109, 109, 0.15)' }}>
-            <Typography variant="h4" fontWeight="800" sx={{ color: '#2E3B55', mb: 1, letterSpacing: '-0.5px' }}>
-              Bunlar da İlginizi Çekebilir
+          <Box sx={{ mt: { xs: 7, md: 10 }, pt: { xs: 4, md: 6 }, borderTop: '1px solid rgba(148,109,109,0.12)' }}>
+            <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.5rem', md: '1.85rem' }, letterSpacing: '-0.03em' }}>
+              Bunlar da ilginizi çekebilir
             </Typography>
-            <Typography variant="body1" sx={{ color: '#6E5252', mb: 4 }}>
-              Aynı kategorideki diğer eşsiz tasarımlarımızı keşfedin.
-            </Typography>
-            
-            <Box sx={productCardGridSx}>
-              {similarProducts.map(simProduct => (
-                <Box key={simProduct._id || simProduct.id}>
-                  <ProductCard product={simProduct} onAddToCart={onAddToCart} />
+            <Typography sx={{ color: '#6E5252', mb: 3.5, mt: 0.5 }}>Aynı kategorideki diğer el işi tasarımlar.</Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+                gap: { xs: 1.5, md: 2.5 }
+              }}
+            >
+              {similarProducts.map((simProduct) => (
+                <Box key={simProduct._id || simProduct.id} sx={{ minWidth: 0 }}>
+                  <ProductCard product={simProduct} fullWidth onAddToCart={onAddToCart} />
                 </Box>
               ))}
             </Box>
           </Box>
         )}
-
       </Container>
 
-      {/* GÖRSEL BÜYÜTME (LIGHTBOX) */}
+      <Box
+        sx={{
+          display: { xs: 'flex', md: 'none' },
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 20,
+          gap: 1,
+          px: 2,
+          py: 1.4,
+          pb: 'calc(12px + env(safe-area-inset-bottom))',
+          background: 'rgba(253,244,210,0.92)',
+          backdropFilter: 'blur(16px)',
+          borderTop: '1px solid rgba(148,109,109,0.14)'
+        }}
+      >
+        <Box sx={{ ...qtyBoxSx, width: 118, flexShrink: 0 }}>
+          <IconButton size="small" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1}>
+            <RemoveIcon fontSize="small" />
+          </IconButton>
+          <Typography fontWeight={800}>{quantity}</Typography>
+          <IconButton size="small" onClick={() => setQuantity((q) => Math.min(stock || 1, q + 1))} disabled={outOfStock || quantity >= stock}>
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </Box>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleAddToCart}
+          disabled={outOfStock || addingToCart}
+          sx={{ ...cartButtonSx, height: 52 }}
+        >
+          {outOfStock ? 'Tükendi' : `${formatPrice(discountedPrice)} ₺`}
+        </Button>
+        <IconButton onClick={handleToggleFavorite} sx={{ ...iconActionSx, width: 52, height: 52 }}>
+          {isFavorite ? <FavoriteIcon sx={{ color: '#946D6D' }} /> : <FavoriteBorderOutlinedIcon sx={{ color: '#946D6D' }} />}
+        </IconButton>
+      </Box>
+
       {allImages.length > 0 && (
         <Lightbox
           open={lightboxOpen}
           close={() => setLightboxOpen(false)}
           index={lightboxIndex}
           slides={lightboxSlides}
-          plugins={[Zoom]} 
-          styles={{ container: { backgroundColor: "rgba(0, 0, 0, 0.95)" } }}
+          plugins={[Zoom]}
+          styles={{ container: { backgroundColor: 'rgba(18, 16, 14, 0.94)' } }}
         />
       )}
 
-      {/* BİLDİRİM BARI (SNACKBAR) */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={3000} 
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3200}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: { xs: 10, md: 2 } }}
       >
-        <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 600 }}>
+        <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>
   );
 }
+
+function SpecRow({ label, value }) {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 1, borderBottom: '1px dashed rgba(162,144,183,0.28)' }}>
+      <Typography variant="body2" fontWeight={800} sx={{ color: '#2E3B55' }}>{label}</Typography>
+      <Typography variant="body2" fontWeight={600} sx={{ color: '#6E5252', textAlign: 'right' }}>{value}</Typography>
+    </Box>
+  );
+}
+
+const badgeSx = (bg) => ({
+  bgcolor: bg,
+  color: '#fff',
+  fontWeight: 800,
+  borderRadius: '10px',
+  height: 28
+});
+
+const zoomHintSx = {
+  position: 'absolute',
+  right: 16,
+  bottom: 16,
+  zIndex: 2,
+  width: 36,
+  height: 36,
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#2E3B55',
+  backgroundColor: 'rgba(255,255,255,0.9)',
+  boxShadow: '0 8px 20px rgba(0,0,0,0.12)'
+};
+
+const choiceChipSx = (active) => ({
+  borderRadius: '12px',
+  fontWeight: 800,
+  bgcolor: active ? '#946D6D' : '#fff',
+  color: active ? '#fff' : '#2E3B55',
+  border: active ? '1px solid #946D6D' : '1px solid rgba(148,109,109,0.2)',
+  '&:hover': { bgcolor: active ? '#7c5a5a' : 'rgba(255,255,255,0.9)' }
+});
+
+const qtyBoxSx = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  border: '1.5px solid rgba(148,109,109,0.18)',
+  borderRadius: '16px',
+  px: 0.5,
+  height: 56,
+  minWidth: 120,
+  bgcolor: '#fff'
+};
+
+const cartButtonSx = {
+  bgcolor: '#946D6D',
+  color: '#fff',
+  height: 56,
+  borderRadius: '16px',
+  fontWeight: 800,
+  fontSize: '1rem',
+  px: 3,
+  flexGrow: 1,
+  boxShadow: 'none',
+  '&:hover': { bgcolor: '#7c5a5a', boxShadow: 'none' },
+  '&.Mui-disabled': { bgcolor: '#cbb4b4', color: '#fff' }
+};
+
+const iconActionSx = {
+  border: '1.5px solid rgba(148,109,109,0.18)',
+  borderRadius: '16px',
+  width: 56,
+  height: 56,
+  bgcolor: '#fff',
+  '&:hover': { borderColor: '#946D6D', bgcolor: '#fff' }
+};
+
+const infoCardSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1.5,
+  p: 2.2,
+  mb: 2,
+  borderRadius: '18px',
+  bgcolor: 'rgba(255,255,255,0.78)',
+  border: '1px solid rgba(148,109,109,0.12)'
+};
+
+const miniFactSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+  p: 1.5,
+  borderRadius: '16px',
+  bgcolor: 'rgba(255,255,255,0.65)',
+  border: '1px solid rgba(148,109,109,0.1)'
+};
+
+const accordionSx = {
+  bgcolor: 'transparent',
+  '&:before': { display: 'none' },
+  '& .MuiAccordionSummary-root': { px: 0 },
+  '& .MuiAccordionDetails-root': { px: 0, pt: 0.5 }
+};

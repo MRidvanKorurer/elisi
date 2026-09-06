@@ -8,6 +8,8 @@ const connectDB = async () => {
             serverSelectionTimeoutMS: 5000 // Sunucu bulamazsa sonsuza kadar beklemesini engeller
         });
         console.log(`✅ MongoDB Bağlantısı Başarılı : ${conn.connection.host}`);
+        const ensureRoles = require('../utils/ensureRoles');
+        await ensureRoles();
     } catch (error) {
         console.error(`MongoDB Bağlantı Hatası ❌: ${error.message}`);
         process.exit(1); 

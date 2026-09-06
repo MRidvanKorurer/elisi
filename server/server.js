@@ -20,14 +20,16 @@ const app = express();
 
 // 1. CORS Ayarı (Credentials & Origin Koruması)
 app.use(cors({
-  origin: 'http://localhost:5173', // React/Vite uygulamanızın adresi
-  credentials: true // HttpOnly Cookie iletimi için ZORUNLU
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  credentials: true
 }));
 
 // 2. Middleware'ler
 app.use(express.json()); // JSON gövdelerini okumak için
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // HttpOnly Cookie'leri okumak için
+
+app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
 
 // 3. Rotalar (Routes)
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -38,8 +40,20 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/sellers', require('./routes/sellerRoutes'));
+app.use('/api/lookbook', require('./routes/lookbookRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
-// 4. Sunucuyu Başlat
+// Arama motorları için güncel sitemap ve robots dosyaları
+app.use('/', require('./routes/seoRoutes'));
+
+// 4. Hata yakalayıcı (dosya yükleme ve rota hataları JSON döner)
+app.use((err, req, res, next) => {
+  if (!err) return next();
+  const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 400);
+  return res.status(status).json({ mesaj: err.message || 'İstek işlenemedi.' });
+});
+
+// 5. Sunucuyu Başlat
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Sunucu ${PORT} portunda güvenli şekilde çalışıyor...`);

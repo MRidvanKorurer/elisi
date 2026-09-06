@@ -395,7 +395,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
   Card, CardMedia, CardContent, CardActions, Typography, Button, 
   Chip, Box, Tooltip, Snackbar, Alert, CircularProgress 
@@ -405,8 +405,9 @@ import { Favorite, FavoriteBorderOutlined } from '@mui/icons-material';
 
 import { cartService } from '../api/cartServices';
 import userService from '../api/userService';
+import { imgBagOrange } from '../assets/media';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80';
+const FALLBACK_IMAGE = imgBagOrange;
 
 export const PRODUCT_CARD_WIDTH = 260;
 export const PRODUCT_CARD_HEIGHT = 440;
@@ -442,7 +443,7 @@ const getCachedFavorites = async () => {
   return globalFavoritesPromise;
 };
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, fullWidth = false }) {
   const navigate = useNavigate();
   
   // State'ler
@@ -484,7 +485,7 @@ export default function ProductCard({ product }) {
     if (id) {
       checkInitialFavorite();
     }
-  }, [id, product]);
+  }, [id, product?.isFavorite]);
 
   const handleCardClick = () => {
     if (id) navigate(`/product/${id}`);
@@ -574,12 +575,12 @@ export default function ProductCard({ product }) {
       <Card 
         onClick={handleCardClick}
         sx={{ 
-          width: PRODUCT_CARD_WIDTH,
-          minWidth: PRODUCT_CARD_WIDTH,
-          maxWidth: PRODUCT_CARD_WIDTH,
-          height: PRODUCT_CARD_HEIGHT,
-          minHeight: PRODUCT_CARD_HEIGHT,
-          maxHeight: PRODUCT_CARD_HEIGHT,
+          width: fullWidth ? '100%' : PRODUCT_CARD_WIDTH,
+          minWidth: fullWidth ? 0 : PRODUCT_CARD_WIDTH,
+          maxWidth: fullWidth ? '100%' : PRODUCT_CARD_WIDTH,
+          height: fullWidth ? 'auto' : PRODUCT_CARD_HEIGHT,
+          minHeight: fullWidth ? { xs: 0, md: PRODUCT_CARD_HEIGHT } : PRODUCT_CARD_HEIGHT,
+          maxHeight: fullWidth ? 'none' : PRODUCT_CARD_HEIGHT,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -588,15 +589,36 @@ export default function ProductCard({ product }) {
           backgroundColor: '#FFFFFF !important',
           border: '1px solid rgba(148, 109, 109, 0.15)',
           boxShadow: '0 10px 25px -5px rgba(46, 59, 85, 0.08)',
-          transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
-          '&:hover': { boxShadow: '0 18px 32px -10px rgba(148, 109, 109, 0.22)', borderColor: '#946D6D' },
+          transition: 'transform .4s cubic-bezier(.22,.61,.36,1), box-shadow 0.35s ease, border-color 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-6px)',
+            boxShadow: '0 22px 38px -12px rgba(148, 109, 109, 0.28)',
+            borderColor: '#946D6D'
+          },
           boxSizing: 'border-box'
         }}
       >
-        <Box sx={{ position: 'relative', height: 190, minHeight: 190, maxHeight: 190, width: '100%', flexShrink: 0, overflow: 'hidden', backgroundColor: '#F8F5F0' }}>
+        <Box sx={{
+          position: 'relative',
+          height: fullWidth ? { xs: 140, sm: 170, md: 190 } : 190,
+          minHeight: fullWidth ? { xs: 140, sm: 170, md: 190 } : 190,
+          maxHeight: fullWidth ? { xs: 140, sm: 170, md: 190 } : 190,
+          width: '100%',
+          flexShrink: 0,
+          overflow: 'hidden',
+          backgroundColor: '#F8F5F0'
+        }}>
           <CardMedia component="img" image={image} alt={title}
+            loading="lazy"
+            decoding="async"
             onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-            sx={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            sx={{
+              objectFit: 'cover',
+              width: '100%',
+              height: '100%',
+              transition: 'transform .55s cubic-bezier(.22,.61,.36,1)',
+              '.MuiCard-root:hover &': { transform: 'scale(1.06)' }
+            }}
           />
           <Box sx={{ position: 'absolute', top: 10, left: 10, maxWidth: 'calc(100% - 52px)' }}>
             <Tooltip title={category} arrow placement="top" enterDelay={200}>
@@ -652,11 +674,25 @@ export default function ProductCard({ product }) {
 
         <CardContent sx={{ p: 2, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#FFFFFF' }}>
           <Box>
-            <Tooltip title={title} arrow placement="top" enterDelay={200}>
-              <Box sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.92rem', ...clampSx(2, '2.6em') }}>
-                {title}
-              </Box>
-            </Tooltip>
+            {/* Başlık gerçek bir bağlantı: arama motorları ürün sayfalarını buradan keşfeder */}
+            <Box component="h3" sx={{ m: 0 }}>
+              <Tooltip title={title} arrow placement="top" enterDelay={200}>
+                <Box
+                  component={RouterLink}
+                  to={id ? `/product/${id}` : '/products'}
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    color: '#2E3B55',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    textDecoration: 'none',
+                    ...clampSx(2, '2.6em')
+                  }}
+                >
+                  {title}
+                </Box>
+              </Tooltip>
+            </Box>
             <Tooltip title={description} arrow placement="top" enterDelay={200}>
               <Box sx={{ fontSize: '0.75rem', color: '#6E5252', mt: 0.8, ...clampSx(2, '2.1em') }}>
                 {description}

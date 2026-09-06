@@ -13,3 +13,10 @@ dist/
 # İşletim Sistemi Kalıntıları
 .DS_Store
 Thumbs.db
+
+# Yüklenen medya (kullanıcı yüklemeleri depoya girmez)
+server/uploads/*
+!server/uploads/products/
+server/uploads/products/*
+# Katalog tohumlama görselleri her ortamda bulunmalı
+!server/uploads/products/seed/

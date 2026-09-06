@@ -1,20 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom'; // YÖNLENDİRME İÇİN EKLENDİ
+import React, { useState, useEffect, Suspense, lazy, useMemo } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress } from '@mui/material';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import AuthPage from './pages/AuthPage';
-import CheckoutPage from './pages/CheckoutPage';
-import ProductDetailPage from './pages/ProductDetailPage'; // DETAY SAYFASI EKLENDİ
 import WhatsAppWidget from './components/WhatsAppWidget';
 import API from './api/api';
 import './index.css';
-import ProfileDashboard from './components/ProfileDashboard';
-import ProductsPage from './pages/ProductsPage';
-import BecomeSellerPage from './pages/BecomeSellerPage';
+import useSmoothScroll from './hooks/useSmoothScroll';
+import { isSuperAdmin } from './utils/roles';
+
+// Ağır sayfalar yalnızca ziyaret edildiğinde indirilir
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
+const ProfileDashboard = lazy(() => import('./components/ProfileDashboard'));
+const ProductsPage = lazy(() => import('./pages/ProductsPage'));
+const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'));
+const OrderResultPage = lazy(() => import('./pages/OrderResultPage'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const SellerPanel = lazy(() => import('./pages/SellerPanel'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const customTheme = createTheme({
   palette: {
@@ -25,10 +34,55 @@ const customTheme = createTheme({
   },
   typography: { fontFamily: '"Plus Jakarta Sans", sans-serif', button: { textTransform: 'none' } },
   shape: { borderRadius: 16 },
+  components: {
+    MuiButton: {
+      defaultProps: { disableElevation: true },
+      styleOverrides: {
+        contained: {
+          fontWeight: 800,
+          boxShadow: 'none'
+        },
+        root: {
+          transition: 'background-color .25s ease, color .25s ease, transform .25s cubic-bezier(.22,.61,.36,1)',
+          '&:active': { transform: 'scale(0.97)' }
+        }
+      }
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: { transition: 'transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .35s ease' }
+      }
+    }
+  }
 });
 
+const PageFade = ({ children, reduced }) => {
+  if (reduced) return children;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const RouteFallback = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+    <CircularProgress sx={{ color: '#946D6D' }} />
+  </Box>
+);
+
 export default function App() {
-  const navigate = useNavigate(); // Yönlendirme kancası
+  const navigate = useNavigate();
+  const location = useLocation();
+  const reduced = useReducedMotion();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  useSmoothScroll(!isAdminRoute);
 
   // Oturum ve Yükleme Stateleri
   const [user, setUser] = useState(null);
@@ -48,6 +102,11 @@ export default function App() {
     };
     checkAuthStatus();
   }, []);
+
+  // Rota değişiminde sayfa başına dön
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   // Güvenli Çıkış (Backend Çerezini Temizler)
   const handleLogout = async () => {
@@ -74,6 +133,55 @@ export default function App() {
     else navigate(`/${pageName}`);
   };
 
+  const routes = useMemo(() => (
+    <Routes location={location} key={location.pathname}>
+      <Route
+        path="/"
+        element={<HomePage onNavigateAuth={() => navigate('/auth')} user={user} />}
+      />
+
+      <Route
+        path="/auth"
+        element={<AuthPage onLoginSuccess={handleLoginSuccess} />}
+      />
+
+      <Route
+        path="/checkout"
+        element={<CheckoutPage setPage={handleSetPage} user={user} />}
+      />
+
+      {/* Detay Sayfası Rotası */}
+      <Route
+        path="/product/:id"
+        element={<ProductDetailPage />}
+      />
+
+      <Route
+        path="/profile"
+        element={<ProfileDashboard />}
+      />
+
+      <Route path="/products" element={<ProductsPage />} />
+
+      <Route
+        path="/satici-ol"
+        element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
+      />
+      <Route
+        path="/admin"
+        element={
+          isSuperAdmin(user?.rol)
+            ? <AdminPanel user={user} handleLogout={handleLogout} />
+            : <SellerPanel user={user} handleLogout={handleLogout} />
+        }
+      />
+      <Route path="/siparis-basarili" element={<OrderResultPage success />} />
+      <Route path="/odeme-basarisiz" element={<OrderResultPage success={false} />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [location, user]);
+
   // Oturum doğrulanırken kısa yüklenme ekranı
   if (loading) {
     return (
@@ -88,57 +196,28 @@ export default function App() {
       <CssBaseline />
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'hidden', backgroundColor: 'background.default' }}>
 
-        {/* Navbar'a adaptör fonksiyonumuzu veriyoruz */}
-        <Navbar
-          setPage={handleSetPage}
-          user={user}
-          handleLogout={handleLogout}
-        />
+        {!isAdminRoute && (
+          <Navbar
+            setPage={handleSetPage}
+            user={user}
+            handleLogout={handleLogout}
+          />
+        )}
 
-        <WhatsAppWidget />
+        {!isAdminRoute && <WhatsAppWidget />}
 
-        <Box component="main" sx={{ flexGrow: 1, width: '100%' }}>
-          {/* YENİ URL TABANLI YÖNLENDİRME SİSTEMİ (REACT ROUTER) */}
-          <Routes>
-            <Route
-              path="/"
-              element={<HomePage onNavigateAuth={() => navigate('/auth')} user={user} />}
-            />
-
-            <Route
-              path="/auth"
-              element={<AuthPage onLoginSuccess={handleLoginSuccess} />}
-            />
-
-            <Route
-              path="/checkout"
-              element={<CheckoutPage setPage={handleSetPage} user={user} />}
-            />
-
-            {/* Detay Sayfası Rotası */}
-            <Route
-              path="/product/:id"
-              element={<ProductDetailPage />}
-            />
-
-            <Route
-              path="/profile"
-              element={<ProfileDashboard />}
-            />
-
-            <Route path="/products"
-            element={<ProductsPage />} />
-
-            <Route
-              path="/satici-ol"
-              element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
-            />
-
-          </Routes>
+        <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 1, isolation: 'isolate' }}>
+          <Suspense fallback={<RouteFallback />}>
+            <AnimatePresence mode="wait" initial={false}>
+              <PageFade key={location.pathname} reduced={reduced}>
+                {routes}
+              </PageFade>
+            </AnimatePresence>
+          </Suspense>
         </Box>
 
         {/* DÜZELTİLEN KISIM: Eski setPage değişkeni yerine handleSetPage verildi */}
-        <Footer setPage={handleSetPage} />
+        {!isAdminRoute && <Footer setPage={handleSetPage} />}
 
       </Box>
     </ThemeProvider>

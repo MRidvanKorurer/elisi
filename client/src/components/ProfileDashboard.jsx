@@ -1,23 +1,19 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Box, Container, Paper, List, ListItem, ListItemIcon,
-    ListItemText, Typography, Avatar, Button, TextField, Divider, IconButton,
-    Snackbar, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions,
+  DialogContent, DialogContentText, DialogTitle, Divider, IconButton, Paper, Snackbar,
+  TextField, Typography, useMediaQuery
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-
 import userService from '../api/userService';
 
-// İkonlar
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import AddLocationAltOutlinedIcon from '@mui/icons-material/AddLocationAltOutlined';
 import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
 import AddCardOutlinedIcon from '@mui/icons-material/AddCardOutlined';
@@ -27,576 +23,650 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined';
+import HourglassEmptyRounded from '@mui/icons-material/HourglassEmptyRounded';
 
 const TABS = [
-    { id: 'profile', label: 'Kişisel Bilgilerim', icon: <PersonOutlineOutlinedIcon /> },
-    { id: 'addresses', label: 'Adreslerim', icon: <LocationOnOutlinedIcon /> },
-    { id: 'cards', label: 'Kayıtlı Kartlarım', icon: <PaymentOutlinedIcon /> },
-    { id: 'orders', label: 'Siparişlerim', icon: <LocalMallOutlinedIcon /> },
-    { id: 'favorites', label: 'Favorilerim', icon: <FavoriteBorderOutlinedIcon /> }
+  { id: 'profile', label: 'Profil', icon: <PersonOutlineOutlinedIcon /> },
+  { id: 'addresses', label: 'Adresler', icon: <LocationOnOutlinedIcon /> },
+  { id: 'cards', label: 'Kartlar', icon: <PaymentOutlinedIcon /> },
+  { id: 'orders', label: 'Siparişler', icon: <LocalMallOutlinedIcon /> },
+  { id: 'favorites', label: 'Favoriler', icon: <FavoriteBorderOutlinedIcon /> }
 ];
 
+const fieldSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '14px',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    '& fieldset': { borderColor: 'rgba(148,109,109,0.18)' },
+    '&:hover fieldset': { borderColor: 'rgba(148,109,109,0.45)' },
+    '&.Mui-focused fieldset': { borderColor: '#946D6D', borderWidth: '1.5px' }
+  },
+  '& .MuiInputLabel-root.Mui-focused': { color: '#946D6D' }
+};
+
+import { imgBagOrange } from '../assets/media';
+import Seo from './Seo';
+
+const formatPrice = (value) =>
+  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+const FALLBACK_IMAGE = imgBagOrange;
+
+function orderLabel(order) {
+  if (order?.orderStatus === 'delivered') return 'Teslim edildi';
+  if (order?.orderStatus === 'shipped') return 'Kargoda';
+  if (order?.orderStatus === 'cancelled') return 'İptal';
+  if (order?.paymentStatus === 'pending') return 'Ödeme bekleniyor';
+  if (order?.paymentStatus === 'failed') return 'Ödeme başarısız';
+  return 'Hazırlanıyor';
+}
+
+function statusConfig(label) {
+  const s = String(label || '').toLowerCase();
+  if (s.includes('teslim')) return { color: '#81B29A', icon: <CheckCircleOutlineOutlinedIcon sx={{ color: '#81B29A' }} /> };
+  if (s.includes('kargo')) return { color: '#DDA15E', icon: <LocalShippingOutlinedIcon sx={{ color: '#DDA15E' }} /> };
+  if (s.includes('iptal') || s.includes('başarısız') || s.includes('failed')) return { color: '#946D6D', icon: <HighlightOffOutlinedIcon sx={{ color: '#946D6D' }} /> };
+  if (s.includes('ödeme')) return { color: '#A290B7', icon: <HourglassEmptyRounded sx={{ color: '#A290B7' }} /> };
+  return { color: '#A290B7', icon: <Inventory2OutlinedIcon sx={{ color: '#A290B7' }} /> };
+}
+
 export default function ProfileDashboard() {
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('profile');
-    const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [alertConfig, setAlertConfig] = useState({ open: false, message: '', severity: 'success' });
+  const [activeTab, setActiveTab] = useState('profile');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ open: false, message: '', severity: 'success' });
 
-    // --- TEMEL STATE'LER (TAMAMEN BOŞ, API'DEN DOLAR) ---
-    const [formData, setFormData] = useState({ name: '', email: '', phone: '', currentPassword: '', newPassword: '' });
-    const [addresses, setAddresses] = useState([]);
-    const [savedCards, setSavedCards] = useState([]);
-    const [orders, setOrders] = useState([]);
-    const [favorites, setFavorites] = useState([]); 
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', currentPassword: '', newPassword: '' });
+  const [addresses, setAddresses] = useState([]);
+  const [savedCards, setSavedCards] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [favorites, setFavorites] = useState([]);
 
-    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-    const [addressForm, setAddressForm] = useState({ baslik: '', adSoyad: '', telefon: '', il: '', ilce: '', adres: '' });
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState({ baslik: '', adSoyad: '', telefon: '', il: '', ilce: '', adres: '' });
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [cardForm, setCardForm] = useState({ kartSahibi: '', kartNumarasi: '', skt: '' });
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isOrderLoading, setIsOrderLoading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, id: null, title: '', message: '' });
 
-    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-    const [cardForm, setCardForm] = useState({ kartSahibi: '', kartNumarasi: '', skt: '' });
+  const showAlert = (message, severity = 'success') => setAlertConfig({ open: true, message, severity });
 
-    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState(null);
-    const [isOrderLoading, setIsOrderLoading] = useState(false);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const profileRes = await userService.getProfile();
+        const user = profileRes.user || profileRes;
+        setFormData({
+          name: user.adSoyad || user.name || '',
+          email: user.email || '',
+          phone: user.telefon || user.phone || '',
+          currentPassword: '',
+          newPassword: ''
+        });
+        setAddresses(user.adresler || user.addresses || []);
+        setSavedCards(user.kayitliKartlar || user.savedCards || []);
 
-    const [deleteModal, setDeleteModal] = useState({
-        isOpen: false, type: null, id: null, title: '', message: ''
-    });
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                // 1. Profil, Adres ve Kartları Çek
-                const data = await userService.getProfile();
-                const user = data.user || data;
-                if (user) {
-                    setFormData({
-                        name: user.adSoyad || user.name || '', 
-                        email: user.email || '', 
-                        phone: user.telefon || user.phone || '', 
-                        currentPassword: '', 
-                        newPassword: ''
-                    });
-                    setAddresses(user.adresler || user.addresses || []);
-                    setSavedCards(user.kayitliKartlar || user.savedCards || []);
-                }
-
-                // 2. Siparişleri Çek
-                if (userService.getOrders) {
-                    const ordersData = await userService.getOrders();
-                    if (ordersData.success) {
-                        setOrders(ordersData.orders || []);
-                    }
-                }
-
-                // 3. Favorileri Çek
-                if (userService.getFavorites) {
-                    const favData = await userService.getFavorites();
-                    if (favData.success) {
-                        setFavorites(favData.favorites || []);
-                    }
-                }
-
-            } catch (error) {
-                showAlert('Veriler alınırken hata oluştu.', 'error');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUserData();
-    }, []);
-
-    const handleRemoveFavorite = async (productId) => {
-        try {
-            await userService.removeFavorite(productId);
-            setFavorites(favorites.filter(fav => (fav._id || fav.id) !== productId));
-            showAlert('Ürün favorilerden çıkarıldı.', 'success');
-        } catch (error) {
-            showAlert('Favorilerden çıkarılırken hata oluştu.', 'error');
+        const [ordersRes, favRes] = await Promise.allSettled([
+          userService.getOrders(),
+          userService.getFavorites()
+        ]);
+        if (ordersRes.status === 'fulfilled' && ordersRes.value?.success) {
+          setOrders(ordersRes.value.orders || []);
         }
+        if (favRes.status === 'fulfilled' && favRes.value?.success) {
+          setFavorites((favRes.value.favorites || []).filter(Boolean));
+        }
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          navigate('/auth');
+          return;
+        }
+        showAlert('Veriler alınırken hata oluştu.', 'error');
+      } finally {
+        setLoading(false);
+      }
     };
+    load();
+  }, [navigate]);
 
-    // --- FORM İŞLEYİCİLER ---
-    const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-    const handleAddressInputChange = (e) => setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
-    const handleCardInputChange = (e) => setCardForm({ ...cardForm, [e.target.name]: e.target.value });
+  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleAddressInputChange = (e) => setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
+  const handleCardInputChange = (e) => setCardForm({ ...cardForm, [e.target.name]: e.target.value });
 
-    // Dinamik Sipariş Durum İkonu ve Rengi
-    const getStatusConfig = (status) => {
-        const s = status?.toLowerCase() || '';
-        if (s.includes('teslim') || s.includes('completed') || s.includes('başarılı')) return { color: '#81B29A', icon: <CheckCircleOutlineOutlinedIcon sx={{ color: '#81B29A' }} /> };
-        if (s.includes('kargo')) return { color: '#DDA15E', icon: <LocalShippingOutlinedIcon sx={{ color: '#DDA15E' }} /> };
-        return { color: '#A290B7', icon: <Inventory2OutlinedIcon sx={{ color: '#A290B7' }} /> };
-    };
-
-    const showAlert = (message, severity = 'success') => setAlertConfig({ open: true, message, severity });
-
-    // --- API İŞLEMLERİ ---
-    const handleSaveProfile = async () => {
-        try {
-            await userService.updateProfile({ adSoyad: formData.name, telefon: formData.phone });
-            if (formData.currentPassword && formData.newPassword) {
-                await userService.changePassword({ currentPassword: formData.currentPassword, newPassword: formData.newPassword });
-                setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-            }
-            showAlert('Profiliniz başarıyla güncellendi.', 'success');
-        } catch (error) {
-            showAlert(error.response?.data?.message || 'Güncelleme başarısız oldu.', 'error');
-        }
-    };
-
-    const handleAddAddress = async () => {
-        if (!addressForm.baslik || !addressForm.adSoyad || !addressForm.telefon || !addressForm.il || !addressForm.ilce || !addressForm.adres) {
-            return showAlert('Lütfen tüm adres alanlarını doldurun.', 'error');
-        }
-        try {
-            const response = await userService.addAddress(addressForm);
-            setAddresses(response.addresses || response.adresler || []);
-            setIsAddressModalOpen(false);
-            setAddressForm({ baslik: '', adSoyad: '', telefon: '', il: '', ilce: '', adres: '' });
-            showAlert('Adres başarıyla eklendi.', 'success');
-        } catch (error) {
-            showAlert(error.response?.data?.message || 'Adres eklenirken bir hata oluştu.', 'error');
-        }
-    };
-
-    const handleAddCard = async () => {
-        if (!cardForm.kartSahibi || !cardForm.kartNumarasi || !cardForm.skt) {
-            return showAlert('Lütfen tüm kart alanlarını doldurun.', 'error');
-        }
-        if (cardForm.kartNumarasi.length < 16) {
-            return showAlert('Geçerli bir kart numarası giriniz (16 hane).', 'error');
-        }
-        try {
-            const response = await userService.addCard(cardForm);
-            setSavedCards(response.savedCards || response.kayitliKartlar || []);
-            setIsCardModalOpen(false);
-            setCardForm({ kartSahibi: '', kartNumarasi: '', skt: '' });
-            showAlert('Kart başarıyla eklendi.', 'success');
-        } catch (error) {
-            showAlert(error.response?.data?.message || 'Kart eklenirken bir hata oluştu.', 'error');
-        }
-    };
-
-    // --- SİLME İŞLEMLERİ VE ONAY MODALI FONKSİYONLARI ---
-    const openDeleteModal = (type, id) => {
-        if (type === 'address') {
-            setDeleteModal({
-                isOpen: true, type: 'address', id: id,
-                title: 'Adresi Sil', message: 'Bu adresi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
-            });
-        } else if (type === 'card') {
-            setDeleteModal({
-                isOpen: true, type: 'card', id: id,
-                title: 'Kartı Sil', message: 'Bu kayıtlı kartı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
-            });
-        }
-    };
-
-    const closeDeleteModal = () => {
-        setDeleteModal({ isOpen: false, type: null, id: null, title: '', message: '' });
-    };
-
-    const confirmDelete = async () => {
-        const { type, id } = deleteModal;
-        if (!id) return;
-
-        try {
-            if (type === 'address') {
-                await userService.deleteAddress(id);
-                setAddresses(addresses.filter(addr => addr._id !== id));
-                showAlert('Adres başarıyla silindi.', 'success');
-            } else if (type === 'card') {
-                await userService.deleteCard(id);
-                setSavedCards(savedCards.filter(card => card._id !== id));
-                showAlert('Kart başarıyla silindi.', 'success');
-            }
-        } catch (error) {
-            showAlert(`${type === 'address' ? 'Adres' : 'Kart'} silinirken bir hata oluştu.`, 'error');
-        } finally {
-            closeDeleteModal();
-        }
-    };
-
-    // --- SİPARİŞ DETAY MODALINI API İLE AÇMA ---
-    const openOrderDetails = async (orderId) => {
-        setIsOrderModalOpen(true);
-        setIsOrderLoading(true);
-        setSelectedOrder(null);
-
-        try {
-            const data = await userService.getOrderById(orderId);
-            if (data.success) {
-                setSelectedOrder(data.order);
-            }
-        } catch (error) {
-            showAlert('Sipariş detayları alınırken bir hata oluştu.', 'error');
-            setIsOrderModalOpen(false);
-        } finally {
-            setIsOrderLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FDF4D2' }}>
-                <CircularProgress sx={{ color: '#2E3B55' }} />
-            </Box>
-        );
+  const handleSaveProfile = async () => {
+    if (!formData.name.trim()) return showAlert('Ad soyad zorunludur.', 'warning');
+    if ((formData.currentPassword && !formData.newPassword) || (!formData.currentPassword && formData.newPassword)) {
+      return showAlert('Şifre değiştirmek için mevcut ve yeni şifreyi birlikte girin.', 'warning');
+    }
+    if (formData.newPassword && formData.newPassword.length < 6) {
+      return showAlert('Yeni şifre en az 6 karakter olmalıdır.', 'warning');
     }
 
-    // --- SEKME İÇERİKLERİ ---
-    const renderProfileTab = () => (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Avatar sx={{ width: 110, height: 110, bgcolor: '#B0CDE6', color: '#1E2738', fontSize: '3rem', fontWeight: 600, border: '4px solid #FDF4D2' }}>
-                    {formData.name ? formData.name.charAt(0).toUpperCase() : 'U'}
-                </Avatar>
-                <Box>
-                    <Typography variant="h5" fontWeight="700" sx={{ color: '#2E3B55', mb: 0.5 }}>Profil Fotoğrafı</Typography>
-                    <Typography variant="body2" sx={{ color: '#6E5252' }}>PNG, JPG veya JPEG (Maks. 2MB)</Typography>
-                </Box>
-            </Box>
+    setSaving(true);
+    try {
+      await userService.updateProfile({ adSoyad: formData.name.trim(), telefon: formData.phone.trim() });
+      if (formData.currentPassword && formData.newPassword) {
+        await userService.changePassword({ currentPassword: formData.currentPassword, newPassword: formData.newPassword });
+        setFormData((prev) => ({ ...prev, currentPassword: '', newPassword: '' }));
+      }
+      showAlert('Profiliniz güncellendi.');
+    } catch (error) {
+      showAlert(error.response?.data?.message || 'Güncelleme başarısız oldu.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-                <TextField fullWidth label="Ad Soyad" name="name" value={formData.name} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
-                <TextField fullWidth label="E-Posta Adresi" name="email" type="email" value={formData.email} disabled sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f9f9f9' } }} />
-                <TextField fullWidth label="Telefon Numarası" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0555 555 55 55" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
-            </Box>
+  const handleAddAddress = async () => {
+    if (!addressForm.baslik || !addressForm.adSoyad || !addressForm.telefon || !addressForm.il || !addressForm.ilce || !addressForm.adres) {
+      return showAlert('Lütfen tüm adres alanlarını doldurun.', 'warning');
+    }
+    try {
+      const response = await userService.addAddress(addressForm);
+      setAddresses(response.addresses || response.adresler || []);
+      setIsAddressModalOpen(false);
+      setAddressForm({ baslik: '', adSoyad: '', telefon: '', il: '', ilce: '', adres: '' });
+      showAlert('Adres eklendi.');
+    } catch (error) {
+      showAlert(error.response?.data?.message || 'Adres eklenirken bir hata oluştu.', 'error');
+    }
+  };
 
-            <Box sx={{ width: '100%', my: 3 }}>
-                <Divider><Typography variant="body2" sx={{ color: '#A290B7', fontWeight: 600, textTransform: 'uppercase' }}>Şifre Değiştir (Opsiyonel)</Typography></Divider>
-            </Box>
+  const handleAddCard = async () => {
+    const digits = String(cardForm.kartNumarasi || '').replace(/\D/g, '');
+    if (!cardForm.kartSahibi || !digits || !cardForm.skt) {
+      return showAlert('Lütfen tüm kart alanlarını doldurun.', 'warning');
+    }
+    if (digits.length < 12) {
+      return showAlert('Geçerli bir kart numarası giriniz.', 'warning');
+    }
+    try {
+      const response = await userService.addCard({ ...cardForm, kartNumarasi: digits });
+      setSavedCards(response.savedCards || response.kayitliKartlar || []);
+      setIsCardModalOpen(false);
+      setCardForm({ kartSahibi: '', kartNumarasi: '', skt: '' });
+      showAlert('Kart eklendi.');
+    } catch (error) {
+      showAlert(error.response?.data?.message || 'Kart eklenirken bir hata oluştu.', 'error');
+    }
+  };
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-                <TextField fullWidth label="Mevcut Şifre" name="currentPassword" type="password" value={formData.currentPassword} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
-                <TextField fullWidth label="Yeni Şifre" name="newPassword" type="password" value={formData.newPassword} onChange={handleInputChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
-            </Box>
+  const openDeleteModal = (type, id) => {
+    setDeleteModal({
+      isOpen: true,
+      type,
+      id,
+      title: type === 'address' ? 'Adresi sil' : 'Kartı sil',
+      message: type === 'address'
+        ? 'Bu adresi silmek istediğinize emin misiniz?'
+        : 'Bu kayıtlı kartı silmek istediğinize emin misiniz?'
+    });
+  };
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-                <Button onClick={handleSaveProfile} variant="contained" size="large" sx={{ bgcolor: '#2E3B55', color: '#FFF', borderRadius: '12px', px: 5, py: 1.5, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#946D6D' } }}>
-                    Değişiklikleri Kaydet
-                </Button>
-            </Box>
-        </motion.div>
-    );
+  const closeDeleteModal = () => setDeleteModal({ isOpen: false, type: null, id: null, title: '', message: '' });
 
-    const renderAddressesTab = () => (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h5" fontWeight="700" sx={{ color: '#2E3B55' }}>Adreslerim</Typography>
-                <Button onClick={() => setIsAddressModalOpen(true)} variant="contained" startIcon={<AddLocationAltOutlinedIcon />} sx={{ bgcolor: '#946D6D', color: '#FFF', borderRadius: '12px', textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#A290B7' } }}>
-                    Yeni Adres Ekle
-                </Button>
-            </Box>
+  const confirmDelete = async () => {
+    const { type, id } = deleteModal;
+    if (!id) return;
+    try {
+      if (type === 'address') {
+        await userService.deleteAddress(id);
+        setAddresses((prev) => prev.filter((addr) => addr._id !== id));
+        showAlert('Adres silindi.');
+      } else {
+        await userService.deleteCard(id);
+        setSavedCards((prev) => prev.filter((card) => card._id !== id));
+        showAlert('Kart silindi.');
+      }
+    } catch {
+      showAlert('Silme işlemi başarısız.', 'error');
+    } finally {
+      closeDeleteModal();
+    }
+  };
 
-            {addresses.length === 0 ? (
-                <Typography variant="body1" sx={{ color: '#6E5252' }}>Henüz kayıtlı bir adresiniz bulunmamaktadır.</Typography>
-            ) : (
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-                    {addresses.map((addr) => (
-                        <Paper key={addr._id} sx={{ p: 3, borderRadius: '16px', border: '1px solid rgba(162, 144, 183, 0.3)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-                            <Typography variant="subtitle1" fontWeight="800" sx={{ color: '#2E3B55', mb: 1 }}>{addr.baslik}</Typography>
-                            <Typography variant="body2" sx={{ color: '#6E5252', mb: 0.5 }}><strong>{addr.adSoyad}</strong> - {addr.telefon}</Typography>
-                            <Typography variant="body2" sx={{ color: '#6E5252', mb: 2 }}>{addr.adres} <br /> {addr.ilce} / {addr.il}</Typography>
+  const handleRemoveFavorite = async (productId) => {
+    try {
+      await userService.removeFavorite(productId);
+      setFavorites((prev) => prev.filter((fav) => String(fav._id || fav.id) !== String(productId)));
+      showAlert('Ürün favorilerden çıkarıldı.');
+    } catch {
+      showAlert('Favorilerden çıkarılırken hata oluştu.', 'error');
+    }
+  };
 
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Button onClick={() => openDeleteModal('address', addr._id)} size="small" startIcon={<DeleteOutlinedIcon />} sx={{ color: '#946D6D', bgcolor: 'rgba(148, 109, 109, 0.1)', borderRadius: '8px', '&:hover': { bgcolor: 'rgba(148, 109, 109, 0.2)' } }}>Sil</Button>
-                            </Box>
-                        </Paper>
-                    ))}
-                </Box>
-            )}
-        </motion.div>
-    );
+  const openOrderDetails = async (orderId) => {
+    setIsOrderModalOpen(true);
+    setIsOrderLoading(true);
+    setSelectedOrder(null);
+    try {
+      const data = await userService.getOrderById(orderId);
+      if (data.success) setSelectedOrder(data.order);
+    } catch {
+      showAlert('Sipariş detayları alınamadı.', 'error');
+      setIsOrderModalOpen(false);
+    } finally {
+      setIsOrderLoading(false);
+    }
+  };
 
-    const renderCardsTab = () => (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h5" fontWeight="700" sx={{ color: '#2E3B55' }}>Kayıtlı Kartlarım</Typography>
-                <Button onClick={() => setIsCardModalOpen(true)} variant="contained" startIcon={<AddCardOutlinedIcon />} sx={{ bgcolor: '#946D6D', color: '#FFF', borderRadius: '12px', textTransform: 'none', fontWeight: 600, '&:hover': { bgcolor: '#A290B7' } }}>
-                    Yeni Kart Ekle
-                </Button>
-            </Box>
-
-            {savedCards.length === 0 ? (
-                <Typography variant="body1" sx={{ color: '#6E5252' }}>Kayıtlı kredi/banka kartınız bulunmamaktadır.</Typography>
-            ) : (
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-                    {savedCards.map((card) => (
-                        <Paper key={card._id} sx={{ position: 'relative', p: 3, borderRadius: '16px', background: 'linear-gradient(135deg, #1E2738 0%, #2E3B55 100%)', color: '#FFF', overflow: 'hidden' }}>
-                            <CreditCardOutlinedIcon sx={{ position: 'absolute', right: -20, bottom: -20, fontSize: '120px', opacity: 0.1 }} />
-                            <Typography variant="h6" sx={{ letterSpacing: '2px', mb: 3, fontFamily: 'monospace' }}>**** **** **** {card.son4Hane}</Typography>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                <Box>
-                                    <Typography variant="caption" sx={{ color: '#B0CDE6', opacity: 0.8 }}>Kart Sahibi</Typography>
-                                    <Typography variant="body2" fontWeight="700">{card.kartSahibi}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="caption" sx={{ color: '#B0CDE6', opacity: 0.8 }}>SKT</Typography>
-                                    <Typography variant="body2" fontWeight="700">{card.skt}</Typography>
-                                </Box>
-                            </Box>
-                            <IconButton onClick={() => openDeleteModal('card', card._id)} size="small" sx={{ position: 'absolute', top: 10, right: 10, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#FFF', bgcolor: 'rgba(255,255,255,0.1)' } }}>
-                                <DeleteOutlinedIcon fontSize="small" />
-                            </IconButton>
-                        </Paper>
-                    ))}
-                </Box>
-            )}
-        </motion.div>
-    );
-
-    const renderOrdersTab = () => (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Typography variant="h5" fontWeight="700" sx={{ color: '#2E3B55', mb: 3 }}>Siparişlerim</Typography>
-
-            {orders.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 5 }}>
-                    <LocalMallOutlinedIcon sx={{ fontSize: 60, color: 'rgba(162, 144, 183, 0.5)', mb: 2 }} />
-                    <Typography variant="h6" sx={{ color: '#2E3B55', fontWeight: 700 }}>Henüz Siparişiniz Bulunmuyor</Typography>
-                    <Typography variant="body2" sx={{ color: '#6E5252', mt: 1 }}>Mağazamızdaki harika ürünleri keşfetmek için alışverişe başlayabilirsiniz.</Typography>
-                    <Button variant="contained" onClick={() => navigate('/products')} sx={{ mt: 3, bgcolor: '#946D6D', color: '#FFF', borderRadius: '12px', '&:hover': { bgcolor: '#825c5c' } }}>
-                        Alışverişe Başla
-                    </Button>
-                </Box>
-            ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {orders.map((order) => {
-                        const orderId = order._id;
-                        const status = order.paymentStatus === 'completed' ? 'Teslim Edildi' : (order.paymentStatus || order.durum || 'Hazırlanıyor');
-                        const statusConfig = getStatusConfig(status);
-                        const total = order.totalPrice || order.toplamTutar || 0;
-                        const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString('tr-TR') : '';
-                        const itemsCount = order.orderItems?.length || order.urunler?.length || 0;
-
-                        return (
-                            <Paper key={orderId} sx={{ p: 2.5, borderRadius: '16px', border: '1px solid rgba(162, 144, 183, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ color: '#A290B7', fontWeight: 700 }}>Sipariş No: #{orderId.slice(-6).toUpperCase()}</Typography>
-                                    <Typography variant="body2" sx={{ color: '#6E5252' }}>{date} • {itemsCount} Ürün</Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    {statusConfig.icon}
-                                    <Typography variant="body2" fontWeight="700" sx={{ color: statusConfig.color }}>{status}</Typography>
-                                </Box>
-                                <Typography variant="h6" fontWeight="800" sx={{ color: '#2E3B55' }}>{total} TL</Typography>
-                                <Button
-                                    onClick={() => openOrderDetails(orderId)}
-                                    variant="outlined"
-                                    endIcon={<VisibilityOutlinedIcon />}
-                                    sx={{ borderRadius: '10px', color: '#2E3B55', borderColor: '#2E3B55' }}
-                                >
-                                    Detaylar
-                                </Button>
-                            </Paper>
-                        )
-                    })}
-                </Box>
-            )}
-        </motion.div>
-    );
-
-    const renderFavoritesTab = () => (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Typography variant="h5" fontWeight="700" sx={{ color: '#2E3B55', mb: 3 }}>Favorilerim</Typography>
-
-            {favorites.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 5 }}>
-                    <FavoriteBorderOutlinedIcon sx={{ fontSize: 60, color: 'rgba(162, 144, 183, 0.5)', mb: 2 }} />
-                    <Typography variant="h6" sx={{ color: '#2E3B55', fontWeight: 700 }}>Favorileriniz Boş</Typography>
-                    <Typography variant="body2" sx={{ color: '#6E5252', mt: 1 }}>Beğendiğiniz ürünleri favorilere ekleyerek daha sonra kolayca bulabilirsiniz.</Typography>
-                </Box>
-            ) : (
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-                    {favorites.map((fav) => (
-                        <Paper key={fav._id || fav.id} sx={{ display: 'flex', p: 2, borderRadius: '16px', border: '1px solid rgba(162, 144, 183, 0.2)', gap: 2, alignItems: 'center' }}>
-                            <Box component="img" src={fav.image || fav.gorsel || (fav.images && fav.images[0]) || '/placeholder.png'} sx={{ width: 80, height: 80, borderRadius: '12px', objectFit: 'cover' }} />
-                            <Box sx={{ flexGrow: 1 }}>
-                                <Typography variant="subtitle2" fontWeight="700" sx={{ color: '#2E3B55', mb: 0.5 }}>{fav.name || fav.isim || fav.title}</Typography>
-                                <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D' }}>{fav.price || fav.fiyat} TL</Typography>
-                            </Box>
-                            <IconButton onClick={() => handleRemoveFavorite(fav._id || fav.id)} size="small" sx={{ bgcolor: 'rgba(148, 109, 109, 0.1)', color: '#946D6D' }}>
-                                <DeleteOutlinedIcon fontSize="small" />
-                            </IconButton>
-                        </Paper>
-                    ))}
-                </Box>
-            )}
-        </motion.div>
-    );
-
+  if (loading) {
     return (
-        <Box sx={{ minHeight: '100vh', backgroundColor: '#FDF4D2', pt: { xs: 8, md: 12 }, pb: 8 }}>
-
-            <Snackbar open={alertConfig.open} autoHideDuration={4000} onClose={() => setAlertConfig({ ...alertConfig, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                <Alert onClose={() => setAlertConfig({ ...alertConfig, open: false })} severity={alertConfig.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 600 }}>
-                    {alertConfig.message}
-                </Alert>
-            </Snackbar>
-
-            <Container maxWidth="lg">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 3, md: 5 }, pl: { xs: 1, md: 2 } }}>
-                    <IconButton onClick={() => navigate('/')} sx={{ backgroundColor: '#FFFFFF', color: '#946D6D', border: '1px solid rgba(148, 109, 109, 0.3)' }}>
-                        <HomeOutlinedIcon />
-                    </IconButton>
-                    <Typography variant="h4" fontWeight="800" sx={{ color: '#2E3B55', margin: 0 }}>Hesabım</Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', flexDirection: 'row', gap: { xs: 2, md: 4 }, flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-
-                    {/* SOL NAVBAR */}
-                    <Box sx={{ width: { xs: '200px', md: '280px' }, flexShrink: 0, position: 'sticky', top: '100px' }}>
-                        <Paper elevation={0} sx={{ borderRadius: '24px', backgroundColor: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(20px)', p: 2 }}>
-                            <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                {TABS.map((tab) => (
-                                    <ListItem
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            borderRadius: '16px',
-                                            backgroundColor: activeTab === tab.id ? '#B0CDE6' : 'transparent',
-                                            color: activeTab === tab.id ? '#1E2738' : '#6E5252',
-                                            px: { xs: 1.5, md: 2.5 },
-                                            py: 1.5,
-                                            transition: 'all 0.3s ease',
-                                            '&:hover': { backgroundColor: activeTab === tab.id ? '#B0CDE6' : 'rgba(176, 205, 230, 0.3)' }
-                                        }}
-                                    >
-                                        <ListItemIcon sx={{ color: 'inherit', minWidth: { xs: '30px', md: '40px' } }}>{tab.icon}</ListItemIcon>
-                                        <ListItemText primary={tab.label} primaryTypographyProps={{ fontWeight: activeTab === tab.id ? 800 : 500 }} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        </Paper>
-                    </Box>
-
-                    {/* İÇERİK ALANI */}
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Paper elevation={0} sx={{ borderRadius: '24px', backgroundColor: '#FFFFFF', p: { xs: 3, sm: 5, md: 6 }, overflowX: 'auto' }}>
-                            <AnimatePresence mode="wait">
-                                {activeTab === 'profile' && renderProfileTab()}
-                                {activeTab === 'addresses' && renderAddressesTab()}
-                                {activeTab === 'cards' && renderCardsTab()}
-                                {activeTab === 'orders' && renderOrdersTab()}
-                                {activeTab === 'favorites' && renderFavoritesTab()}
-                            </AnimatePresence>
-                        </Paper>
-                    </Box>
-                </Box>
-            </Container>
-
-            {/* ADRES EKLEME MODALI */}
-            <Dialog open={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
-                <DialogTitle sx={{ color: '#2E3B55', fontWeight: 800, pb: 1 }}>Yeni Adres Ekle</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, pt: 1 }}>
-                        <TextField fullWidth label="Adres Başlığı (Ev, İş vb.)" name="baslik" value={addressForm.baslik} onChange={handleAddressInputChange} sx={{ gridColumn: 'span 2' }} />
-                        <TextField fullWidth label="Alıcı Ad Soyad" name="adSoyad" value={addressForm.adSoyad} onChange={handleAddressInputChange} />
-                        <TextField fullWidth label="Telefon Numarası" name="telefon" value={addressForm.telefon} onChange={handleAddressInputChange} />
-                        <TextField fullWidth label="İl" name="il" value={addressForm.il} onChange={handleAddressInputChange} />
-                        <TextField fullWidth label="İlçe" name="ilce" value={addressForm.ilce} onChange={handleAddressInputChange} />
-                        <TextField fullWidth multiline rows={3} label="Açık Adres" name="adres" value={addressForm.adres} onChange={handleAddressInputChange} sx={{ gridColumn: 'span 2' }} />
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={{ p: 3, pt: 0 }}>
-                    <Button onClick={() => setIsAddressModalOpen(false)} sx={{ color: '#6E5252', fontWeight: 700 }}>İptal</Button>
-                    <Button onClick={handleAddAddress} variant="contained" sx={{ bgcolor: '#2E3B55', color: '#FFF', borderRadius: '12px', fontWeight: 700, px: 4 }}>Kaydet</Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* KART EKLEME MODALI */}
-            <Dialog open={isCardModalOpen} onClose={() => setIsCardModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
-                <DialogTitle sx={{ color: '#2E3B55', fontWeight: 800, pb: 1 }}>Yeni Kart Ekle</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                        <TextField fullWidth label="Kart Üzerindeki İsim" name="kartSahibi" value={cardForm.kartSahibi} onChange={handleCardInputChange} />
-                        <TextField fullWidth label="Kart Numarası (16 Hane)" name="kartNumarasi" value={cardForm.kartNumarasi} onChange={handleCardInputChange} inputProps={{ maxLength: 16 }} />
-                        <TextField fullWidth label="Son Kullanma Tarihi (AA/YY)" name="skt" value={cardForm.skt} onChange={handleCardInputChange} placeholder="12/25" />
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={{ p: 3, pt: 0 }}>
-                    <Button onClick={() => setIsCardModalOpen(false)} sx={{ color: '#6E5252', fontWeight: 700 }}>İptal</Button>
-                    <Button onClick={handleAddCard} variant="contained" sx={{ bgcolor: '#2E3B55', color: '#FFF', borderRadius: '12px', fontWeight: 700, px: 4 }}>Kaydet</Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* SİLME ONAY MODALI */}
-            <Dialog open={deleteModal.isOpen} onClose={closeDeleteModal} PaperProps={{ sx: { borderRadius: '24px', p: 1, maxWidth: '400px' } }}>
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#946D6D', fontWeight: 800, pb: 1 }}>
-                    <WarningAmberRoundedIcon /> {deleteModal.title}
-                </DialogTitle>
-                <DialogContent>
-                    <DialogContentText sx={{ color: '#2E3B55', fontWeight: 500 }}>
-                        {deleteModal.message}
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions sx={{ p: 3, pt: 0 }}>
-                    <Button onClick={closeDeleteModal} sx={{ color: '#6E5252', fontWeight: 700 }}>İptal</Button>
-                    <Button onClick={confirmDelete} variant="contained" sx={{ bgcolor: '#946D6D', color: '#FFF', borderRadius: '12px', fontWeight: 700, px: 3, '&:hover': { bgcolor: '#825c5c' } }}>
-                        Evet, Sil
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* SİPARİŞ DETAY MODALI (API Entegreli) */}
-            <Dialog open={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1, minHeight: '300px' } }}>
-                {isOrderLoading ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
-                        <CircularProgress sx={{ color: '#946D6D', mb: 2 }} />
-                        <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>Sipariş detayları getiriliyor...</Typography>
-                    </Box>
-                ) : selectedOrder ? (
-                    <>
-                        <DialogTitle sx={{ color: '#2E3B55', fontWeight: 800, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Box>
-                                Sipariş Detayı
-                                <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 500 }}>#{selectedOrder._id?.slice(-6).toUpperCase()}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(0,0,0,0.03)', px: 2, py: 1, borderRadius: '8px' }}>
-                                {getStatusConfig(selectedOrder.paymentStatus === 'completed' ? 'Teslim Edildi' : (selectedOrder.paymentStatus || selectedOrder.durum)).icon}
-                                <Typography variant="subtitle2" fontWeight="700" sx={{ color: getStatusConfig(selectedOrder.paymentStatus === 'completed' ? 'Teslim Edildi' : (selectedOrder.paymentStatus || selectedOrder.durum)).color }}>
-                                    {selectedOrder.paymentStatus === 'completed' ? 'Teslim Edildi' : (selectedOrder.paymentStatus || selectedOrder.durum || 'Hazırlanıyor')}
-                                </Typography>
-                            </Box>
-                        </DialogTitle>
-
-                        <DialogContent dividers sx={{ borderColor: 'rgba(162, 144, 183, 0.2)' }}>
-                            <Box sx={{ mb: 3 }}>
-                                <Typography variant="subtitle2" fontWeight="700" sx={{ color: '#A290B7', mb: 1, textTransform: 'uppercase' }}>Teslimat Adresi</Typography>
-                                <Typography variant="body2" sx={{ color: '#2E3B55', fontWeight: 500 }}>
-                                    {selectedOrder.shippingAddress?.address || selectedOrder.teslimatAdresi?.adres || "Adres bilgisi bulunamadı."}
-                                </Typography>
-                            </Box>
-
-                            <Typography variant="subtitle2" fontWeight="700" sx={{ color: '#A290B7', mb: 2, textTransform: 'uppercase' }}>Satın Alınan Ürünler</Typography>
-
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                {(selectedOrder.orderItems || selectedOrder.urunler || []).map((product, index) => (
-                                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, border: '1px solid rgba(162, 144, 183, 0.2)', borderRadius: '12px' }}>
-                                        <Box component="img" src={product.image || product.gorsel || (product.images && product.images[0]) || '/placeholder.png'} sx={{ width: 60, height: 60, borderRadius: '8px', objectFit: 'cover' }} />
-                                        <Box sx={{ flexGrow: 1 }}>
-                                            <Typography variant="subtitle2" fontWeight="700" sx={{ color: '#2E3B55' }}>{product.name || product.isim}</Typography>
-                                            <Typography variant="body2" sx={{ color: '#6E5252' }}>Adet: {product.quantity || product.adet}</Typography>
-                                        </Box>
-                                        <Typography variant="subtitle2" fontWeight="800" sx={{ color: '#946D6D' }}>{product.price || product.fiyat} TL</Typography>
-                                    </Box>
-                                ))}
-                            </Box>
-                        </DialogContent>
-
-                        <DialogActions sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h6" fontWeight="800" sx={{ color: '#2E3B55' }}>Toplam: {selectedOrder.totalPrice || selectedOrder.toplamTutar || 0} TL</Typography>
-                            <Button onClick={() => setIsOrderModalOpen(false)} variant="contained" sx={{ bgcolor: '#2E3B55', color: '#FFF', borderRadius: '12px', fontWeight: 700, px: 4, '&:hover': { bgcolor: '#1E2738' } }}>
-                                Kapat
-                            </Button>
-                        </DialogActions>
-                    </>
-                ) : null}
-            </Dialog>
-
-        </Box>
+      <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress sx={{ color: '#946D6D' }} />
+      </Box>
     );
+  }
+
+  const initials = formData.name ? formData.name.trim().charAt(0).toUpperCase() : 'N';
+
+  return (
+    <Box sx={{ minHeight: '100vh', pt: { xs: 10, md: 13 }, pb: 8 }}>
+      <Seo title="Hesabım" path="/profile" noindex />
+      <Snackbar open={alertConfig.open} autoHideDuration={3600} onClose={() => setAlertConfig((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={alertConfig.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>{alertConfig.message}</Alert>
+      </Snackbar>
+
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+          <Typography sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.08em', fontSize: '0.75rem', textTransform: 'uppercase' }}>Hesap</Typography>
+          <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', letterSpacing: '-0.03em', fontSize: { xs: '1.7rem', md: '2.1rem' } }}>
+            {formData.name || 'Hesabım'}
+          </Typography>
+          <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.5 }}>{formData.email}</Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: 2.5, md: 4 }, alignItems: 'flex-start', minWidth: 0, width: '100%' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              width: { xs: '100%', md: 250 },
+              flexShrink: 0,
+              borderRadius: '22px',
+              p: { xs: 1, md: 1.5 },
+              backgroundColor: 'rgba(255,255,255,0.72)',
+              border: '1px solid rgba(148,109,109,0.12)',
+              position: { md: 'sticky' },
+              top: { md: 108 }
+            }}
+          >
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'row', md: 'column' },
+              gap: 0.8,
+              overflowX: { xs: 'auto', md: 'visible' },
+              overflowY: 'hidden',
+              pb: { xs: 0.4, md: 0 },
+              mx: { xs: -0.25, md: 0 },
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' }
+            }}>
+              {TABS.map((tab) => {
+                const active = activeTab === tab.id;
+                return (
+                  <Button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    startIcon={tab.icon}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      minWidth: { xs: 'auto', md: '100%' },
+                      borderRadius: '14px',
+                      px: 1.6,
+                      py: 1.15,
+                      fontWeight: active ? 800 : 600,
+                      color: active ? '#1E2738' : '#6E5252',
+                      bgcolor: active ? '#B0CDE6' : 'transparent',
+                      '& .MuiButton-startIcon': { mr: 1 },
+                      '&:hover': { bgcolor: active ? '#B0CDE6' : 'rgba(176,205,230,0.28)' }
+                    }}
+                  >
+                    {tab.label}
+                  </Button>
+                );
+              })}
+            </Box>
+          </Paper>
+
+          <Paper elevation={0} sx={{ flex: 1, minWidth: 0, width: '100%', overflow: 'hidden', borderRadius: '24px', p: { xs: 2.2, sm: 3.5, md: 4.5 }, backgroundColor: '#fff', border: '1px solid rgba(148,109,109,0.1)' }}>
+            <AnimatePresence mode="wait">
+              <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                {activeTab === 'profile' && (
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
+                      <Avatar sx={{ width: { xs: 64, md: 84 }, height: { xs: 64, md: 84 }, bgcolor: '#B0CDE6', color: '#1E2738', fontWeight: 800, fontSize: { xs: '1.6rem', md: '2rem' } }}>{initials}</Avatar>
+                      <Box>
+                        <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Kişisel bilgiler</Typography>
+                        <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>E-posta güvenlik nedeniyle değiştirilemez.</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
+                      <TextField fullWidth label="Ad soyad" name="name" value={formData.name} onChange={handleInputChange} sx={fieldSx} />
+                      <TextField fullWidth label="E-posta" value={formData.email} disabled sx={fieldSx} />
+                      <TextField fullWidth label="Telefon" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="05xx xxx xx xx" sx={{ ...fieldSx, gridColumn: { xs: '1', sm: '1 / -1' } }} />
+                    </Box>
+                    <Divider sx={{ my: 3, borderColor: 'rgba(148,109,109,0.12)' }}>
+                      <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.06em' }}>ŞİFRE (OPSİYONEL)</Typography>
+                    </Divider>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                      <TextField fullWidth label="Mevcut şifre" name="currentPassword" type="password" value={formData.currentPassword} onChange={handleInputChange} sx={fieldSx} />
+                      <TextField fullWidth label="Yeni şifre" name="newPassword" type="password" value={formData.newPassword} onChange={handleInputChange} sx={fieldSx} />
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                      <Button onClick={handleSaveProfile} disabled={saving} variant="contained" sx={primaryBtnSx}>
+                        {saving ? 'Kaydediliyor...' : 'Değişiklikleri kaydet'}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
+                {activeTab === 'addresses' && (
+                  <Box>
+                    <HeaderRow title="Adreslerim" actionLabel="Yeni adres" icon={<AddLocationAltOutlinedIcon />} onClick={() => setIsAddressModalOpen(true)} />
+                    {addresses.length === 0 ? (
+                      <EmptyState text="Kayıtlı adresiniz yok." />
+                    ) : (
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, alignItems: 'stretch' }}>
+                        {addresses.map((addr) => (
+                          <Paper key={addr._id} elevation={0} sx={{ ...cardSx, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 1, minWidth: 0 }}>
+                              <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55', minWidth: 0 }}>{addr.baslik}</Typography>
+                              {addr.isDefault && <Chip size="small" label="Varsayılan" sx={{ bgcolor: '#B0CDE6', fontWeight: 800, flexShrink: 0 }} />}
+                            </Box>
+                            <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 700, wordBreak: 'break-word' }}>{addr.adSoyad} · {addr.telefon}</Typography>
+                            <Typography variant="body2" sx={{ color: '#6E5252', mt: 0.8, mb: 1.5, flex: 1, wordBreak: 'break-word' }}>{addr.adres}<br />{addr.ilce} / {addr.il}</Typography>
+                            <Button onClick={() => openDeleteModal('address', addr._id)} size="small" startIcon={<DeleteOutlinedIcon />} sx={{ color: '#946D6D', fontWeight: 700, alignSelf: 'flex-start' }}>Sil</Button>
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {activeTab === 'cards' && (
+                  <Box>
+                    <HeaderRow title="Kayıtlı kartlar" actionLabel="Yeni kart" icon={<AddCardOutlinedIcon />} onClick={() => setIsCardModalOpen(true)} />
+                    {savedCards.length === 0 ? (
+                      <EmptyState text="Kayıtlı kartınız yok. Ödeme sırasında da kart girebilirsiniz." />
+                    ) : (
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, alignItems: 'stretch' }}>
+                        {savedCards.map((card) => (
+                          <Paper key={card._id} elevation={0} sx={{ ...cardSx, height: '100%', minWidth: 0, background: 'linear-gradient(135deg, #1E2738 0%, #2E3B55 100%)', color: '#fff', border: 'none', position: 'relative', overflow: 'hidden' }}>
+                            <CreditCardOutlinedIcon sx={{ position: 'absolute', right: -16, bottom: -18, fontSize: 110, opacity: 0.12 }} />
+                            <Typography sx={{ letterSpacing: '2px', mb: 2.5, fontFamily: 'monospace', fontWeight: 700 }}>•••• •••• •••• {card.son4Hane}</Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', pr: 4 }}>
+                              <Box>
+                                <Typography variant="caption" sx={{ opacity: 0.7 }}>Kart sahibi</Typography>
+                                <Typography variant="body2" fontWeight={800}>{card.kartSahibi}</Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" sx={{ opacity: 0.7 }}>SKT</Typography>
+                                <Typography variant="body2" fontWeight={800}>{card.skt}</Typography>
+                              </Box>
+                            </Box>
+                            <IconButton onClick={() => openDeleteModal('card', card._id)} size="small" sx={{ position: 'absolute', top: 8, right: 8, color: 'rgba(255,255,255,0.7)' }}>
+                              <DeleteOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {activeTab === 'orders' && (
+                  <Box>
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>Siparişlerim</Typography>
+                    {orders.length === 0 ? (
+                      <EmptyState text="Henüz siparişiniz yok." action="Alışverişe başla" onAction={() => navigate('/products')} />
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        {orders.map((order) => {
+                          const orderId = order._id;
+                          const label = orderLabel(order);
+                          const cfg = statusConfig(label);
+                          const itemsCount = order.orderItems?.length || 0;
+                          return (
+                            <Paper key={orderId} elevation={0} sx={{ ...cardSx, minWidth: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1.4fr) auto auto auto' }, gap: 1.5, alignItems: 'center' }}>
+                              <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800 }}>#{String(orderId).slice(-6).toUpperCase()}</Typography>
+                                <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }} noWrap>
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString('tr-TR') : ''} · {itemsCount} ürün
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                                {cfg.icon}
+                                <Typography variant="body2" fontWeight={800} sx={{ color: cfg.color, whiteSpace: 'nowrap' }}>{label}</Typography>
+                              </Box>
+                              <Typography fontWeight={800} sx={{ color: '#2E3B55', whiteSpace: 'nowrap' }}>{formatPrice(order.totalPrice)} ₺</Typography>
+                              <Button onClick={() => openOrderDetails(orderId)} endIcon={<VisibilityOutlinedIcon />} sx={{ borderRadius: '12px', color: '#2E3B55', fontWeight: 800, border: '1px solid rgba(46,59,85,0.18)', justifySelf: { sm: 'end' }, whiteSpace: 'nowrap' }}>
+                                Detay
+                              </Button>
+                            </Paper>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {activeTab === 'favorites' && (
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>Favorilerim</Typography>
+                    {favorites.length === 0 ? (
+                      <EmptyState text="Favori listeniz boş." action="Ürünlere git" onAction={() => navigate('/products')} />
+                    ) : (
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
+                          gap: 2,
+                          alignItems: 'stretch'
+                        }}
+                      >
+                        {favorites.map((fav) => {
+                          const id = fav._id || fav.id;
+                          const price = fav.discountPercentage > 0
+                            ? fav.price - (fav.price * fav.discountPercentage / 100)
+                            : (fav.price || fav.fiyat || 0);
+                          return (
+                            <Paper
+                              key={id}
+                              elevation={0}
+                              onClick={() => id && navigate(`/product/${id}`)}
+                              sx={{
+                                ...cardSx,
+                                p: 0,
+                                minWidth: 0,
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                                '&:hover': { borderColor: 'rgba(148,109,109,0.35)', boxShadow: '0 10px 24px -16px rgba(46,59,85,0.35)' }
+                              }}
+                            >
+                              <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: '#F8F5F0', overflow: 'hidden', flexShrink: 0 }}>
+                                <Box
+                                  component="img"
+                                  src={fav.image || fav.gorsel || FALLBACK_IMAGE}
+                                  alt={fav.title || fav.name || ''}
+                                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                />
+                              </Box>
+                              <Box sx={{ p: 1.6, display: 'flex', flexDirection: 'column', gap: 0.8, flex: 1, minWidth: 0 }}>
+                                <Typography
+                                  fontWeight={800}
+                                  sx={{
+                                    color: '#2E3B55',
+                                    fontSize: '0.92rem',
+                                    lineHeight: 1.35,
+                                    minHeight: '2.7em',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    wordBreak: 'break-word'
+                                  }}
+                                >
+                                  {fav.title || fav.name || fav.isim}
+                                </Typography>
+                                <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+                                  <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap' }}>{formatPrice(price)} ₺</Typography>
+                                  <IconButton
+                                    aria-label="Favorilerden çıkar"
+                                    onClick={(e) => { e.stopPropagation(); handleRemoveFavorite(id); }}
+                                    sx={{ bgcolor: 'rgba(148,109,109,0.1)', color: '#946D6D', flexShrink: 0, width: 36, height: 36 }}
+                                  >
+                                    <DeleteOutlinedIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            </Paper>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </Paper>
+        </Box>
+      </Container>
+
+      <Dialog open={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)} fullScreen={isMobile} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: { xs: 0, sm: '24px' } } }}>
+        <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>Yeni adres</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, pt: 1 }}>
+            <TextField fullWidth label="Başlık (Ev, İş)" name="baslik" value={addressForm.baslik} onChange={handleAddressInputChange} sx={{ ...fieldSx, gridColumn: { sm: '1 / -1' } }} />
+            <TextField fullWidth label="Alıcı ad soyad" name="adSoyad" value={addressForm.adSoyad} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth label="Telefon" name="telefon" value={addressForm.telefon} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth label="İl" name="il" value={addressForm.il} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth label="İlçe" name="ilce" value={addressForm.ilce} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth multiline rows={3} label="Açık adres" name="adres" value={addressForm.adres} onChange={handleAddressInputChange} sx={{ ...fieldSx, gridColumn: '1 / -1' }} />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setIsAddressModalOpen(false)} sx={{ fontWeight: 700, color: '#6E5252' }}>İptal</Button>
+          <Button onClick={handleAddAddress} variant="contained" sx={primaryBtnSx}>Kaydet</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={isCardModalOpen} onClose={() => setIsCardModalOpen(false)} fullScreen={isMobile} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: { xs: 0, sm: '24px' } } }}>
+        <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>Yeni kart</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField fullWidth label="Kart üzerindeki isim" name="kartSahibi" value={cardForm.kartSahibi} onChange={handleCardInputChange} sx={fieldSx} />
+            <TextField fullWidth label="Kart numarası" name="kartNumarasi" value={cardForm.kartNumarasi} onChange={handleCardInputChange} inputProps={{ maxLength: 19 }} sx={fieldSx} />
+            <TextField fullWidth label="Son kullanma (AA/YY)" name="skt" value={cardForm.skt} onChange={handleCardInputChange} placeholder="12/28" sx={fieldSx} />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setIsCardModalOpen(false)} sx={{ fontWeight: 700, color: '#6E5252' }}>İptal</Button>
+          <Button onClick={handleAddCard} variant="contained" sx={primaryBtnSx}>Kaydet</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteModal.isOpen} onClose={closeDeleteModal} PaperProps={{ sx: { borderRadius: '22px', maxWidth: 400 } }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#946D6D', fontWeight: 800 }}>
+          <WarningAmberRoundedIcon /> {deleteModal.title}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#2E3B55', fontWeight: 600 }}>{deleteModal.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={closeDeleteModal} sx={{ fontWeight: 700, color: '#6E5252' }}>İptal</Button>
+          <Button onClick={confirmDelete} variant="contained" sx={{ ...primaryBtnSx, bgcolor: '#946D6D' }}>Evet, sil</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} fullScreen={isMobile} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: { xs: 0, sm: '24px' } } }}>
+        {isOrderLoading ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
+            <CircularProgress sx={{ color: '#946D6D', mb: 2 }} />
+            <Typography sx={{ color: '#6E5252', fontWeight: 600 }}>Sipariş detayı yükleniyor...</Typography>
+          </Box>
+        ) : selectedOrder ? (
+          <>
+            <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>
+              Sipariş #{String(selectedOrder._id).slice(-6).toUpperCase()}
+              <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.5 }}>{orderLabel(selectedOrder)}</Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800 }}>TESLİMAT</Typography>
+              <Typography sx={{ color: '#2E3B55', fontWeight: 600, mb: 2.5 }}>
+                {selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.district} / {selectedOrder.shippingAddress?.city}
+              </Typography>
+              {(selectedOrder.orderItems || []).map((item, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 1.5, p: 1.2, borderRadius: '14px', border: '1px solid rgba(148,109,109,0.12)', minWidth: 0 }}>
+                  <Box component="img" src={item.image || FALLBACK_IMAGE} alt="" sx={{ width: 56, height: 56, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, display: 'block' }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55' }}>{item.name}</Typography>
+                    <Typography variant="body2" sx={{ color: '#6E5252' }}>Adet: {item.quantity}</Typography>
+                  </Box>
+                  <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatPrice(item.price)} ₺</Typography>
+                </Box>
+              ))}
+            </DialogContent>
+            <DialogActions sx={{ p: 2.5, justifyContent: 'space-between' }}>
+              <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Toplam {formatPrice(selectedOrder.totalPrice)} ₺</Typography>
+              <Button onClick={() => setIsOrderModalOpen(false)} variant="contained" sx={primaryBtnSx}>Kapat</Button>
+            </DialogActions>
+          </>
+        ) : null}
+      </Dialog>
+    </Box>
+  );
 }
+
+function HeaderRow({ title, actionLabel, icon, onClick }) {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 2.5, minWidth: 0 }}>
+      <Typography fontWeight={800} noWrap sx={{ color: '#2E3B55', fontSize: '1.2rem', minWidth: 0 }}>{title}</Typography>
+      <Button onClick={onClick} variant="contained" startIcon={icon} sx={{ ...primaryBtnSx, flexShrink: 0 }}>{actionLabel}</Button>
+    </Box>
+  );
+}
+
+function EmptyState({ text, action, onAction }) {
+  return (
+    <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
+      <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{text}</Typography>
+      {action && (
+        <Button onClick={onAction} variant="contained" sx={{ ...primaryBtnSx, mt: 2 }}>{action}</Button>
+      )}
+    </Box>
+  );
+}
+
+const primaryBtnSx = {
+  bgcolor: '#2E3B55',
+  color: '#fff',
+  borderRadius: '14px',
+  px: 2.5,
+  py: 1.1,
+  fontWeight: 800,
+  boxShadow: 'none',
+  '&:hover': { bgcolor: '#946D6D', boxShadow: 'none' }
+};
+
+const cardSx = {
+  p: 2.2,
+  borderRadius: '18px',
+  border: '1px solid rgba(148,109,109,0.14)',
+  boxShadow: 'none',
+  minWidth: 0,
+  boxSizing: 'border-box'
+};

@@ -25,8 +25,11 @@ exports.protect = async (req, res, next) => {
 
     // 4. Kullanıcıyı bul ve req.user içine ekle (Şifreyi hariç tut)
     req.user = await User.findById(decoded.id).select('-sifre');
-    
-    next(); // İşleme devam et
+    if (!req.user) {
+      return res.status(401).json({ mesaj: 'Yetkisiz erişim, kullanıcı bulunamadı.' });
+    }
+
+    next();
   } catch (error) {
     console.error("Token Doğrulama Hatası:", error);
     return res.status(401).json({ mesaj: 'Yetkisiz erişim, geçersiz token.' });
@@ -51,7 +54,6 @@ exports.optionalProtect = async (req, res, next) => {
 };
 
 exports.admin = async (req, res, next) => {
-    // Veritabanı modelinizde admin'leri belirten bir 'isAdmin' veya 'role' alanı olduğunu varsayıyoruz
     if (req.user && req.user.isAdmin) {
         next();
     } else {
@@ -60,4 +62,31 @@ exports.admin = async (req, res, next) => {
             message: "Erişim reddedildi. Bu işlem için Admin (Yönetici) yetkisi gerekiyor." 
         });
     }
+};
+
+exports.superAdmin = (req, res, next) => {
+  if (req.user && req.user.rol === 'superadmin') {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    mesaj: 'Bu işlem için süper admin yetkisi gerekir.'
+  });
+};
+
+exports.approvedSeller = async (req, res, next) => {
+  try {
+    const Seller = require('../models/Seller');
+    const seller = await Seller.findOne({ user: req.user._id });
+    if (!seller) {
+      return res.status(404).json({ mesaj: 'Bu hesaba bağlı satıcı kaydı bulunamadı.' });
+    }
+    if (seller.durum !== 'approved') {
+      return res.status(403).json({ mesaj: 'Mağazanız onaylandıktan sonra bu işlemi yapabilirsiniz.' });
+    }
+    req.sellerDoc = seller;
+    return next();
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Satıcı doğrulanamadı.', hata: error.message });
+  }
 };

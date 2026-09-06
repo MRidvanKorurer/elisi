@@ -15,6 +15,8 @@ import ChangeHistoryRounded from '@mui/icons-material/ChangeHistoryRounded';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/api';
+import { imgMood1, videoLook5 } from '../assets/media';
+import Seo from '../components/Seo';
 
 export default function AuthPage({ onLoginSuccess }) {
   const [tab, setTab] = useState(0); // 0: Giriş, 1: Kayıt
@@ -94,29 +96,33 @@ const handleSubmit = async (e) => {
   return (
     <Box 
       sx={{ 
-        position: 'fixed', 
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw', 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+        position: 'relative',
+        width: '100%',
+        minHeight: { xs: 'calc(100vh - 64px)', md: 'calc(100vh - 76px)' },
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        zIndex: 100
+        zIndex: 0,
+        py: { xs: 12, md: 10 }
       }}
     >
+      <Seo title="Giriş Yap veya Üye Ol" path="/auth" noindex />
       <Box
+        component="video"
+        src={videoLook5}
+        poster={imgMood1}
+        autoPlay
+        muted
+        loop
+        playsInline
         sx={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'url("https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1920&q=80")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'brightness(0.85) blur(20px)',
-          transform: 'scale(1.1)',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          filter: 'brightness(0.72)',
           zIndex: 0
         }}
       />

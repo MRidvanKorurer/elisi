@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, Navigate } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -37,6 +37,9 @@ import BadgeOutlined from '@mui/icons-material/BadgeOutlined';
 import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
 import { AnimatePresence, motion } from 'framer-motion';
 import { sellerService } from '../api/sellerService';
+import { imgMood2 } from '../assets/media';
+import Seo from '../components/Seo';
+import { breadcrumbSchema } from '../utils/schema';
 import {
   STEP_FIELDS,
   firstErrorMessage,
@@ -104,12 +107,12 @@ const DURUM_METIN = {
 };
 
 const PageBackdrop = () => (
-  <Box sx={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+  <Box sx={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
     <Box
       sx={{
         position: 'absolute',
         inset: 0,
-        backgroundImage: 'url("https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=1920&q=80")',
+        backgroundImage: `url(${imgMood2})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         filter: 'saturate(0.85) brightness(0.92)',
@@ -412,11 +415,15 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
 
   if (checking) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ minHeight: '100vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <PageBackdrop />
         <CircularProgress sx={{ color: '#946D6D', position: 'relative', zIndex: 1 }} />
       </Box>
     );
+  }
+
+  if (seller?.durum === 'approved') {
+    return <Navigate to="/admin" replace />;
   }
 
   if (seller) {
@@ -495,6 +502,16 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
 
   return (
     <Box sx={{ minHeight: '100vh', position: 'relative', pt: { xs: 11, md: 13 }, pb: { xs: 8, md: 10 } }}>
+      <Seo
+        title="Satıcı Ol - El Emeği Ürünlerini Nik Bag'de Sat"
+        description="El yapımı ürünlerini Nik Bag vitrininde satışa çıkar. Komisyon şeffaf, başvuru ücretsiz; mağazanı dakikalar içinde aç, siparişlerini panelden yönet."
+        path="/satici-ol"
+        keywords={['el yapımı ürün satmak', 'online satıcı ol', 'butik satıcı başvurusu', 'Nik Bag satıcı']}
+        jsonLd={breadcrumbSchema([
+          { name: 'Ana Sayfa', path: '/' },
+          { name: 'Satıcı Ol', path: '/satici-ol' }
+        ])}
+      />
       <PageBackdrop />
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>

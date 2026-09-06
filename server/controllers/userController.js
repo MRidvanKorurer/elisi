@@ -1,5 +1,9 @@
-const User = require('../models/User'); // User modelini içe aktar
-const bcrypt = require('bcrypt'); // Şifre doğrulama için
+const User = require('../models/User');
+const Order = require('../models/Order');
+const Product = require('../models/Product');
+const bcrypt = require('bcrypt');
+
+const uid = (req) => req.user._id || req.user.id;
 
 // @desc    Kullanıcı Profil Bilgilerini Getir
 // @route   GET /api/users/profile
@@ -7,7 +11,7 @@ const bcrypt = require('bcrypt'); // Şifre doğrulama için
 exports.getProfile = async (req, res) => {
     try {
         // req.user.id, kimlik doğrulama middleware'inden gelmelidir.
-        const user = await User.findById(req.user.id).select('-sifre'); // Şifreyi dahil etme
+        const user = await User.findById(uid(req)).select('-sifre'); // Şifreyi dahil etme
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
@@ -32,7 +36,7 @@ exports.updateProfile = async (req, res) => {
         if (telefon) updates.telefon = telefon;
 
         const user = await User.findByIdAndUpdate(
-            req.user.id,
+            uid(req),
             { $set: updates },
             { new: true, runValidators: true } // Yeni veriyi dön ve modeli doğrula
         ).select('-sifre');
@@ -53,11 +57,15 @@ exports.changePassword = async (req, res) => {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ success: false, message: 'Mevcut ve yeni şifre gereklidir.' });
         }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: 'Yeni şifre en az 6 karakter olmalıdır.' });
+        }
 
-        // 1. Kullanıcıyı ve şifresini bul
-        const user = await User.findById(req.user.id);
-        
-        // 2. Mevcut şifreyi doğrula
+        const user = await User.findById(uid(req));
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
+        }
+
         const isMatch = await bcrypt.compare(currentPassword, user.sifre);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Mevcut şifreniz hatalı.' });
@@ -82,8 +90,15 @@ exports.changePassword = async (req, res) => {
 // @access  Private
 exports.addAddress = async (req, res) => {
     try {
-        // req.body'den adres bilgilerini al (baslik, adSoyad, telefon, adres, il, ilce)
-        const user = await User.findById(req.user.id);
+        const { baslik, adSoyad, telefon, adres, il, ilce } = req.body;
+        if (!baslik || !adSoyad || !telefon || !adres || !il || !ilce) {
+            return res.status(400).json({ success: false, message: 'Lütfen tüm adres alanlarını doldurun.' });
+        }
+
+        const user = await User.findById(uid(req));
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
+        }
 
         // Eğer bu eklenen ilk adres ise, otomatik olarak varsayılan yap
         if (user.adresler.length === 0) {
@@ -108,7 +123,7 @@ exports.deleteAddress = async (req, res) => {
     try {
         const { addressId } = req.params;
 
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(uid(req));
 
         // Adresi $pull operatörü ile ID'sine göre diziden çıkar
         user.adresler.pull(addressId);
@@ -122,17 +137,23 @@ exports.deleteAddress = async (req, res) => {
 
 exports.addCard = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(uid(req));
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
+        }
         const { kartSahibi, kartNumarasi, skt } = req.body;
 
         if (!kartSahibi || !kartNumarasi || !skt) {
             return res.status(400).json({ success: false, message: 'Lütfen tüm kart alanlarını doldurun.' });
         }
 
-        // GÜVENLİK: Tam kart numarası asla veritabanına yazılmaz!
-        // Sadece son 4 haneyi alıyoruz. (Gerçek senaryoda burada PayTR, Iyzico token'ı alınır)
-        const son4Hane = kartNumarasi.slice(-4);
-        const kartTipi = kartNumarasi.startsWith('4') ? 'Visa' : 'Mastercard'; // Basit bir belirleyici
+        const digits = String(kartNumarasi).replace(/\D/g, '');
+        if (digits.length < 12) {
+            return res.status(400).json({ success: false, message: 'Geçerli bir kart numarası giriniz.' });
+        }
+
+        const son4Hane = digits.slice(-4);
+        const kartTipi = digits.startsWith('4') ? 'Visa' : 'Mastercard';
 
         const newCard = {
             kartSahibi,
@@ -157,7 +178,7 @@ exports.addCard = async (req, res) => {
 exports.deleteCard = async (req, res) => {
     try {
         const { cardId } = req.params;
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(uid(req));
 
         user.kayitliKartlar.pull(cardId);
         await user.save();
@@ -172,17 +193,8 @@ exports.deleteCard = async (req, res) => {
 
 exports.getOrders = async (req, res) => {
     try {
-        // NOT: Gerçek bir projede Order modelini içe aktarıp şöyle kullanırsın:
-        // const Order = require('../models/Order');
-        // const orders = await Order.find({ user: req.user.id }).sort({ createdAt: -1 });
-        
-        // Şimdilik frontend'in test edilebilmesi için örnek bir yanıt (veya boş dizi) dönüyoruz:
-        const mockOrders = [
-            { id: '#SP-10924', date: '12 Ekim 2023', status: 'Teslim Edildi', statusColor: '#81B29A', total: '1.250 TL', items: 2 },
-            { id: '#SP-11045', date: '3 Kasım 2023', status: 'Kargoda', statusColor: '#DDA15E', total: '450 TL', items: 1 }
-        ];
-
-        res.status(200).json({ success: true, orders: mockOrders });
+        const orders = await Order.find({ user: uid(req) }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, orders });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Siparişler getirilemedi.', error: error.message });
     }
@@ -190,23 +202,16 @@ exports.getOrders = async (req, res) => {
 
 exports.getOrderById = async (req, res) => {
     try {
-        const orderId = req.params.id;
+        const order = await Order.findById(req.params.id);
 
-        // 1. Siparişi ID'sine göre veritabanından bul
-        const order = await Order.findById(orderId);
-
-        // 2. Sipariş yoksa hata dön
         if (!order) {
             return res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
         }
 
-        // 3. Güvenlik Kontrolü: Giriş yapan kullanıcı, siparişin sahibi mi?
-        // (Order modelinizde kullanıcı referansını 'user' veya 'kullanici' olarak nasıl tanımladıysanız ona göre eşleştirin)
-        if (order.user && order.user.toString() !== req.user.id) {
+        if (order.user && order.user.toString() !== String(uid(req))) {
             return res.status(403).json({ success: false, message: 'Bu siparişi görüntüleme yetkiniz yok.' });
         }
 
-        // Başarılı ise siparişi gönder
         res.status(200).json({ success: true, order });
     } catch (error) {
         console.error('Sipariş detayı alınırken hata:', error);
@@ -223,13 +228,14 @@ exports.getOrderById = async (req, res) => {
 // @access  Private
 exports.getFavorites = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).populate('favoriler'); // Ürün detaylarını (isim, fiyat, görsel) getir
+        const user = await User.findById(uid(req)).populate('favoriler');
         
         if (!user) {
             return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
         }
 
-        res.status(200).json({ success: true, favorites: user.favoriler });
+        const favorites = (user.favoriler || []).filter(Boolean);
+        res.status(200).json({ success: true, favorites });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Favoriler alınamadı.', error: error.message });
     }
@@ -241,18 +247,29 @@ exports.getFavorites = async (req, res) => {
 exports.addFavorite = async (req, res) => {
     try {
         const { productId } = req.body;
-        const user = await User.findById(req.user.id);
+        if (!productId) {
+            return res.status(400).json({ success: false, message: 'Ürün ID gerekli.' });
+        }
 
-        // Ürün zaten favorilerde mi kontrol et
-        if (user.favoriler.includes(productId)) {
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Ürün bulunamadı.' });
+        }
+
+        const user = await User.findById(uid(req));
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
+        }
+
+        const alreadySaved = user.favoriler.some((id) => String(id) === String(productId));
+        if (alreadySaved) {
             return res.status(400).json({ success: false, message: 'Bu ürün zaten favorilerinizde.' });
         }
 
         user.favoriler.push(productId);
         await user.save();
 
-        // Güncel favori listesini ürün detaylarıyla birlikte döndür
-        const updatedUser = await User.findById(req.user.id).populate('favoriler');
+        const updatedUser = await User.findById(uid(req)).populate('favoriler');
 
         res.status(200).json({ success: true, message: 'Ürün favorilere eklendi.', favorites: updatedUser.favoriler });
     } catch (error) {
@@ -266,7 +283,7 @@ exports.addFavorite = async (req, res) => {
 exports.removeFavorite = async (req, res) => {
     try {
         const { productId } = req.params;
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(uid(req));
 
         user.favoriler.pull(productId); // ID'yi diziden çıkar
         await user.save();

@@ -4,10 +4,15 @@ import HeroBanner from '../components/HeroBanner';
 import BestSellers from '../components/BestSellers';
 import CategoryProductList from '../components/CategoryProductList';
 import NewArrivals from '../components/NewArrivals';
+import AtelierLookbook from '../components/AtelierLookbook';
 import HowItWorks from '../components/HowItWorks';
 import SellerCtaBanner from '../components/SellerCtaBanner';
 import TrustStrip from '../components/TrustStrip';
+import Reveal from '../components/Reveal';
+import Seo from '../components/Seo';
+import { itemListSchema } from '../utils/schema';
 import API from '../api/api';
+import { isSuperAdmin } from '../utils/roles';
 
 export default function HomePage({
     user,
@@ -45,24 +50,46 @@ export default function HomePage({
 
     return (
         <Box sx={{ width: '100%', overflowX: 'hidden', pb: { xs: 2, md: 0 } }}>
-            <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
-
-            <CategoryProductList
-                products={searchFilteredProducts}
-                onAddToCart={onAddToCart}
-                onToggleFavorite={onToggleFavorite}
-                favorites={favorites}
+            <Seo
+                path="/"
+                description="El örgüsü çantalar, ahşap saplı tasarımlar, makrome, seramik ve el yapımı takılar. Sınırlı sayıda üretilen tasarım parçaları Nik Bag atölyesinden keşfedin: güvenli ödeme, hızlı kargo, 14 gün içinde iade."
+                jsonLd={products.length > 0 ? itemListSchema(products, { path: '/' }) : null}
             />
 
-            <NewArrivals products={searchFilteredProducts} onAddToCart={onAddToCart} />
+            <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
 
-            <BestSellers products={products} onAddToCart={onAddToCart} />
+            <Reveal>
+                <CategoryProductList
+                    products={searchFilteredProducts}
+                    onAddToCart={onAddToCart}
+                    onToggleFavorite={onToggleFavorite}
+                    favorites={favorites}
+                />
+            </Reveal>
 
-            <HowItWorks />
+            <Reveal>
+                <NewArrivals products={searchFilteredProducts} onAddToCart={onAddToCart} />
+            </Reveal>
 
-            <SellerCtaBanner user={user} />
+            <AtelierLookbook />
 
-            <TrustStrip />
+            <Reveal>
+                <BestSellers products={products} onAddToCart={onAddToCart} />
+            </Reveal>
+
+            <Reveal>
+                <HowItWorks />
+            </Reveal>
+
+            {!isSuperAdmin(user?.rol) && (
+                <Reveal>
+                    <SellerCtaBanner user={user} />
+                </Reveal>
+            )}
+
+            <Reveal>
+                <TrustStrip />
+            </Reveal>
         </Box>
     );
 }

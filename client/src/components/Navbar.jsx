@@ -12,13 +12,16 @@ import AccountCircleOutlined from '@mui/icons-material/AccountCircleOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
+import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import Logo from '../assets/logo.svg?react';
 import { cartService } from '../api/cartServices';
 import { productService } from '../api/productService';
 import useDebounce from '../hooks/useDebounce';
+import { imgBagOrange } from '../assets/media';
+import { isSellerRole, isSuperAdmin } from '../utils/roles';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=200&q=60';
+const FALLBACK_IMAGE = imgBagOrange;
 
 const iconBtn = (solid) => ({
   color: solid ? '#2E3B55' : '#FFFFFF',
@@ -134,7 +137,19 @@ export default function Navbar({ setPage, user, handleLogout }) {
 
   useEffect(() => {
     setScrolled(!isHome || window.scrollY > 16);
-    const onScroll = () => setScrolled(!isHome || window.scrollY > 16);
+
+    // Kaydırma olayı her karede bir kez işlenir, state yalnızca eşik değişince güncellenir
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const next = !isHome || window.scrollY > 16;
+        setScrolled((prev) => (prev === next ? prev : next));
+        ticking = false;
+      });
+    };
+
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, [isHome]);
@@ -324,20 +339,37 @@ export default function Navbar({ setPage, user, handleLogout }) {
               {mobileOpen ? <CloseRounded /> : <SearchIcon />}
             </IconButton>
 
-            <Button
-              onClick={() => go(user?.rol === 'seller' ? 'satici-ol' : 'satici-ol')}
-              startIcon={<StorefrontOutlined />}
-              sx={{
-                display: { xs: 'none', lg: 'inline-flex' },
-                color: solid ? '#2E3B55' : '#FFFFFF',
-                fontWeight: 800,
-                borderRadius: '12px',
-                px: 1.6,
-                '&:hover': { backgroundColor: solid ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.14)' }
-              }}
-            >
-              {user?.rol === 'seller' ? 'Mağazam' : 'Satıcı Ol'}
-            </Button>
+            {isSuperAdmin(user?.rol) ? (
+              <Button
+                onClick={() => go('admin')}
+                startIcon={<AdminPanelSettingsOutlined />}
+                sx={{
+                  display: { xs: 'none', lg: 'inline-flex' },
+                  color: solid ? '#2E3B55' : '#FFFFFF',
+                  fontWeight: 800,
+                  borderRadius: '12px',
+                  px: 1.6,
+                  '&:hover': { backgroundColor: solid ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.14)' }
+                }}
+              >
+                Admin
+              </Button>
+            ) : (
+              <Button
+                onClick={() => go(isSellerRole(user?.rol) ? 'admin' : 'satici-ol')}
+                startIcon={<StorefrontOutlined />}
+                sx={{
+                  display: { xs: 'none', lg: 'inline-flex' },
+                  color: solid ? '#2E3B55' : '#FFFFFF',
+                  fontWeight: 800,
+                  borderRadius: '12px',
+                  px: 1.6,
+                  '&:hover': { backgroundColor: solid ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.14)' }
+                }}
+              >
+                {isSellerRole(user?.rol) ? 'Mağazam' : 'Satıcı Ol'}
+              </Button>
+            )}
 
             <IconButton aria-label="Sepet" onClick={() => go('checkout')} sx={iconBtn(solid)}>
               <Badge badgeContent={cartCount} color="error" sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}>
@@ -372,9 +404,19 @@ export default function Navbar({ setPage, user, handleLogout }) {
                   PaperProps={{ sx: { mt: 1.4, borderRadius: '16px', minWidth: 200, boxShadow: '0 16px 40px rgba(46,59,85,0.16)', border: '1px solid rgba(148,109,109,0.12)' } }}
                 >
                   <MenuItem onClick={() => { setAnchorEl(null); go('profile'); }} sx={{ fontWeight: 600, gap: 1 }}><AccountCircleOutlined sx={{ color: '#946D6D' }} /> Profilim</MenuItem>
-                  <MenuItem onClick={() => { setAnchorEl(null); go('satici-ol'); }} sx={{ fontWeight: 600, gap: 1 }}>
-                    <StorefrontOutlined sx={{ color: '#946D6D' }} /> {user?.rol === 'seller' ? 'Mağazam' : 'Satıcı Ol'}
-                  </MenuItem>
+                  {isSuperAdmin(user?.rol) && (
+                    <MenuItem onClick={() => { setAnchorEl(null); go('admin'); }} sx={{ fontWeight: 600, gap: 1 }}>
+                      <AdminPanelSettingsOutlined sx={{ color: '#946D6D' }} /> Admin paneli
+                    </MenuItem>
+                  )}
+                  {!isSuperAdmin(user?.rol) && (
+                    <MenuItem
+                      onClick={() => { setAnchorEl(null); go(isSellerRole(user?.rol) ? 'admin' : 'satici-ol'); }}
+                      sx={{ fontWeight: 600, gap: 1 }}
+                    >
+                      <StorefrontOutlined sx={{ color: '#946D6D' }} /> {isSellerRole(user?.rol) ? 'Mağazam' : 'Satıcı Ol'}
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ fontWeight: 600, color: '#d32f2f', gap: 1 }}><LogoutOutlined fontSize="small" /> Çıkış Yap</MenuItem>
                 </Menu>
               </>

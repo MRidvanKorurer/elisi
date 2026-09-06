@@ -23,9 +23,28 @@ API.interceptors.request.use(
   }
 );
 
+// Sunucudan gelen /uploads yolları tarayıcıda API adresine göre çözülür
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+
+const resolveUploads = (value) => {
+  if (typeof value === 'string') {
+    return value.startsWith('/uploads/') ? `${API_ORIGIN}${value}` : value;
+  }
+  if (Array.isArray(value)) return value.map(resolveUploads);
+  if (value && typeof value === 'object') {
+    Object.keys(value).forEach((key) => {
+      value[key] = resolveUploads(value[key]);
+    });
+  }
+  return value;
+};
+
 // 3. Response Interceptor: Global Yetki ve Hata Yönetimi
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.data = resolveUploads(response.data);
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       // Oturum süresi dolduğunda veya yetkisiz istekte çalışır

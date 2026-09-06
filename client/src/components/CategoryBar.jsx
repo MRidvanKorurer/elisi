@@ -53,7 +53,7 @@ export default function CategoryBar({ selectedCategory, onSelectCategory, onCate
       <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 3, gap: 2 }}>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="overline" sx={{ letterSpacing: 2, color: '#A290B7', fontWeight: 800 }}>ÖZEL ATÖLYELER</Typography>
-          <Typography variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>Kategorilere Göre Keşfet</Typography>
+          <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>Kategorilere Göre Keşfet</Typography>
         </Box>
         <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1.5 }}>
           <IconButton onClick={() => handleScroll('left')} sx={{ backgroundColor: '#FFFFFF', border: '1.5px solid rgba(148, 109, 109, 0.2)', color: '#2E3B55' }}><ArrowBackIosNewOutlined fontSize="small" /></IconButton>

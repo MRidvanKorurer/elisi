@@ -32,7 +32,7 @@ export default function NewArrivals({ products = [], onAddToCart }) {
           <AutoAwesomeOutlined sx={{ fontSize: '18px' }} />
           ATÖLYEDEN TAZE
         </Typography>
-        <Typography variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>
+        <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>
           Yeni Gelenler
         </Typography>
       </Box>
