@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+const { ALL_CATEGORY_IDS } = require('../constants/categories');
 
-const MAGAZA_TURLERI = ['seramik', 'makrome', 'ahsap', 'taki', 'mum', 'canta', 'deri', 'aksesuar', 'diger'];
+const MAGAZA_TURLERI = ALL_CATEGORY_IDS;
 
 const sellerSchema = new mongoose.Schema(
     {

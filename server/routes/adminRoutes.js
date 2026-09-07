@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, superAdmin } = require('../middleware/authMiddleware');
-const { productImages } = require('../middleware/uploadMiddleware');
+const { productImages, categoryImage } = require('../middleware/uploadMiddleware');
 const {
   getOverview,
   listUsers,
@@ -13,7 +13,9 @@ const {
   deleteProduct,
   setProductApproval,
   listOrders,
-  updateOrder
+  updateOrder,
+  listCategories,
+  updateCategory
 } = require('../controllers/adminController');
 
 router.use(protect, superAdmin);
@@ -29,5 +31,7 @@ router.get('/products', listProducts);
 router.put('/products/:id', productImages, updateProduct);
 router.put('/products/:id/approval', setProductApproval);
 router.delete('/products/:id', deleteProduct);
+router.get('/categories', listCategories);
+router.put('/categories/:id', categoryImage, updateCategory);
 
 module.exports = router;

@@ -3,6 +3,7 @@
 
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+const { ALL_CATEGORY_IDS } = require('../constants/categories');
 
 const productSchema = new mongoose.Schema(
     {
@@ -32,7 +33,7 @@ const productSchema = new mongoose.Schema(
             lowercase: true,
             trim: true,
             enum: {
-                values: ['seramik', 'makrome', 'ahsap', 'taki', 'mum', 'canta', 'deri', 'aksesuar', 'diger'],
+                values: ALL_CATEGORY_IDS,
                 message: '{VALUE} geçerli bir kategori değil.'
             }
         },

@@ -145,10 +145,11 @@ export default function HeroBanner({ user, onNavigateAuth }) {
       sx={{
         position: 'relative',
         width: '100%',
-        height: { xs: 'min(92svh, 720px)', md: '82vh' },
-        minHeight: { xs: 520, md: 580 },
+        // Altın bölüm + pay; ilk ekranda alttaki bölümün başlığı görünsün
+        height: 'min(calc(100svh / 1.6180339887 + 80px), calc(100svh - 168px))',
+        minHeight: { xs: 460, md: 'unset' },
         mt: 0,
-        mb: { xs: 4, md: 7 },
+        mb: { xs: 2, md: 3 },
         display: 'flex',
         alignItems: 'flex-end',
         overflow: 'hidden',

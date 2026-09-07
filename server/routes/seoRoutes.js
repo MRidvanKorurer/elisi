@@ -1,5 +1,6 @@
 const express = require('express');
 const Product = require('../models/Product');
+const { CATEGORY_IDS } = require('../constants/categories');
 
 const router = express.Router();
 
@@ -39,6 +40,11 @@ router.get('/sitemap.xml', async (req, res) => {
         (route) =>
           `  <url>\n    <loc>${SITE_URL}${route.path}</loc>\n    <lastmod>${today}</lastmod>\n` +
           `    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority}</priority>\n  </url>`
+      ),
+      ...CATEGORY_IDS.map(
+        (id) =>
+          `  <url>\n    <loc>${SITE_URL}/products?category=${encodeURIComponent(id)}</loc>\n    <lastmod>${today}</lastmod>\n` +
+          `    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`
       ),
       ...products.map((product) => {
         const lastmod = (product.updatedAt || product.createdAt || new Date()).toISOString().split('T')[0];

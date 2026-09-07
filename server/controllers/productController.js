@@ -1,7 +1,23 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Lookbook = require('../models/Lookbook');
+const Category = require('../models/Category');
+const { CATEGORY_IDS } = require('../constants/categories');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
+
+const getCatalogCategoryIds = async () => {
+    const docs = await Category.find({ isActive: true }).sort({ order: 1 }).select('categoryId').lean();
+    if (docs.length) return docs.map((doc) => String(doc.categoryId || '').toLowerCase()).filter(Boolean);
+    return CATEGORY_IDS;
+};
+
+const mergeCatalogWithUsed = (catalogIds = [], used = []) => {
+    const seen = new Set(catalogIds);
+    const extras = (used || [])
+        .map((id) => String(id || '').toLowerCase())
+        .filter((id) => id && !seen.has(id));
+    return [...catalogIds, ...extras];
+};
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -245,12 +261,14 @@ const getSponsoredProducts = async (req, res) => {
 
 const getCategories = async (req, res) => {
     try {
-        const categories = await Product.distinct('category', publicMatch());
-        const validCategories = categories.filter(c => c && c.trim() !== '');
+        const [catalogIds, used] = await Promise.all([
+            getCatalogCategoryIds(),
+            Product.distinct('category', publicMatch())
+        ]);
 
         res.status(200).json({
             success: true,
-            categories: validCategories
+            categories: mergeCatalogWithUsed(catalogIds, used)
         });
     } catch (error) {
         res.status(500).json({
@@ -263,7 +281,8 @@ const getCategories = async (req, res) => {
 
 const getFilterOptions = async (req, res) => {
     try {
-        const [categories, colors, priceAgg] = await Promise.all([
+        const [catalogIds, used, colors, priceAgg] = await Promise.all([
+            getCatalogCategoryIds(),
             Product.distinct('category', publicMatch()),
             Product.distinct('colors', publicMatch()),
             Product.aggregate([
@@ -276,7 +295,7 @@ const getFilterOptions = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            categories: (categories || []).filter(Boolean).sort(),
+            categories: mergeCatalogWithUsed(catalogIds, used),
             colors: (colors || []).filter(Boolean).sort(),
             minPrice: Math.max(0, Math.floor(price.minPrice || 0)),
             maxPrice: Math.max(100, Math.ceil(price.maxPrice || 10000))

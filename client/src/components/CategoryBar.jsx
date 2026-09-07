@@ -1,90 +1,201 @@
+import React, { useMemo } from 'react';
+import { Box, Skeleton, Typography, useMediaQuery, useTheme } from '@mui/material';
 
+const GROUPS = [
+  { id: 'uzerine', title: 'Üzerine', ids: ['giyim', 'canta', 'taki', 'aksesuar'] },
+  { id: 'eve', title: 'Eve', ids: ['banyo-tekstili', 'mum', 'ev-dekorasyon', 'mobilya', 'seramik', 'ahsap', 'mutfak-esyalari', 'evcil-hayvan'] },
+  { id: 'atolye', title: 'Atölye', ids: ['hediye-kutulari', 'kisisellestirilebilir', 'kitap-kirtasiye', 'bebek-cocuk', 'parti-malzemeleri', 'kozmetik', 'epoksi', 'hobi-malzemeleri', 'makrome'] }
+];
 
-import React, { useRef, useState, useEffect } from 'react';
-import { Box, Typography, Card, Container, IconButton, CircularProgress } from '@mui/material';
-import ArrowBackIosNewOutlined from '@mui/icons-material/ArrowBackIosNewOutlined';
-import ArrowForwardIosOutlined from '@mui/icons-material/ArrowForwardIosOutlined';
-import { motion } from 'framer-motion';
-import { categoryService } from '../api/categoryService';
-import DynamicIcon from './DynamicIcon'; // Dinamik ikon renderlayıcımız
+const groupedCategories = (categories = []) => {
+  const byId = Object.fromEntries(categories.map((item) => [item.categoryId, item]));
+  const seen = new Set();
+  const groups = GROUPS.map((group) => {
+    const items = group.ids.map((id) => byId[id]).filter(Boolean);
+    items.forEach((item) => seen.add(item.categoryId));
+    return { ...group, items };
+  }).filter((group) => group.items.length > 0);
 
-// Tümü butonu veritabanında olmadığı için Frontend'de manuel ekliyoruz
-const ALL_CATEGORY_OPTION = { 
-  categoryId: 'all', 
-  name: 'Tümü', 
-  description: 'Bütün Koleksiyon',
-  iconName: 'ContentCutOutlined',
-  bgGradient: 'linear-gradient(135deg, #B0CDE6 0%, #A290B7 100%)'
+  const leftover = categories.filter((item) => !seen.has(item.categoryId));
+  if (leftover.length) {
+    const last = groups[groups.length - 1];
+    if (last) last.items.push(...leftover);
+    else groups.push({ id: 'diger', title: 'Diğer', items: leftover });
+  }
+  return groups;
 };
 
-export default function CategoryBar({ selectedCategory, onSelectCategory, onCategoriesLoaded }) {
-  const scrollRef = useRef(null);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        const dbCategories = await categoryService.getAllCategories();
-        const fullCategories = [ALL_CATEGORY_OPTION, ...dbCategories];
-        setCategories(fullCategories);
-        
-        // Yüklenen kategorileri üst bileşene (CategoryProductList) gönderiyoruz ki başlık kısmı da bilsin
-        if (onCategoriesLoaded) onCategoriesLoaded(fullCategories);
-      } catch (error) {
-        console.error("Kategoriler yüklenemedi:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategories();
-  }, [onCategoriesLoaded]);
-
-  const handleScroll = (direction) => {
-    if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -300 : 300;
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
+function IndexRow({ label, count, selected, onClick }) {
   return (
-    <Container maxWidth="lg" sx={{ mb: { xs: 4, md: 6 }, mt: { xs: 1, md: 2 }, position: 'relative', px: { xs: 2, sm: 3 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 3, gap: 2 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="overline" sx={{ letterSpacing: 2, color: '#A290B7', fontWeight: 800 }}>ÖZEL ATÖLYELER</Typography>
-          <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>Kategorilere Göre Keşfet</Typography>
-        </Box>
-        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1.5 }}>
-          <IconButton onClick={() => handleScroll('left')} sx={{ backgroundColor: '#FFFFFF', border: '1.5px solid rgba(148, 109, 109, 0.2)', color: '#2E3B55' }}><ArrowBackIosNewOutlined fontSize="small" /></IconButton>
-          <IconButton onClick={() => handleScroll('right')} sx={{ backgroundColor: '#FFFFFF', border: '1.5px solid rgba(148, 109, 109, 0.2)', color: '#2E3B55' }}><ArrowForwardIosOutlined fontSize="small" /></IconButton>
-        </Box>
-      </Box>
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress sx={{ color: '#A290B7' }} /></Box>
-      ) : (
-        <Box ref={scrollRef} sx={{ display: 'flex', gap: { xs: 1.5, sm: 2.5 }, overflowX: 'auto', scrollBehavior: 'smooth', py: 1.5, px: 0.5, mx: { xs: -0.5, sm: 0 }, WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-          {categories.map((cat, idx) => {
-            const isSelected = (selectedCategory || 'all') === cat.categoryId;
-
-            return (
-              <motion.div key={cat.categoryId} whileHover={{ y: -6, scale: 1.02 }} whileTap={{ scale: 0.97 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: idx * 0.06 }} style={{ flex: '0 0 auto' }}>
-                <Card onClick={() => onSelectCategory && onSelectCategory(cat.categoryId)} sx={{ width: { xs: 148, sm: 200 }, minWidth: { xs: 148, sm: 200 }, height: { xs: 176, sm: 210 }, p: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', borderRadius: { xs: '22px', sm: '28px' }, position: 'relative', overflow: 'hidden', background: isSelected ? '#946D6D' : 'rgba(253, 244, 210, 0.55)', backdropFilter: 'blur(16px)', border: isSelected ? '2px solid #946D6D' : '1px solid rgba(162, 144, 183, 0.3)', boxShadow: isSelected ? '0 18px 35px -10px rgba(148, 109, 109, 0.45)' : '0 8px 25px rgba(148, 109, 109, 0.06)', transition: 'all 0.35s ease', userSelect: 'none' }}>
-                  <Box sx={{ position: 'absolute', top: -20, right: -20, width: 90, height: 90, borderRadius: '50%', background: cat.bgGradient || '#ccc', opacity: isSelected ? 0.35 : 0.25, filter: 'blur(12px)' }} />
-                  <Box sx={{ width: 52, height: 52, borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : '#FFFFFF', color: isSelected ? '#FFFFFF' : '#946D6D', transition: 'all 0.3s ease', '& svg': { fontSize: '28px' } }}>
-                    <DynamicIcon iconName={cat.iconName} />
-                  </Box>
-                  <Box sx={{ zIndex: 1 }}>
-                    <Typography variant="h6" fontWeight="800" sx={{ color: isSelected ? '#FFFFFF' : '#2E3B55', fontSize: '1.05rem', lineHeight: 1.2, mb: 0.5 }}>{cat.name}</Typography>
-                    <Typography variant="caption" fontWeight="600" sx={{ color: isSelected ? 'rgba(255, 255, 255, 0.8)' : '#6E5252', fontSize: '0.78rem', display: 'block' }}>{cat.description}</Typography>
-                  </Box>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </Box>
-      )}
-    </Container>
+    <Box
+      component="button"
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      sx={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 1.2,
+        m: 0,
+        px: 1.2,
+        py: 0.85,
+        border: 'none',
+        borderRadius: '12px',
+        backgroundColor: selected ? 'rgba(148,109,109,0.12)' : 'transparent',
+        color: selected ? '#946D6D' : '#2E3B55',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        textAlign: 'left',
+        boxShadow: selected ? 'inset 3px 0 0 #946D6D' : 'inset 3px 0 0 transparent',
+        transition: 'background-color 160ms ease, color 160ms ease',
+        '&:hover': {
+          backgroundColor: selected ? 'rgba(148,109,109,0.16)' : 'rgba(253,244,210,0.8)'
+        }
+      }}
+    >
+      <Typography sx={{ fontWeight: selected ? 800 : 650, fontSize: '0.86rem', lineHeight: 1.3 }}>
+        {label}
+      </Typography>
+      {(count ?? 0) > 0 ? (
+        <Typography sx={{ flexShrink: 0, color: selected ? '#946D6D' : '#8A7373', fontWeight: 700, fontSize: '0.72rem' }}>
+          {count}
+        </Typography>
+      ) : null}
+    </Box>
   );
 }
+
+export default function CategoryBar({
+  categories = [],
+  totalProducts = 0,
+  selectedCategory = 'all',
+  onSelectCategory,
+  loading = false
+}) {
+  const groups = useMemo(() => groupedCategories(categories), [categories]);
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
+  if (loading) {
+    return (
+      <Box sx={shellSx}>
+        <Skeleton width={88} height={18} />
+        {Array.from({ length: 8 }).map((_, index) => (
+          <Skeleton key={index} height={34} sx={{ mt: 0.8, borderRadius: '10px' }} />
+        ))}
+      </Box>
+    );
+  }
+
+  if (!isDesktop) {
+    return (
+      <Box component="nav" aria-label="Ürün kategorileri" sx={shellSx}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.7, mb: 1.4 }}>
+          <ChipLink
+            label="Tüm koleksiyon"
+            selected={selectedCategory === 'all'}
+            onClick={() => onSelectCategory?.('all')}
+          />
+        </Box>
+        {groups.map((group) => (
+          <Box key={group.id} sx={{ mb: 1.3, '&:last-child': { mb: 0 } }}>
+            <Typography sx={{ mb: 0.7, color: '#A290B7', fontWeight: 800, fontSize: '0.66rem', letterSpacing: 1.3 }}>
+              {group.title.toLocaleUpperCase('tr-TR')}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.7 }}>
+              {group.items.map((cat) => (
+                <ChipLink
+                  key={cat.categoryId}
+                  label={cat.name}
+                  selected={selectedCategory === cat.categoryId}
+                  onClick={() => onSelectCategory?.(cat.categoryId)}
+                />
+              ))}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      component="nav"
+      aria-label="Ürün kategorileri"
+      data-lenis-prevent
+      sx={{
+        ...shellSx,
+        position: 'sticky',
+        top: 96,
+        maxHeight: 'calc(100vh - 128px)',
+        overflowY: 'auto'
+      }}
+    >
+      <Typography sx={{ px: 1.2, mb: 0.8, color: '#8A7373', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.5 }}>
+        ATÖLYELER
+      </Typography>
+
+      <IndexRow
+        label="Tüm koleksiyon"
+        count={totalProducts}
+        selected={selectedCategory === 'all'}
+        onClick={() => onSelectCategory?.('all')}
+      />
+
+      {groups.map((group) => (
+        <Box key={group.id} sx={{ mt: 1.6 }}>
+          <Typography sx={{ px: 1.2, mb: 0.45, color: '#A290B7', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.3 }}>
+            {group.title.toLocaleUpperCase('tr-TR')}
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
+            {group.items.map((cat) => (
+              <IndexRow
+                key={cat.categoryId}
+                label={cat.name}
+                count={cat.productCount}
+                selected={selectedCategory === cat.categoryId}
+                onClick={() => onSelectCategory?.(cat.categoryId)}
+              />
+            ))}
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function ChipLink({ label, selected, onClick }) {
+  return (
+    <Box
+      component="button"
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      sx={{
+        m: 0,
+        px: 1.15,
+        py: 0.55,
+        borderRadius: '999px',
+        border: selected ? 'none' : '1px solid rgba(148,109,109,0.18)',
+        backgroundColor: selected ? '#946D6D' : '#FDF4D2',
+        color: selected ? '#FFFFFF' : '#2E3B55',
+        fontFamily: 'inherit',
+        fontWeight: 700,
+        fontSize: '0.78rem',
+        cursor: 'pointer'
+      }}
+    >
+      {label}
+    </Box>
+  );
+}
+
+const shellSx = {
+  p: { xs: 1.4, md: 1.6 },
+  borderRadius: '24px',
+  backgroundColor: '#FFFFFF',
+  border: '1px solid rgba(148,109,109,0.14)',
+  boxShadow: '0 16px 36px -28px rgba(46,59,85,0.4)'
+};

@@ -52,20 +52,18 @@ export default function HomePage({
         <Box sx={{ width: '100%', overflowX: 'hidden', pb: { xs: 2, md: 0 } }}>
             <Seo
                 path="/"
-                description="El örgüsü çantalar, ahşap saplı tasarımlar, makrome, seramik ve el yapımı takılar. Sınırlı sayıda üretilen tasarım parçaları Nik Bag atölyesinden keşfedin: güvenli ödeme, hızlı kargo, 14 gün içinde iade."
+                description="Giyim, çanta, mum, takı, seramik, ahşap ve ev dekorasyonu dahil 19 el yapımı kategoride sınırlı sayıda tasarım. Nik Bag atölyesinden keşfedin: güvenli ödeme, hızlı kargo, 14 gün içinde iade."
                 jsonLd={products.length > 0 ? itemListSchema(products, { path: '/' }) : null}
             />
 
             <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
 
-            <Reveal>
-                <CategoryProductList
-                    products={searchFilteredProducts}
-                    onAddToCart={onAddToCart}
-                    onToggleFavorite={onToggleFavorite}
-                    favorites={favorites}
-                />
-            </Reveal>
+            <CategoryProductList
+                products={searchFilteredProducts}
+                onAddToCart={onAddToCart}
+                onToggleFavorite={onToggleFavorite}
+                favorites={favorites}
+            />
 
             <Reveal>
                 <NewArrivals products={searchFilteredProducts} onAddToCart={onAddToCart} />
@@ -77,9 +75,7 @@ export default function HomePage({
                 <BestSellers products={products} onAddToCart={onAddToCart} />
             </Reveal>
 
-            <Reveal>
-                <HowItWorks />
-            </Reveal>
+            <HowItWorks />
 
             {!isSuperAdmin(user?.rol) && (
                 <Reveal>

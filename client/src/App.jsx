@@ -60,9 +60,9 @@ const PageFade = ({ children, reduced }) => {
   if (reduced) return children;
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
     >
       {children}
@@ -194,7 +194,7 @@ export default function App() {
   return (
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'hidden', backgroundColor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'clip', backgroundColor: 'background.default' }}>
 
         {!isAdminRoute && (
           <Navbar

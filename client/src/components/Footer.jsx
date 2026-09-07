@@ -10,6 +10,7 @@ import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import Logo from '../assets/logo.svg?react';
+import { CATEGORY_OPTIONS } from '../utils/categories';
 
 const EtsyIcon = (props) => (
   <SvgIcon {...props} viewBox="0 0 24 24">
@@ -44,7 +45,7 @@ export default function Footer() {
       sx={{
         width: '100%',
         position: 'relative',
-        zIndex: 2,
+        zIndex: 4,
         isolation: 'isolate',
         mt: { xs: 6, md: 10 },
         pt: { xs: 5, md: 7 },
@@ -107,7 +108,6 @@ export default function Footer() {
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <Link component={RouterLink} to="/" sx={footerLinkSx}>Anasayfa</Link>
               <Link component={RouterLink} to="/products" sx={footerLinkSx}>Tüm Ürünler</Link>
-              <Link component={RouterLink} to="/products?category=canta" sx={footerLinkSx}>El Yapımı Çantalar</Link>
               <Link component={RouterLink} to="/satici-ol" sx={footerLinkSx}>Satıcı Ol</Link>
               <Link component={RouterLink} to="/auth" rel="nofollow" sx={footerLinkSx}>Giriş / Kayıt</Link>
             </Box>
@@ -179,6 +179,44 @@ export default function Footer() {
                 <SendOutlinedIcon fontSize="small" />
               </Button>
             </Box>
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: { xs: 4, md: 5 } }}>
+          <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1.6, fontSize: '0.95rem', letterSpacing: '0.04em' }}>
+            Kategoriler
+          </Typography>
+          <Box
+            component="nav"
+            aria-label="Kategoriler"
+            sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.8, md: 1 } }}
+          >
+            {CATEGORY_OPTIONS.map((item) => (
+              <Link
+                key={item.value}
+                component={RouterLink}
+                to={`/products?category=${encodeURIComponent(item.value)}`}
+                sx={{
+                  color: '#6E5252',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  px: 1.15,
+                  py: 0.55,
+                  borderRadius: '999px',
+                  backgroundColor: 'rgba(255,255,255,0.62)',
+                  border: '1px solid rgba(148, 109, 109, 0.16)',
+                  transition: 'color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease',
+                  '&:hover': {
+                    color: '#946D6D',
+                    borderColor: 'rgba(148, 109, 109, 0.36)',
+                    backgroundColor: '#FFFFFF'
+                  }
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
           </Box>
         </Box>
 

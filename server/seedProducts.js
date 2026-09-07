@@ -282,6 +282,7 @@ const fakeCategories = [
         categoryId: 'seramik',
         name: 'Seramik & Obje',
         description: 'El Şekillendirme Sanatı',
+        image: '',
         order: 1,
         isActive: true,
         iconName: 'ColorLensOutlined',

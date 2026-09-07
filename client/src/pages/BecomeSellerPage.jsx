@@ -49,17 +49,9 @@ import {
   validateFields
 } from '../utils/sellerValidation';
 
-const MAGAZA_TURLERI = [
-  { value: 'seramik', label: 'Seramik' },
-  { value: 'makrome', label: 'Makrome' },
-  { value: 'ahsap', label: 'Ahşap' },
-  { value: 'taki', label: 'Takı' },
-  { value: 'mum', label: 'Mum' },
-  { value: 'canta', label: 'Çanta' },
-  { value: 'deri', label: 'Deri' },
-  { value: 'aksesuar', label: 'Aksesuar' },
-  { value: 'diger', label: 'Diğer' }
-];
+import { CATEGORY_OPTIONS } from '../utils/categories';
+
+const MAGAZA_TURLERI = CATEGORY_OPTIONS;
 
 const STEPS = [
   { id: 0, label: 'Hesap', hint: 'Kimlik ve iletişim' },

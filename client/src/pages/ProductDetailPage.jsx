@@ -43,25 +43,12 @@ import { imgBagOrange } from '../assets/media';
 import Seo from '../components/Seo';
 import { breadcrumbSchema, productSchema } from '../utils/schema';
 import { productDescription } from '../utils/seo';
+import { categoryLabel } from '../utils/categories';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
-const CATEGORY_LABELS = {
-  seramik: 'Seramik',
-  makrome: 'Makrome',
-  ahsap: 'Ahşap',
-  taki: 'Takı',
-  mum: 'Mum',
-  canta: 'Çanta',
-  deri: 'Deri',
-  aksesuar: 'Aksesuar',
-  diger: 'Diğer'
-};
-
 const formatPrice = (value) =>
   Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
-const categoryLabel = (value) => CATEGORY_LABELS[String(value || '').toLowerCase()] || value || 'Tüm Ürünler';
 
 export default function ProductDetailPage({ onAddToCart }) {
   const { id } = useParams();

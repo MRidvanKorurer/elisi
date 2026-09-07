@@ -20,3 +20,5 @@ server/uploads/*
 server/uploads/products/*
 # Katalog tohumlama görselleri her ortamda bulunmalı
 !server/uploads/products/seed/
+!server/uploads/categories/
+!server/uploads/categories/**

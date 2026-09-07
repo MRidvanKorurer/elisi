@@ -1,8 +1,16 @@
-import API from './api'; // Senin mevcut axios instance'ın
+import API from './api';
 
 export const categoryService = {
   getAllCategories: async () => {
     const response = await API.get('/categories');
-    return response.data;
+    const data = response.data;
+    if (Array.isArray(data)) {
+      return { success: true, categories: data, totalProducts: 0 };
+    }
+    return {
+      success: Boolean(data?.success ?? true),
+      categories: data?.categories || [],
+      totalProducts: data?.totalProducts || 0
+    };
   }
 };

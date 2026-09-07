@@ -12,17 +12,8 @@ const COOKIE_OPTIONS = {
     maxAge: 30 * 24 * 60 * 60 * 1000
 };
 
-const MAGAZA_ETIKET = {
-    seramik: 'Seramik',
-    makrome: 'Makrome',
-    ahsap: 'Ahşap',
-    taki: 'Takı',
-    mum: 'Mum',
-    canta: 'Çanta',
-    deri: 'Deri',
-    aksesuar: 'Aksesuar',
-    diger: 'Diğer'
-};
+const { CATEGORY_LABELS } = require('../constants/categories');
+const MAGAZA_ETIKET = CATEGORY_LABELS;
 
 const sanitizeIban = (iban = '') => String(iban).replace(/\s+/g, '').toUpperCase();
 

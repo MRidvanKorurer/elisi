@@ -3,7 +3,31 @@ const NAME_RE = /^[A-Za-zÇĞİÖŞÜçğıöşüÂâÊêÎîÔôÛû'\- ]{3,80}
 const CITY_RE = /^[A-Za-zÇĞİÖŞÜçğıöşü.\- ]{2,40}$/;
 const INSTAGRAM_RE = /^@?[A-Za-z0-9._]{1,30}$/;
 const WEBSITE_RE = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
-const MAGAZA_TURLERI = ['seramik', 'makrome', 'ahsap', 'taki', 'mum', 'canta', 'deri', 'aksesuar', 'diger'];
+const MAGAZA_TURLERI = [
+  'giyim',
+  'canta',
+  'banyo-tekstili',
+  'mum',
+  'taki',
+  'ev-dekorasyon',
+  'bebek-cocuk',
+  'mobilya',
+  'hediye-kutulari',
+  'kisisellestirilebilir',
+  'kitap-kirtasiye',
+  'seramik',
+  'evcil-hayvan',
+  'ahsap',
+  'parti-malzemeleri',
+  'kozmetik',
+  'epoksi',
+  'hobi-malzemeleri',
+  'mutfak-esyalari',
+  'makrome',
+  'deri',
+  'aksesuar',
+  'diger'
+];
 
 export const STEP_FIELDS = {
   0: (loggedIn, hesapTipi) => {

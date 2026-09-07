@@ -3,7 +3,9 @@ const fs = require('fs');
 const multer = require('multer');
 
 const productDir = path.join(__dirname, '../uploads/products');
+const categoryDir = path.join(__dirname, '../uploads/categories');
 fs.mkdirSync(productDir, { recursive: true });
+fs.mkdirSync(categoryDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, productDir),
@@ -28,11 +30,31 @@ const productImages = upload.fields([
   { name: 'gallery', maxCount: 6 }
 ]);
 
+const categoryStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, categoryDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`);
+  }
+});
+
+const categoryUpload = multer({
+  storage: categoryStorage,
+  limits: { fileSize: 8 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\//.test(file.mimetype)) return cb(null, true);
+    cb(new Error('Yalnızca görsel dosyaları yükleyebilirsiniz.'));
+  }
+});
+
+const categoryImage = categoryUpload.single('image');
+
 const publicPath = (file) => (file ? `/uploads/products/${file.filename}` : '');
+const categoryPublicPath = (file) => (file ? `/uploads/categories/${file.filename}` : '');
 
 const removeUpload = (url) => {
   if (!url || !url.startsWith('/uploads/')) return;
   fs.promises.unlink(path.join(__dirname, '..', url)).catch(() => {});
 };
 
-module.exports = { productImages, publicPath, removeUpload };
+module.exports = { productImages, categoryImage, publicPath, categoryPublicPath, removeUpload };

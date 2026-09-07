@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar, Toolbar, Button, Box, Badge, Container,
-  InputBase, Paper, Menu, MenuItem, Avatar, IconButton,
-  ClickAwayListener, CircularProgress, Typography, Divider
+  Menu, MenuItem, Avatar, IconButton, ClickAwayListener
 } from '@mui/material';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PersonOutlineOutlined from '@mui/icons-material/PersonOutlineOutlined';
@@ -13,15 +12,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
-import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import Logo from '../assets/logo.svg?react';
 import { cartService } from '../api/cartServices';
-import { productService } from '../api/productService';
-import useDebounce from '../hooks/useDebounce';
-import { imgBagOrange } from '../assets/media';
+import NavSearch from './NavSearch';
 import { isSellerRole, isSuperAdmin } from '../utils/roles';
-
-const FALLBACK_IMAGE = imgBagOrange;
 
 const iconBtn = (solid) => ({
   color: solid ? '#2E3B55' : '#FFFFFF',
@@ -34,91 +28,9 @@ const iconBtn = (solid) => ({
   }
 });
 
-function SearchResults({ results, loading, query, onSelect, onSeeAll }) {
-  if (!query || query.trim().length < 2) return null;
-
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        mt: 1,
-        overflow: 'hidden',
-        borderRadius: '20px',
-        border: '1px solid rgba(148,109,109,0.14)',
-        background: 'rgba(255,255,255,0.97)',
-        boxShadow: '0 22px 50px -18px rgba(46,59,85,0.35)'
-      }}
-    >
-      {loading ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.2, py: 2 }}>
-          <CircularProgress size={18} sx={{ color: '#946D6D' }} />
-          <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>Aranıyor...</Typography>
-        </Box>
-      ) : results.length === 0 ? (
-        <Box sx={{ px: 2.2, py: 2.2 }}>
-          <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.92rem' }}>Sonuç yok</Typography>
-          <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>“{query}” ile eşleşen ürün bulunamadı.</Typography>
-        </Box>
-      ) : (
-        <Box>
-          {results.map((product) => {
-            const title = product.title || product.baslik || 'Ürün';
-            const image = product.image || product.resimUrl || FALLBACK_IMAGE;
-            const price = product.finalPrice ?? product.price ?? product.fiyat ?? 0;
-            return (
-              <Box
-                key={product._id}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onSelect(product)}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  px: 1.6,
-                  py: 1.15,
-                  cursor: 'pointer',
-                  '&:hover': { backgroundColor: 'rgba(176,205,230,0.28)' }
-                }}
-              >
-                <Box
-                  component="img"
-                  src={image}
-                  alt={title}
-                  onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
-                  sx={{ width: 48, height: 48, borderRadius: '12px', objectFit: 'cover', flexShrink: 0, bgcolor: '#F8F5F0' }}
-                />
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.88rem' }}>{title}</Typography>
-                  <Typography noWrap variant="caption" sx={{ color: '#6E5252', fontWeight: 700, textTransform: 'capitalize' }}>
-                    {product.category || 'Atölye'}
-                  </Typography>
-                </Box>
-                <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: '0.9rem', flexShrink: 0 }}>
-                  ₺{Number(price).toLocaleString('tr-TR')}
-                </Typography>
-              </Box>
-            );
-          })}
-          <Divider />
-          <Button
-            fullWidth
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onSeeAll}
-            endIcon={<ArrowForwardRounded />}
-            sx={{ py: 1.2, fontWeight: 800, color: '#2E3B55', borderRadius: 0, '&:hover': { backgroundColor: 'rgba(253,244,210,0.9)' } }}
-          >
-            Tüm sonuçları gör
-          </Button>
-        </Box>
-      )}
-    </Paper>
-  );
-}
-
 export default function Navbar({ setPage, user, handleLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const searchRef = useRef(null);
 
   const isHome = location.pathname === '/';
   const [scrolled, setScrolled] = useState(!isHome);
@@ -128,12 +40,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
 
-  const [query, setQuery] = useState('');
-  const [focused, setFocused] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const debouncedQuery = useDebounce(query, 280);
 
   useEffect(() => {
     setScrolled(!isHome || window.scrollY > 16);
@@ -155,11 +62,6 @@ export default function Navbar({ setPage, user, handleLogout }) {
   }, [isHome]);
 
   useEffect(() => {
-    const q = new URLSearchParams(location.search).get('q') || '';
-    if (location.pathname === '/products') setQuery(q);
-  }, [location.pathname, location.search]);
-
-  useEffect(() => {
     const fetchCartData = async () => {
       try {
         const response = await cartService.getCart();
@@ -176,33 +78,6 @@ export default function Navbar({ setPage, user, handleLogout }) {
     return () => window.removeEventListener('cartUpdated', fetchCartData);
   }, [user]);
 
-  useEffect(() => {
-    const term = debouncedQuery.trim();
-    if (term.length < 2) {
-      setResults([]);
-      setSearching(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setSearching(true);
-
-    productService.getFilteredProducts({ search: term, limit: 6, page: 1, sort: 'newest' })
-      .then((response) => {
-        if (cancelled) return;
-        const list = response?.products || (Array.isArray(response) ? response : []);
-        setResults(list.slice(0, 6));
-      })
-      .catch(() => {
-        if (!cancelled) setResults([]);
-      })
-      .finally(() => {
-        if (!cancelled) setSearching(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [debouncedQuery]);
-
   const go = (path) => {
     if (path === '/' || path === 'home') navigate('/');
     else if (path.startsWith('/')) navigate(path);
@@ -210,72 +85,10 @@ export default function Navbar({ setPage, user, handleLogout }) {
     else navigate(`/${path}`);
   };
 
-  const submitSearch = () => {
-    const term = query.trim();
-    setFocused(false);
-    setMobileOpen(false);
-    if (!term) {
-      navigate('/products');
-      return;
-    }
-    navigate(`/products?q=${encodeURIComponent(term)}`);
-  };
-
-  const handleSelectProduct = (product) => {
-    setFocused(false);
-    setMobileOpen(false);
-    setQuery('');
-    navigate(`/product/${product._id}`);
-  };
-
-  const showPanel = (focused || mobileOpen) && query.trim().length >= 2;
-
   const getUserName = () => {
     if (!user) return 'Hesabım';
     return user.adSoyad || user.name || user.email?.split('@')[0] || 'Hesabım';
   };
-
-  const searchField = (
-    <Paper
-      elevation={0}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-        px: 1.6,
-        py: 0.55,
-        borderRadius: '18px',
-        backgroundColor: focused ? '#FFFFFF' : (solid ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.9)'),
-        border: `1.5px solid ${focused ? '#946D6D' : 'transparent'}`,
-        boxShadow: focused ? '0 0 0 4px rgba(176,205,230,0.4)' : '0 6px 18px rgba(46,59,85,0.08)',
-        transition: 'all 0.25s ease'
-      }}
-    >
-      <SearchIcon sx={{ color: '#946D6D', mr: 1, fontSize: 22 }} />
-      <InputBase
-        placeholder="Ürün, kategori veya renk ara"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            submitSearch();
-          }
-          if (e.key === 'Escape') {
-            setFocused(false);
-            setMobileOpen(false);
-          }
-        }}
-        sx={{ flex: 1, fontSize: '0.9rem', fontWeight: 600, color: '#2E3B55', '& input::placeholder': { color: '#6E5252', opacity: 0.72 } }}
-      />
-      {query && (
-        <IconButton size="small" onClick={() => setQuery('')} sx={{ color: '#946D6D' }}>
-          <CloseRounded fontSize="small" />
-        </IconButton>
-      )}
-    </Paper>
-  );
 
   return (
     <AppBar
@@ -313,27 +126,14 @@ export default function Navbar({ setPage, user, handleLogout }) {
             <Logo />
           </Box>
 
-          <ClickAwayListener onClickAway={() => setFocused(false)}>
-            <Box ref={searchRef} sx={{ display: { xs: 'none', md: 'block' }, flex: 1, maxWidth: 460, position: 'relative' }}>
-              {searchField}
-              {showPanel && !mobileOpen && (
-                <Box sx={{ position: 'absolute', left: 0, right: 0, zIndex: 20 }}>
-                  <SearchResults
-                    results={results}
-                    loading={searching}
-                    query={query}
-                    onSelect={handleSelectProduct}
-                    onSeeAll={submitSearch}
-                  />
-                </Box>
-              )}
-            </Box>
-          </ClickAwayListener>
+          <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1, maxWidth: 520 }}>
+            <NavSearch solid={solid} />
+          </Box>
 
           <Box sx={{ display: 'flex', gap: { xs: 0.6, sm: 1 }, alignItems: 'center', flexShrink: 0 }}>
             <IconButton
               aria-label="Ara"
-              onClick={() => { setMobileOpen((v) => !v); setFocused(true); }}
+              onClick={() => setMobileOpen((v) => !v)}
               sx={{ ...iconBtn(solid), display: { xs: 'inline-flex', md: 'none' } }}
             >
               {mobileOpen ? <CloseRounded /> : <SearchIcon />}
@@ -401,7 +201,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
                   anchorEl={anchorEl}
                   open={openMenu}
                   onClose={() => setAnchorEl(null)}
-                  PaperProps={{ sx: { mt: 1.4, borderRadius: '16px', minWidth: 200, boxShadow: '0 16px 40px rgba(46,59,85,0.16)', border: '1px solid rgba(148,109,109,0.12)' } }}
+                  slotProps={{ paper: { sx: { mt: 1.4, borderRadius: '16px', minWidth: 200, boxShadow: '0 16px 40px rgba(46,59,85,0.16)', border: '1px solid rgba(148,109,109,0.12)' } } }}
                 >
                   <MenuItem onClick={() => { setAnchorEl(null); go('profile'); }} sx={{ fontWeight: 600, gap: 1 }}><AccountCircleOutlined sx={{ color: '#946D6D' }} /> Profilim</MenuItem>
                   {isSuperAdmin(user?.rol) && (
@@ -462,16 +262,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
       {mobileOpen && (
         <ClickAwayListener onClickAway={() => setMobileOpen(false)}>
           <Box sx={{ display: { md: 'none' }, px: 2, pb: 1.5, pt: 0.5 }}>
-            {searchField}
-            {showPanel && (
-              <SearchResults
-                results={results}
-                loading={searching}
-                query={query}
-                onSelect={handleSelectProduct}
-                onSeeAll={submitSearch}
-              />
-            )}
+            <NavSearch solid={solid} variant="mobile" onNavigate={() => setMobileOpen(false)} />
           </Box>
         </ClickAwayListener>
       )}

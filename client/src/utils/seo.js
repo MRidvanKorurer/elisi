@@ -6,18 +6,18 @@ export const SITE_LOCALE = 'tr_TR';
 export const SITE_TAGLINE = 'El Yapımı Çanta ve Tasarım Atölyesi';
 
 export const DEFAULT_DESCRIPTION =
-  'Nik Bag; el örgüsü çantalar, ahşap saplı tasarımlar, makrome, seramik ve el yapımı takılar sunan butik tasarım atölyesi. ' +
+  'Nik Bag; giyim, çanta, mum, takı, seramik, ahşap ve ev dekorasyonu dahil el yapımı tasarım ürünleri sunan butik atölye. ' +
   'Sınırlı sayıda üretilen özel parçaları keşfedin, güvenli ödeme ve hızlı kargo ile kapınıza gelsin.';
 
 export const DEFAULT_KEYWORDS = [
   'el yapımı çanta',
   'el örgüsü çanta',
-  'ahşap saplı çanta',
-  'makrome çanta',
-  'tasarım çanta',
-  'butik çanta',
-  'el emeği göz nuru ürünler',
-  'seramik ve takı atölyesi'
+  'el yapımı takı',
+  'el yapımı seramik',
+  'ahşap ürünler',
+  'ev dekorasyon',
+  'el yapımı mum',
+  'el emeği göz nuru ürünler'
 ];
 
 export const ORGANIZATION = {

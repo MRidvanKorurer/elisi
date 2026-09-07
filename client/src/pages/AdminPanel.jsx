@@ -49,6 +49,7 @@ import {
   money,
   when
 } from '../utils/panel';
+import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
 
 const emptyForm = {
   title: '',
@@ -779,7 +780,20 @@ export default function AdminPanel({ user, handleLogout }) {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
             <Box sx={{ display: 'grid', gap: 2 }}>
               <TextField label="Başlık" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} sx={fieldSx} />
-              <TextField label="Kategori" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} sx={fieldSx} />
+              <TextField
+                select
+                label="Kategori"
+                value={form.category}
+                onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                sx={fieldSx}
+              >
+                {form.category && !CATEGORY_OPTIONS.some((item) => item.value === form.category) ? (
+                  <MenuItem value={form.category}>{categoryLabel(form.category)}</MenuItem>
+                ) : null}
+                {CATEGORY_OPTIONS.map((item) => (
+                  <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
+                ))}
+              </TextField>
               <TextField label="Açıklama" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} multiline minRows={4} sx={fieldSx} />
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.4 }}>
                 <TextField label="Fiyat" type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} sx={fieldSx} />
