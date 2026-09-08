@@ -1,9 +1,14 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const Seller = require('../models/Seller');
+const User = require('../models/User');
 const Lookbook = require('../models/Lookbook');
 const Category = require('../models/Category');
 const { CATEGORY_IDS } = require('../constants/categories');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
+const { HOUSE_ATELIER, serializePublicAtelier } = require('../utils/publicAtelier');
+const { buildFulfillment } = require('../utils/productFulfillment');
+const { sanitizeVideoUrl } = require('../utils/productVideo');
 
 const getCatalogCategoryIds = async () => {
     const docs = await Category.find({ isActive: true }).sort({ order: 1 }).select('categoryId').lean();
@@ -49,7 +54,7 @@ const getFilteredProducts = async (req, res) => {
             maxPrice,
             sort = 'newest',
             page = 1,
-            limit = 12,
+            limit = 8,
             inStock,
             onSale,
             isNew,
@@ -195,7 +200,35 @@ const getProductById = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Ürün bulunamadı.' });
         }
 
-        res.status(200).json({ success: true, product });
+        const ownVideo = sanitizeVideoUrl(product.video);
+        const clipPromise = ownVideo
+            ? Promise.resolve(null)
+            : Lookbook.findOne({ product: product._id, isActive: true }).select('videoUrl').lean();
+
+        const payload = product.toObject();
+        payload.atelier = HOUSE_ATELIER;
+
+        if (product.seller) {
+            const sellerDoc = await Seller.findOne({ user: product.seller, durum: 'approved' }).lean();
+            if (sellerDoc) {
+                const [maker, productCount] = await Promise.all([
+                    User.findById(product.seller).select('adSoyad avatarUrl').lean(),
+                    Product.countDocuments(publicMatch({ seller: product.seller }))
+                ]);
+                payload.atelier = serializePublicAtelier(sellerDoc, maker, { productCount });
+            }
+        }
+
+        if (!ownVideo) {
+            const clip = await clipPromise;
+            payload.video = sanitizeVideoUrl(clip?.videoUrl);
+        } else {
+            payload.video = ownVideo;
+        }
+
+        payload.fulfillment = buildFulfillment(payload);
+
+        res.status(200).json({ success: true, product: payload });
     } catch (error) {
         if (error.name === 'CastError') {
             return res.status(404).json({ success: false, message: 'Geçersiz ürün ID formatı.' });
@@ -354,7 +387,9 @@ const createMyProduct = async (req, res) => {
             immediateDelivery = 'true',
             colors = '',
             sizes = '',
-            careInstructions = ''
+            careInstructions = '',
+            customProductionTime = '1-3 İş Günü',
+            measureNote = ''
         } = req.body;
 
         const mainFile = req.files?.image?.[0];
@@ -385,6 +420,9 @@ const createMyProduct = async (req, res) => {
             careInstructions: String(careInstructions).trim(),
             discountPercentage: Math.min(100, Math.max(0, Number(discountPercentage) || 0)),
             immediateDelivery: String(immediateDelivery) !== 'false',
+            customProductionTime: String(customProductionTime).trim() || '1-3 İş Günü',
+            measureNote: String(measureNote).trim(),
+            video: sanitizeVideoUrl(req.body.video),
             approvalStatus: 'pending',
             isActive: false
         });
@@ -399,7 +437,7 @@ const createMyProduct = async (req, res) => {
 };
 
 // Satıcı fiyat, stok ve açıklamayı yönetir; görsel/başlık/kategori süper adminde kalır
-const SELLER_EDITABLE = ['description', 'price', 'stock', 'discountPercentage', 'immediateDelivery'];
+const SELLER_EDITABLE = ['description', 'price', 'stock', 'discountPercentage', 'immediateDelivery', 'customProductionTime', 'measureNote', 'video'];
 
 const updateMyProduct = async (req, res) => {
     try {
@@ -413,6 +451,7 @@ const updateMyProduct = async (req, res) => {
             if (field === 'price' || field === 'stock') product[field] = Number(req.body[field]);
             else if (field === 'discountPercentage') product[field] = Math.min(100, Math.max(0, Number(req.body[field]) || 0));
             else if (field === 'immediateDelivery') product[field] = Boolean(req.body[field]);
+            else if (field === 'video') product.video = sanitizeVideoUrl(req.body.video);
             else product[field] = String(req.body[field]).trim();
         });
 

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Seller = require('../models/Seller');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const ProductQuestion = require('../models/ProductQuestion');
 const { isSuperAdmin } = require('../utils/roles');
 
 const COOKIE_OPTIONS = {
@@ -13,6 +14,7 @@ const COOKIE_OPTIONS = {
 };
 
 const { CATEGORY_LABELS } = require('../constants/categories');
+const { serializePublicAtelier } = require('../utils/publicAtelier');
 const MAGAZA_ETIKET = CATEGORY_LABELS;
 
 const sanitizeIban = (iban = '') => String(iban).replace(/\s+/g, '').toUpperCase();
@@ -397,6 +399,14 @@ const getMyOverview = async (req, res) => {
             .filter((order) => order.paymentStatus === 'completed')
             .reduce((sum, order) => sum + order.sellerTotal, 0);
 
+        const unansweredQuestions = productIds.length
+            ? await ProductQuestion.countDocuments({
+                product: { $in: productIds },
+                isPublic: true,
+                $or: [{ answer: { $exists: false } }, { answer: '' }, { answer: null }]
+            })
+            : 0;
+
         return res.json({
             success: true,
             overview: {
@@ -407,6 +417,7 @@ const getMyOverview = async (req, res) => {
                 lowStock: products.filter((p) => p.stock <= 5).length,
                 orders: sellerOrders.length,
                 openOrders: sellerOrders.filter((order) => order.orderStatus === 'processing').length,
+                unansweredQuestions,
                 revenue,
                 recentOrders: sellerOrders.slice(0, 6)
             }
@@ -416,4 +427,117 @@ const getMyOverview = async (req, res) => {
     }
 };
 
-module.exports = { registerSeller, getMySeller, updateMySeller, getMyOrders, getMyOverview, MAGAZA_ETIKET };
+const getPublicSeller = async (req, res) => {
+    try {
+        const slug = String(req.params.slug || '').trim().toLowerCase();
+        if (!slug) {
+            return res.status(404).json({ success: false, mesaj: 'Atölye bulunamadı.' });
+        }
+
+        const seller = await Seller.findOne({ slug, durum: 'approved' }).lean();
+        if (!seller) {
+            return res.status(404).json({ success: false, mesaj: 'Atölye bulunamadı.' });
+        }
+
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(24, Math.max(1, Number(req.query.limit) || 8));
+        const skip = (page - 1) * limit;
+        const sortKey = String(req.query.sort || 'newest');
+        const category = String(req.query.category || '').trim().toLowerCase();
+
+        const publicMatch = {
+            isActive: true,
+            approvalStatus: { $nin: ['pending', 'rejected'] },
+            seller: seller.user
+        };
+
+        const productMatch = { ...publicMatch };
+        if (category) productMatch.category = category;
+
+        let sortStage = { createdAt: -1 };
+        if (sortKey === 'popular') sortStage = { soldCount: -1, rating: -1, createdAt: -1 };
+        if (sortKey === 'rating') sortStage = { rating: -1, numReviews: -1 };
+        if (sortKey === 'priceAsc') sortStage = { price: 1 };
+        if (sortKey === 'priceDesc') sortStage = { price: -1 };
+
+        const [maker, products, filteredCount, stats, categoryDocs, coverDocs] = await Promise.all([
+            User.findById(seller.user).select('adSoyad avatarUrl').lean(),
+            Product.find(productMatch).sort(sortStage).skip(skip).limit(limit).lean(),
+            Product.countDocuments(productMatch),
+            Product.aggregate([
+                { $match: publicMatch },
+                {
+                    $group: {
+                        _id: null,
+                        productCount: { $sum: 1 },
+                        soldCount: { $sum: { $ifNull: ['$soldCount', 0] } },
+                        reviewCount: { $sum: { $ifNull: ['$numReviews', 0] } },
+                        ratingWeight: { $sum: { $ifNull: ['$numReviews', 0] } },
+                        ratingSum: {
+                            $sum: {
+                                $multiply: [
+                                    { $ifNull: ['$rating', 0] },
+                                    { $ifNull: ['$numReviews', 0] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]),
+            Product.aggregate([
+                { $match: publicMatch },
+                { $group: { _id: '$category', count: { $sum: 1 } } },
+                { $sort: { count: -1 } }
+            ]),
+            Product.find(publicMatch)
+                .sort({ soldCount: -1, createdAt: -1 })
+                .select('image additionalImages title')
+                .limit(4)
+                .lean()
+        ]);
+
+        const summary = stats[0] || {};
+        const productCount = summary.productCount || 0;
+        const reviewCount = summary.reviewCount || 0;
+        const rating = reviewCount > 0 && summary.ratingWeight
+            ? Math.round((summary.ratingSum / summary.ratingWeight) * 10) / 10
+            : 0;
+
+        const categories = (categoryDocs || [])
+            .filter((row) => row._id)
+            .map((row) => ({
+                id: row._id,
+                label: MAGAZA_ETIKET[row._id] || row._id,
+                count: row.count
+            }));
+
+        const coverImages = (coverDocs || [])
+            .flatMap((item) => [item.image, ...(item.additionalImages || [])])
+            .filter(Boolean)
+            .slice(0, 4);
+
+        return res.status(200).json({
+            success: true,
+            atelier: serializePublicAtelier(seller, maker, {
+                productCount,
+                soldCount: summary.soldCount || 0,
+                reviewCount,
+                rating,
+                categories,
+                coverImages
+            }),
+            products,
+            pagination: {
+                page,
+                limit,
+                total: filteredCount,
+                totalPages: Math.max(1, Math.ceil(filteredCount / limit)),
+                hasMore: skip + products.length < filteredCount
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, mesaj: 'Atölye bilgisi alınamadı.', hata: error.message });
+    }
+};
+
+module.exports = { registerSeller, getMySeller, updateMySeller, getMyOrders, getMyOverview, getPublicSeller, MAGAZA_ETIKET };

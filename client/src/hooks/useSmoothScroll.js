@@ -4,6 +4,23 @@ import Lenis from 'lenis';
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+let lenisInstance = null;
+
+export const scrollPageTo = (target, { offset = 0, immediate = false } = {}) => {
+  if (typeof window === 'undefined' || !target) return;
+
+  const node = typeof target === 'string' ? document.querySelector(target) : target;
+  if (!(node instanceof HTMLElement)) return;
+
+  if (lenisInstance) {
+    lenisInstance.scrollTo(node, { offset, immediate, duration: immediate ? 0 : 1.05 });
+    return;
+  }
+
+  const top = window.scrollY + node.getBoundingClientRect().top + offset;
+  window.scrollTo({ top: Math.max(0, top), behavior: immediate ? 'auto' : 'smooth' });
+};
+
 /**
  * Filtre paneli, açılır liste gibi kendi içinde kayan alanlarda
  * tekerleği sayfaya değil o alana bırakır.
@@ -34,6 +51,7 @@ export default function useSmoothScroll(enabled = true) {
       touchMultiplier: 1.6,
       prevent: isInnerScrollArea
     });
+    lenisInstance = lenis;
 
     let frame = requestAnimationFrame(function raf(time) {
       lenis.raf(time);
@@ -51,6 +69,7 @@ export default function useSmoothScroll(enabled = true) {
     return () => {
       observer.disconnect();
       cancelAnimationFrame(frame);
+      if (lenisInstance === lenis) lenisInstance = null;
       lenis.destroy();
     };
   }, [enabled]);

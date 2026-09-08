@@ -82,6 +82,7 @@ export default function ProfileDashboard() {
   const [alertConfig, setAlertConfig] = useState({ open: false, message: '', severity: 'success' });
 
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', currentPassword: '', newPassword: '' });
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [addresses, setAddresses] = useState([]);
   const [savedCards, setSavedCards] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -110,6 +111,7 @@ export default function ProfileDashboard() {
           currentPassword: '',
           newPassword: ''
         });
+        setAvatarUrl(user.avatarUrl || '');
         setAddresses(user.adresler || user.addresses || []);
         setSavedCards(user.kayitliKartlar || user.savedCards || []);
 
@@ -343,10 +345,31 @@ export default function ProfileDashboard() {
                 {activeTab === 'profile' && (
                   <Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3.5 }}>
-                      <Avatar sx={{ width: { xs: 64, md: 84 }, height: { xs: 64, md: 84 }, bgcolor: '#B0CDE6', color: '#1E2738', fontWeight: 800, fontSize: { xs: '1.6rem', md: '2rem' } }}>{initials}</Avatar>
+                      <Box component="label" sx={{ position: 'relative', cursor: 'pointer' }}>
+                        <Avatar src={avatarUrl || undefined} sx={{ width: { xs: 64, md: 84 }, height: { xs: 64, md: 84 }, bgcolor: '#B0CDE6', color: '#1E2738', fontWeight: 800, fontSize: { xs: '1.6rem', md: '2rem' } }}>{initials}</Avatar>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={async (event) => {
+                            const file = event.target.files?.[0];
+                            event.target.value = '';
+                            if (!file) return;
+                            try {
+                              const res = await userService.uploadAvatar(file);
+                              const next = res.user?.avatarUrl || '';
+                              setAvatarUrl(next);
+                              showAlert('Profil fotoğrafı güncellendi.');
+                            } catch {
+                              showAlert('Fotoğraf yüklenemedi.', 'error');
+                            }
+                          }}
+                        />
+                        <Typography sx={{ mt: 0.7, color: '#946D6D', fontWeight: 800, fontSize: '0.72rem', textAlign: 'center' }}>Değiştir</Typography>
+                      </Box>
                       <Box>
                         <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Kişisel bilgiler</Typography>
-                        <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>E-posta güvenlik nedeniyle değiştirilemez.</Typography>
+                        <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>E-posta güvenlik nedeniyle değiştirilemez. Fotoğrafa tıklayarak profil resmi yükleyin.</Typography>
                       </Box>
                     </Box>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>

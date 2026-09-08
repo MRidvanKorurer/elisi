@@ -35,7 +35,10 @@ export const ORGANIZATION = {
 
 /** Göreli yolu mutlak URL'e çevirir (canonical ve og:image için zorunlu). */
 export const absoluteUrl = (path = '/') => {
-  if (!path) return SITE_URL;
+  if (path && typeof path === 'object' && typeof path.src === 'string') {
+    path = path.src;
+  }
+  if (typeof path !== 'string' || !path) return SITE_URL;
   if (/^https?:\/\//i.test(path)) return path;
   return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 };
@@ -46,7 +49,8 @@ export const buildTitle = (title) =>
 
 /** Açıklamaları arama sonuçlarında kesilmeyecek uzunluğa indirir. */
 export const clampDescription = (text = '', limit = 158) => {
-  const clean = String(text).replace(/\s+/g, ' ').trim();
+  const raw = typeof text === 'string' ? text : '';
+  const clean = raw.replace(/\s+/g, ' ').trim();
   if (clean.length <= limit) return clean;
   return `${clean.slice(0, limit - 1).replace(/[\s,.;:!-]+\S*$/, '')}…`;
 };

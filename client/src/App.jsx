@@ -20,6 +20,7 @@ const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
 const ProfileDashboard = lazy(() => import('./components/ProfileDashboard'));
 const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'));
+const AtelierPage = lazy(() => import('./pages/AtelierPage'));
 const OrderResultPage = lazy(() => import('./pages/OrderResultPage'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const SellerPanel = lazy(() => import('./pages/SellerPanel'));
@@ -153,7 +154,7 @@ export default function App() {
       {/* Detay Sayfası Rotası */}
       <Route
         path="/product/:id"
-        element={<ProductDetailPage />}
+        element={<ProductDetailPage user={user} />}
       />
 
       <Route
@@ -167,6 +168,7 @@ export default function App() {
         path="/satici-ol"
         element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
       />
+      <Route path="/atolye/:slug" element={<AtelierPage />} />
       <Route
         path="/admin"
         element={
@@ -206,7 +208,7 @@ export default function App() {
 
         {!isAdminRoute && <WhatsAppWidget />}
 
-        <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 1, isolation: 'isolate' }}>
+        <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 0 }}>
           <Suspense fallback={<RouteFallback />}>
             <AnimatePresence mode="wait" initial={false}>
               <PageFade key={location.pathname} reduced={reduced}>

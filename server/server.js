@@ -42,6 +42,8 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/sellers', require('./routes/sellerRoutes'));
 app.use('/api/lookbook', require('./routes/lookbookRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/questions', require('./routes/questionRoutes'));
 
 // Arama motorları için güncel sitemap ve robots dosyaları
 app.use('/', require('./routes/seoRoutes'));

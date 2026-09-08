@@ -689,10 +689,13 @@ export default function HeroBanner({ user, onNavigateAuth }) {
                               fontWeight: 800,
                               fontSize: '0.95rem',
                               lineHeight: 1.3,
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden'
+                              minHeight: '2.6em',
+                              overflow: 'hidden',
+                              '&&': {
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical'
+                              }
                             }}
                           >
                             {productTitle}

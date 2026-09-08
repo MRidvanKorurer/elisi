@@ -5,7 +5,8 @@ const {
   getMySeller,
   updateMySeller,
   getMyOrders,
-  getMyOverview
+  getMyOverview,
+  getPublicSeller
 } = require('../controllers/sellerController');
 const {
   getMyProducts,
@@ -17,6 +18,7 @@ const { protect, optionalProtect, approvedSeller } = require('../middleware/auth
 const { productImages } = require('../middleware/uploadMiddleware');
 
 router.post('/register', optionalProtect, registerSeller);
+router.get('/public/:slug', getPublicSeller);
 router.get('/me', protect, getMySeller);
 router.put('/me', protect, approvedSeller, updateMySeller);
 router.get('/me/overview', protect, approvedSeller, getMyOverview);

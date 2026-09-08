@@ -31,6 +31,11 @@ export const sellerService = {
     return response.data;
   },
 
+  getQuestions: async (status = 'all') => {
+    const response = await API.get('/questions/seller/inbox', { params: { status } });
+    return response.data;
+  },
+
   createProduct: async (payload) => {
     const response = await API.post(
       '/sellers/me/products',
@@ -47,6 +52,11 @@ export const sellerService = {
 
   deleteProduct: async (id) => {
     const response = await API.delete(`/sellers/me/products/${id}`);
+    return response.data;
+  },
+
+  getPublic: async (slug, params = {}) => {
+    const response = await API.get(`/sellers/public/${encodeURIComponent(slug)}`, { params });
     return response.data;
   }
 };

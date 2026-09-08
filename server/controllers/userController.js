@@ -30,7 +30,6 @@ exports.updateProfile = async (req, res) => {
     try {
         const { adSoyad, telefon } = req.body;
 
-        // Güncellenecek alanları hazırla
         const updates = {};
         if (adSoyad) updates.adSoyad = adSoyad;
         if (telefon) updates.telefon = telefon;
@@ -38,12 +37,36 @@ exports.updateProfile = async (req, res) => {
         const user = await User.findByIdAndUpdate(
             uid(req),
             { $set: updates },
-            { new: true, runValidators: true } // Yeni veriyi dön ve modeli doğrula
+            { new: true, runValidators: true }
         ).select('-sifre');
 
         res.status(200).json({ success: true, message: 'Bilgileriniz güncellendi.', user });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Güncelleme başarısız.', error: error.message });
+    }
+};
+
+const { avatarPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
+
+exports.uploadAvatar = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Profil fotoğrafı seçin.' });
+        }
+
+        const user = await User.findById(uid(req));
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
+        }
+
+        if (user.avatarUrl) removeUpload(user.avatarUrl);
+        user.avatarUrl = avatarPublicPath(req.file);
+        await user.save();
+
+        const safe = await User.findById(user._id).select('-sifre');
+        return res.status(200).json({ success: true, message: 'Profil fotoğrafı güncellendi.', user: safe });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Fotoğraf yüklenemedi.', error: error.message });
     }
 };
 

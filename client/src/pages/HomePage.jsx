@@ -59,7 +59,6 @@ export default function HomePage({
             <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
 
             <CategoryProductList
-                products={searchFilteredProducts}
                 onAddToCart={onAddToCart}
                 onToggleFavorite={onToggleFavorite}
                 favorites={favorites}

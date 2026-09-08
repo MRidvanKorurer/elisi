@@ -44,9 +44,11 @@ export default function Footer() {
       component="footer"
       sx={{
         width: '100%',
+        flexShrink: 0,
         position: 'relative',
-        zIndex: 4,
+        zIndex: 1,
         isolation: 'isolate',
+        overflow: 'hidden',
         mt: { xs: 6, md: 10 },
         pt: { xs: 5, md: 7 },
         pb: { xs: 4, md: 4.5 },

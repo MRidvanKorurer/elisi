@@ -37,7 +37,8 @@ const register = async (req, res) => {
                 email: user.email,
                 telefon: user.telefon || '',
                 kampanyaKodu: user.kampanyaKodu,
-                rol: user.rol
+                rol: user.rol,
+                avatarUrl: user.avatarUrl || ''
             }
         });
 
@@ -74,7 +75,8 @@ const login = async (req, res) => {
                 email: user.email,
                 telefon: user.telefon || '',
                 kampanyaKodu: user.kampanyaKodu,
-                rol: user.rol
+                rol: user.rol,
+                avatarUrl: user.avatarUrl || ''
             }
         });
 
@@ -105,7 +107,8 @@ const getMe = async (req, res) => {
                 email: user.email,
                 telefon: user.telefon || '',
                 kampanyaKodu: user.kampanyaKodu,
-                rol: user.rol
+                rol: user.rol,
+                avatarUrl: user.avatarUrl || ''
             }
         });
     } catch (error) {

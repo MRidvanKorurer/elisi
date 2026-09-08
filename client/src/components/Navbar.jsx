@@ -181,7 +181,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
               <>
                 <Button
                   onClick={(e) => setAnchorEl(e.currentTarget)}
-                  startIcon={<Avatar sx={{ width: 30, height: 30, bgcolor: '#946D6D', fontSize: '0.82rem', fontWeight: 800 }}>{getUserName()[0].toUpperCase()}</Avatar>}
+                  startIcon={<Avatar src={user.avatarUrl || undefined} sx={{ width: 30, height: 30, bgcolor: '#946D6D', fontSize: '0.82rem', fontWeight: 800 }}>{getUserName()[0].toUpperCase()}</Avatar>}
                   sx={{
                     color: solid ? '#2E3B55' : '#FFFFFF',
                     backgroundColor: solid ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.18)',

@@ -91,6 +91,20 @@ const productSchema = new mongoose.Schema(
             type: String,
             default: '1-3 İş Günü'
         },
+        measureNote: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: 240
+        },
+        dimensions: {
+            widthCm: { type: Number, default: null },
+            heightCm: { type: Number, default: null },
+            depthCm: { type: Number, default: null },
+            strapCm: { type: Number, default: null },
+            weightG: { type: Number, default: null },
+            fits: { type: String, default: '', trim: true }
+        },
 
         // Medya
         image: {

@@ -5,6 +5,7 @@ const Order = require('../models/Order');
 const Category = require('../models/Category');
 const { isSuperAdmin } = require('../utils/roles');
 const { publicPath, categoryPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
+const { sanitizeVideoUrl } = require('../utils/productVideo');
 
 const serializeUser = (user) => ({
   id: user._id,
@@ -244,7 +245,7 @@ const setProductApproval = async (req, res) => {
   }
 };
 
-const TEXT_FIELDS = ['title', 'description', 'category', 'careInstructions', 'customProductionTime'];
+const TEXT_FIELDS = ['title', 'description', 'category', 'careInstructions', 'customProductionTime', 'measureNote', 'video'];
 const NUMBER_FIELDS = ['price', 'stock', 'discountPercentage'];
 const BOOL_FIELDS = ['isActive', 'isSponsored', 'isNewProduct', 'immediateDelivery'];
 const LIST_FIELDS = ['colors', 'sizes', 'features'];
@@ -265,6 +266,10 @@ const updateProduct = async (req, res) => {
 
     TEXT_FIELDS.forEach((field) => {
       if (req.body[field] === undefined) return;
+      if (field === 'video') {
+        product.video = sanitizeVideoUrl(req.body[field]);
+        return;
+      }
       product[field] = field === 'category' ? String(req.body[field]).toLowerCase().trim() : String(req.body[field]).trim();
     });
     NUMBER_FIELDS.forEach((field) => {

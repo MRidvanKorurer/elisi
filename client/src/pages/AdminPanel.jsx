@@ -61,7 +61,10 @@ const emptyForm = {
   colors: '',
   sizes: '',
   isActive: true,
-  isSponsored: false
+  isSponsored: false,
+  measureNote: '',
+  customProductionTime: '1-3 İş Günü',
+  video: ''
 };
 
 const headCell = {
@@ -235,7 +238,10 @@ export default function AdminPanel({ user, handleLogout }) {
       colors: (product.colors || []).join(', '),
       sizes: (product.sizes || []).join(', '),
       isActive: Boolean(product.isActive),
-      isSponsored: Boolean(product.isSponsored)
+      isSponsored: Boolean(product.isSponsored),
+      measureNote: product.measureNote || '',
+      customProductionTime: product.customProductionTime || '1-3 İş Günü',
+      video: product.video || ''
     });
     setMainImage(null);
     setGallery([]);
@@ -261,6 +267,9 @@ export default function AdminPanel({ user, handleLogout }) {
       body.append('discountPercentage', form.discountPercentage || 0);
       body.append('colors', form.colors);
       body.append('sizes', form.sizes);
+      body.append('measureNote', form.measureNote);
+      body.append('customProductionTime', form.customProductionTime);
+      body.append('video', form.video);
       body.append('isActive', String(form.isActive));
       body.append('isSponsored', String(form.isSponsored));
 
@@ -802,6 +811,9 @@ export default function AdminPanel({ user, handleLogout }) {
               </Box>
               <TextField label="Renkler (virgülle)" value={form.colors} onChange={(e) => setForm((p) => ({ ...p, colors: e.target.value }))} sx={fieldSx} />
               <TextField label="Bedenler (virgülle)" value={form.sizes} onChange={(e) => setForm((p) => ({ ...p, sizes: e.target.value }))} sx={fieldSx} />
+              <TextField label="Üretim süresi" value={form.customProductionTime} onChange={(e) => setForm((p) => ({ ...p, customProductionTime: e.target.value }))} sx={fieldSx} />
+              <TextField label="Ölçü / kullanım notu" value={form.measureNote} onChange={(e) => setForm((p) => ({ ...p, measureNote: e.target.value }))} placeholder="Örn. 28×18 cm, telefon ve cüzdan sığar" sx={fieldSx} />
+              <TextField label="Ürün videosu (isteğe bağlı)" value={form.video} onChange={(e) => setForm((p) => ({ ...p, video: e.target.value }))} placeholder="mp4 bağlantısı — tıklanınca yüklenir" sx={fieldSx} />
             </Box>
 
             <Box sx={{ display: 'grid', gap: 2, alignContent: 'start' }}>

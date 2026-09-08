@@ -25,6 +25,7 @@ import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
+import QuestionAnswerOutlined from '@mui/icons-material/QuestionAnswerOutlined';
 import Inventory2Rounded from '@mui/icons-material/Inventory2Rounded';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
@@ -32,6 +33,7 @@ import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
 import ImageUploader from '../components/ImageUploader';
 import { sellerService } from '../api/sellerService';
+import { questionService } from '../api/questionService';
 import { isSellerRole } from '../utils/roles';
 import { formatIban, sanitizeIban } from '../utils/sellerValidation';
 import { APPROVAL_STATUS, ORDER_STATUS, PAYMENT_STATUS, T, money, when } from '../utils/panel';
@@ -49,7 +51,10 @@ const emptyProduct = {
   discountPercentage: 0,
   colors: '',
   sizes: '',
-  immediateDelivery: true
+  immediateDelivery: true,
+  customProductionTime: '1-3 İş Günü',
+  measureNote: '',
+  video: ''
 };
 
 const headCell = {
@@ -88,6 +93,12 @@ export default function SellerPanel({ user, handleLogout }) {
   const [overview, setOverview] = useState(null);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [questionFilter, setQuestionFilter] = useState('all');
+  const [answerOpen, setAnswerOpen] = useState(false);
+  const [activeQuestion, setActiveQuestion] = useState(null);
+  const [answerText, setAnswerText] = useState('');
+  const [savingAnswer, setSavingAnswer] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -125,14 +136,16 @@ export default function SellerPanel({ user, handleLogout }) {
   };
 
   const loadPanel = async () => {
-    const [ov, pr, or] = await Promise.all([
+    const [ov, pr, or, qs] = await Promise.all([
       sellerService.getOverview(),
       sellerService.getMyProducts(),
-      sellerService.getMyOrders()
+      sellerService.getMyOrders(),
+      questionService.getSellerInbox('all')
     ]);
     setOverview(ov.overview);
     setProducts(pr.products || []);
     setOrders(or.orders || []);
+    setQuestions(qs.questions || []);
   };
 
   useEffect(() => {
@@ -163,6 +176,15 @@ export default function SellerPanel({ user, handleLogout }) {
     () => orders.filter((o) => !q || `${o.customerInfo?.firstName} ${o.customerInfo?.lastName} ${o._id}`.toLowerCase().includes(q)),
     [orders, q]
   );
+  const filteredQuestions = useMemo(() => {
+    return questions.filter((item) => {
+      const open = !String(item.answer || '').trim();
+      if (questionFilter === 'unanswered' && !open) return false;
+      if (questionFilter === 'answered' && open) return false;
+      if (!q) return true;
+      return `${item.question} ${item.answer} ${item.user?.adSoyad} ${item.product?.title}`.toLowerCase().includes(q);
+    });
+  }, [questions, q, questionFilter]);
 
   if (!user) return <Navigate to="/auth" replace />;
   if (!isSellerRole(user.rol)) return <Navigate to="/" replace />;
@@ -204,7 +226,10 @@ export default function SellerPanel({ user, handleLogout }) {
       discountPercentage: product.discountPercentage || 0,
       colors: (product.colors || []).join(', '),
       sizes: (product.sizes || []).join(', '),
-      immediateDelivery: product.immediateDelivery !== false
+      immediateDelivery: product.immediateDelivery !== false,
+      customProductionTime: product.customProductionTime || '1-3 İş Günü',
+      measureNote: product.measureNote || '',
+      video: product.video || ''
     });
     setMainImage(null);
     setGallery([]);
@@ -225,7 +250,10 @@ export default function SellerPanel({ user, handleLogout }) {
           price: Number(form.price),
           stock: Number(form.stock),
           discountPercentage: Number(form.discountPercentage) || 0,
-          immediateDelivery: form.immediateDelivery
+          immediateDelivery: form.immediateDelivery,
+          customProductionTime: form.customProductionTime,
+          measureNote: form.measureNote,
+          video: form.video
         });
         flash('Ürün güncellendi.');
       } else {
@@ -239,6 +267,9 @@ export default function SellerPanel({ user, handleLogout }) {
         body.append('colors', form.colors);
         body.append('sizes', form.sizes);
         body.append('immediateDelivery', String(form.immediateDelivery));
+        body.append('customProductionTime', form.customProductionTime);
+        body.append('measureNote', form.measureNote);
+        body.append('video', form.video);
         body.append('image', mainImage.file);
         gallery.forEach((item) => body.append('gallery', item.file));
 
@@ -292,12 +323,46 @@ export default function SellerPanel({ user, handleLogout }) {
   const goView = (id) => {
     setView(id);
     setQuery('');
+    setQuestionFilter('all');
     setMobileOpen(false);
+  };
+
+  const openAnswer = (item) => {
+    setActiveQuestion(item);
+    setAnswerText(item.answer || '');
+    setAnswerOpen(true);
+  };
+
+  const saveAnswer = async () => {
+    if (!activeQuestion) return;
+    setSavingAnswer(true);
+    try {
+      await questionService.answerQuestion(activeQuestion.id, answerText);
+      flash('Yanıt kaydedildi.');
+      setAnswerOpen(false);
+      setActiveQuestion(null);
+      await refresh();
+    } catch (err) {
+      fail(err, 'Yanıt kaydedilemedi.');
+    } finally {
+      setSavingAnswer(false);
+    }
+  };
+
+  const removeQuestion = async (item) => {
+    try {
+      await questionService.deleteQuestion(item.id);
+      flash('Soru silindi.');
+      await refresh();
+    } catch (err) {
+      fail(err, 'Soru silinemedi.');
+    }
   };
 
   const nav = [
     { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.openOrders || 0 },
+    { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
     { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
     { id: 'store', label: 'Mağaza bilgileri', icon: StorefrontOutlined }
   ];
@@ -312,7 +377,7 @@ export default function SellerPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder="Kendi ürün ve siparişlerinde ara"
+      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : 'Kendi ürün ve siparişlerinde ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
     >
@@ -332,6 +397,7 @@ export default function SellerPanel({ user, handleLogout }) {
             <StatCard icon={Inventory2Rounded} title="Yayındaki ürün" value={overview.published} hint={`${overview.products} toplam`} tone={T.navy} />
             <StatCard icon={PendingActionsOutlined} title="Onay bekleyen" value={overview.pendingApproval} hint="Süper admin onayı" tone="#C08A4A" />
             <StatCard icon={ShoppingBagOutlined} title="Siparişlerim" value={overview.orders} hint={`${overview.openOrders} hazırlanıyor`} tone={T.lavender} />
+            <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint="Müşteri soruları" tone={T.blue} />
             <StatCard icon={PaymentsOutlined} title="Tahsil edilen" value={money(overview.revenue)} hint="Ödenen siparişler" tone={T.rose} />
           </Box>
 
@@ -371,6 +437,7 @@ export default function SellerPanel({ user, handleLogout }) {
               {[
                 ['Kritik stok', overview.lowStock],
                 ['Reddedilen ürün', overview.rejected],
+                ['Yanıtsız soru', overview.unansweredQuestions || 0],
                 ['Toplam ürün', overview.products]
               ].map(([labelText, value]) => (
                 <Box key={labelText} sx={{ display: 'flex', justifyContent: 'space-between', py: 1.1, borderBottom: `1px solid ${T.line}` }}>
@@ -424,6 +491,89 @@ export default function SellerPanel({ user, handleLogout }) {
                 ))}
                 {filteredOrders.length === 0 && (
                   <TableRow><TableCell colSpan={6} sx={{ ...bodyCell, color: T.muted }}>Sipariş bulunamadı.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </PanelCard>
+        </Box>
+      )}
+
+      {view === 'questions' && (
+        <Box>
+          <SectionTitle
+            overline="DESTEK"
+            title="Müşteri soruları"
+            subtitle="Ürünlerinize gelen soruları yanıtlayın. Yanıtsız sorular üstte durur."
+            action={
+              <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
+                {[
+                  ['all', 'Tümü'],
+                  ['unanswered', 'Yanıtsız'],
+                  ['answered', 'Yanıtlanan']
+                ].map(([id, label]) => (
+                  <Chip
+                    key={id}
+                    clickable
+                    label={label}
+                    onClick={() => setQuestionFilter(id)}
+                    sx={{
+                      fontWeight: 800,
+                      bgcolor: questionFilter === id ? T.rose : 'rgba(148,109,109,0.1)',
+                      color: questionFilter === id ? '#FFFFFF' : T.navy
+                    }}
+                  />
+                ))}
+              </Box>
+            }
+          />
+          <PanelCard sx={{ p: 0, overflow: 'auto' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  {['Ürün', 'Soru', 'Durum', 'Tarih', ''].map((h) => (
+                    <TableCell key={h} sx={headCell}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredQuestions.map((item) => {
+                  const open = !String(item.answer || '').trim();
+                  return (
+                    <TableRow key={item.id} hover>
+                      <TableCell sx={bodyCell}>
+                        <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', minWidth: 180 }}>
+                          {item.product?.image ? (
+                            <Box component="img" src={item.product.image} alt="" sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: '10px', bgcolor: T.surfaceSoft }} />
+                          ) : null}
+                          <Typography sx={{ fontWeight: 800 }}>{item.product?.title || 'Ürün'}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ ...bodyCell, maxWidth: 420 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: 13 }}>{item.user?.adSoyad}</Typography>
+                        <Typography sx={{ fontSize: 13, color: T.navy }}>{item.question}</Typography>
+                        {!open ? (
+                          <Typography sx={{ fontSize: 12, color: T.muted, mt: 0.6 }}>Yanıt: {item.answer}</Typography>
+                        ) : null}
+                      </TableCell>
+                      <TableCell sx={bodyCell}>
+                        <Chip
+                          size="small"
+                          label={open ? 'Yanıtsız' : 'Yanıtlandı'}
+                          sx={{ fontWeight: 800, bgcolor: open ? 'rgba(192,138,74,0.2)' : 'rgba(150,190,150,0.24)', color: open ? '#8A5A24' : '#3F6B47' }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ ...bodyCell, color: T.muted, whiteSpace: 'nowrap' }}>{when(item.createdAt)}</TableCell>
+                      <TableCell sx={{ ...bodyCell, whiteSpace: 'nowrap' }}>
+                        <Button onClick={() => openAnswer(item)} sx={{ fontWeight: 800, color: T.rose }}>
+                          {open ? 'Yanıtla' : 'Düzenle'}
+                        </Button>
+                        <Button color="error" onClick={() => removeQuestion(item)} sx={{ fontWeight: 800 }}>Sil</Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filteredQuestions.length === 0 && (
+                  <TableRow><TableCell colSpan={5} sx={{ ...bodyCell, color: T.muted }}>Gösterilecek soru yok.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -564,10 +714,15 @@ export default function SellerPanel({ user, handleLogout }) {
                   <TextField label="Bedenler (virgülle)" value={form.sizes} onChange={(e) => setForm((p) => ({ ...p, sizes: e.target.value }))} sx={fieldSx} />
                 </>
               )}
+              <TextField label="Ölçü / kullanım notu" value={form.measureNote} onChange={(e) => setForm((p) => ({ ...p, measureNote: e.target.value }))} placeholder="Örn. 28×18 cm, telefon ve cüzdan sığar" sx={fieldSx} />
+              <TextField label="Ürün videosu (isteğe bağlı)" value={form.video} onChange={(e) => setForm((p) => ({ ...p, video: e.target.value }))} placeholder="mp4 bağlantısı — tıklanınca yüklenir" sx={fieldSx} />
               <FormControlLabel
                 control={<Switch checked={form.immediateDelivery} onChange={(e) => setForm((p) => ({ ...p, immediateDelivery: e.target.checked }))} />}
                 label="Hemen kargo"
               />
+              {!form.immediateDelivery ? (
+                <TextField label="Üretim süresi" value={form.customProductionTime} onChange={(e) => setForm((p) => ({ ...p, customProductionTime: e.target.value }))} sx={fieldSx} />
+              ) : null}
             </Box>
           </Box>
         </DialogContent>
@@ -589,6 +744,32 @@ export default function SellerPanel({ user, handleLogout }) {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setRemoving(null)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
           <Button color="error" onClick={removeProduct} sx={{ fontWeight: 800 }}>Sil</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={answerOpen} onClose={() => setAnswerOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>
+          {activeQuestion?.answer ? 'Yanıtı düzenle' : 'Soruyu yanıtla'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontWeight: 800, color: T.navy, mb: 0.6 }}>{activeQuestion?.product?.title}</Typography>
+          <Typography sx={{ color: T.muted, mb: 2 }}>{activeQuestion?.user?.adSoyad}: {activeQuestion?.question}</Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={4}
+            label="Yanıtınız"
+            value={answerText}
+            onChange={(e) => setAnswerText(e.target.value)}
+            sx={fieldSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.4 }}>
+          <Button onClick={() => setAnswerOpen(false)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button onClick={saveAnswer} disabled={savingAnswer || answerText.trim().length < 8} sx={primaryButton}>
+            {savingAnswer ? 'Kaydediliyor...' : 'Yanıtı kaydet'}
+          </Button>
         </DialogActions>
       </Dialog>
     </PanelShell>

@@ -20,7 +20,16 @@ const updateProfile = async (userData) => {
     return response.data;
 };
 
-// 3. Şifre değiştirme işlemini yapar
+const uploadAvatar = async (file) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    const response = await API.post(`${USER_URL}/profile/avatar`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000
+    });
+    return response.data;
+};
+
 const changePassword = async (passwordData) => {
     const response = await API.put(`${USER_URL}/profile/change-password`, passwordData);
     return response.data;
@@ -89,7 +98,7 @@ const removeFavorite = async (productId) => {
 
 // İhracı (Export) Güncelle:
 const userService = {
-    getProfile, updateProfile, changePassword,
+    getProfile, updateProfile, uploadAvatar, changePassword,
     addAddress, deleteAddress, 
     addCard, deleteCard,
     getOrders, getOrderById,

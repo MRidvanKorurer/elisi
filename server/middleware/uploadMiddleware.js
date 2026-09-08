@@ -4,8 +4,12 @@ const multer = require('multer');
 
 const productDir = path.join(__dirname, '../uploads/products');
 const categoryDir = path.join(__dirname, '../uploads/categories');
+const reviewDir = path.join(__dirname, '../uploads/reviews');
+const avatarDir = path.join(__dirname, '../uploads/avatars');
 fs.mkdirSync(productDir, { recursive: true });
 fs.mkdirSync(categoryDir, { recursive: true });
+fs.mkdirSync(reviewDir, { recursive: true });
+fs.mkdirSync(avatarDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, productDir),
@@ -49,12 +53,62 @@ const categoryUpload = multer({
 
 const categoryImage = categoryUpload.single('image');
 
+const reviewStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, reviewDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`);
+  }
+});
+
+const reviewUpload = multer({
+  storage: reviewStorage,
+  limits: { fileSize: 8 * 1024 * 1024, files: 4 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\//.test(file.mimetype)) return cb(null, true);
+    cb(new Error('Yalnızca görsel dosyaları yükleyebilirsiniz.'));
+  }
+});
+
+const reviewPhotos = reviewUpload.array('photos', 4);
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, avatarDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`);
+  }
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\//.test(file.mimetype)) return cb(null, true);
+    cb(new Error('Yalnızca görsel dosyaları yükleyebilirsiniz.'));
+  }
+});
+
+const avatarImage = avatarUpload.single('avatar');
+
 const publicPath = (file) => (file ? `/uploads/products/${file.filename}` : '');
 const categoryPublicPath = (file) => (file ? `/uploads/categories/${file.filename}` : '');
+const reviewPublicPath = (file) => (file ? `/uploads/reviews/${file.filename}` : '');
+const avatarPublicPath = (file) => (file ? `/uploads/avatars/${file.filename}` : '');
 
 const removeUpload = (url) => {
   if (!url || !url.startsWith('/uploads/')) return;
   fs.promises.unlink(path.join(__dirname, '..', url)).catch(() => {});
 };
 
-module.exports = { productImages, categoryImage, publicPath, categoryPublicPath, removeUpload };
+module.exports = {
+  productImages,
+  categoryImage,
+  reviewPhotos,
+  avatarImage,
+  publicPath,
+  categoryPublicPath,
+  reviewPublicPath,
+  avatarPublicPath,
+  removeUpload
+};

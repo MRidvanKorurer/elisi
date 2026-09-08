@@ -394,13 +394,14 @@
 
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
   Card, CardMedia, CardContent, CardActions, Typography, Button, 
   Chip, Box, Tooltip, Snackbar, Alert, CircularProgress 
 } from '@mui/material';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import { Favorite, FavoriteBorderOutlined } from '@mui/icons-material';
 
 import { cartService } from '../api/cartServices';
@@ -451,6 +452,8 @@ export default function ProductCard({ product, fullWidth = false }) {
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [isFavorite, setIsFavorite] = useState(false); // Başlangıçta false
   const [favLoading, setFavLoading] = useState(false);
+  const [descClipped, setDescClipped] = useState(false);
+  const descRef = useRef(null);
 
   const id = product?._id || product?.id;
   const title = product?.title || product?.baslik || 'Özel Tasarım Ürün';
@@ -486,6 +489,20 @@ export default function ProductCard({ product, fullWidth = false }) {
       checkInitialFavorite();
     }
   }, [id, product?.isFavorite]);
+
+  useLayoutEffect(() => {
+    const node = descRef.current;
+    if (!node) return undefined;
+
+    const check = () => {
+      setDescClipped(node.scrollHeight > node.clientHeight + 1);
+    };
+
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [description]);
 
   const handleCardClick = () => {
     if (id) navigate(`/product/${id}`);
@@ -554,14 +571,16 @@ export default function ProductCard({ product, fullWidth = false }) {
   };
 
   const clampSx = (lines, height) => ({
-    display: '-webkit-box',
-    WebkitLineClamp: lines,
-    WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     wordBreak: 'break-word',
     height,
-    lineHeight: 1.3
+    lineHeight: 1.3,
+    '&&': {
+      display: '-webkit-box',
+      WebkitLineClamp: lines,
+      WebkitBoxOrient: 'vertical'
+    }
   });
 
   return (
@@ -693,11 +712,71 @@ export default function ProductCard({ product, fullWidth = false }) {
                 </Box>
               </Tooltip>
             </Box>
-            <Tooltip title={description} arrow placement="top" enterDelay={200}>
-              <Box sx={{ fontSize: '0.75rem', color: '#6E5252', mt: 0.8, ...clampSx(2, '2.1em') }}>
+            <Box sx={{ position: 'relative', mt: 0.8 }}>
+              <Box
+                ref={descRef}
+                sx={{
+                  fontSize: '0.75rem',
+                  color: '#6E5252',
+                  pr: descClipped ? 2.6 : 0,
+                  ...clampSx(2, '2.6em')
+                }}
+              >
                 {description}
               </Box>
-            </Tooltip>
+              {descClipped ? (
+                <Tooltip
+                  title={description}
+                  arrow
+                  placement="top"
+                  enterDelay={120}
+                  enterTouchDelay={0}
+                  slotProps={{
+                    tooltip: {
+                      sx: {
+                        maxWidth: 280,
+                        bgcolor: '#2E3B55',
+                        color: '#FDF4D2',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        lineHeight: 1.55,
+                        px: 1.4,
+                        py: 1,
+                        borderRadius: '12px'
+                      }
+                    }
+                  }}
+                >
+                  <Box
+                    component="button"
+                    type="button"
+                    aria-label="Açıklamanın devamını gör"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    sx={{
+                      position: 'absolute',
+                      right: 0,
+                      bottom: -1,
+                      width: 22,
+                      height: 22,
+                      p: 0,
+                      border: 0,
+                      borderRadius: '999px',
+                      display: 'grid',
+                      placeItems: 'center',
+                      cursor: 'help',
+                      fontFamily: 'inherit',
+                      color: '#946D6D',
+                      bgcolor: 'rgba(253,244,210,0.95)',
+                      boxShadow: '-12px 0 12px #FFFFFF',
+                      '&:hover': { bgcolor: '#946D6D', color: '#FDF4D2' }
+                    }}
+                  >
+                    <InfoOutlined sx={{ fontSize: 15 }} />
+                  </Box>
+                </Tooltip>
+              ) : null}
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1, minWidth: 0 }}>
             <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem', whiteSpace: 'nowrap' }}>ÖZEL FİYAT</Typography>

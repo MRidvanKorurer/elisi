@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+// Ürün detay: teslimat / ölçü / iade paneli ProductFulfillment ile gelir.
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -16,17 +17,13 @@ import {
   Typography
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import CheckCircleOutlineRounded from '@mui/icons-material/CheckCircleOutlineRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import IosShareRounded from '@mui/icons-material/IosShareRounded';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import VerifiedOutlined from '@mui/icons-material/VerifiedOutlined';
 import ZoomInRounded from '@mui/icons-material/ZoomInRounded';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -38,23 +35,37 @@ import 'yet-another-react-lightbox/styles.css';
 import productService from '../api/productService';
 import { cartService } from '../api/cartServices';
 import userService from '../api/userService';
-import ProductCard from '../components/ProductCard';
+import ProductSlider from '../components/ProductSlider';
 import { imgBagOrange } from '../assets/media';
 import Seo from '../components/Seo';
-import { breadcrumbSchema, productSchema } from '../utils/schema';
+import { breadcrumbSchema, faqSchema, productSchema } from '../utils/schema';
 import { productDescription } from '../utils/seo';
 import { categoryLabel } from '../utils/categories';
+import ProductReviews from '../components/ProductReviews';
+import ProductQuestions from '../components/ProductQuestions';
+import AtelierCard from '../components/AtelierCard';
+import ProductFulfillment from '../components/ProductFulfillment';
+import ProductClip from '../components/ProductClip';
+import { resolveProductVideo } from '../utils/productVideo';
 
-const FALLBACK_IMAGE = imgBagOrange;
+const asImageSrc = (img) => {
+  if (!img) return '';
+  if (typeof img === 'string') return img;
+  if (typeof img.src === 'string') return img.src;
+  return '';
+};
+
+const FALLBACK_IMAGE = asImageSrc(imgBagOrange);
 
 const formatPrice = (value) =>
   Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-export default function ProductDetailPage({ onAddToCart }) {
+export default function ProductDetailPage({ onAddToCart, user }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
+  const [faqItems, setFaqItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState('');
@@ -67,10 +78,12 @@ export default function ProductDetailPage({ onAddToCart }) {
   const [similarProducts, setSimilarProducts] = useState([]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [mediaView, setMediaView] = useState('photo');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMediaView('photo');
   }, [id]);
 
   useEffect(() => {
@@ -91,6 +104,7 @@ export default function ProductDetailPage({ onAddToCart }) {
         setProduct(productData);
         setActiveImage(productData.image || productData.gorsel || '');
         setQuantity(1);
+        setFaqItems([]);
         setSelectedColor(Array.isArray(productData.colors) && productData.colors[0] ? productData.colors[0] : '');
         setSelectedSize(Array.isArray(productData.sizes) && productData.sizes[0] ? productData.sizes[0] : '');
 
@@ -98,19 +112,19 @@ export default function ProductDetailPage({ onAddToCart }) {
           const categoryParam = productData.category || productData.kategori;
           const similarRes = await productService.getFilteredProducts({
             category: categoryParam,
-            limit: 8
+            limit: 12
           });
           const fetched = similarRes?.products || similarRes?.data || [];
           const currentId = String(productData._id || productData.id);
           setSimilarProducts(
-            fetched.filter((item) => String(item._id || item.id) !== currentId).slice(0, 4)
+            fetched.filter((item) => String(item._id || item.id) !== currentId).slice(0, 12)
           );
         } catch (simErr) {
           console.warn('Benzer ürünler çekilemedi:', simErr);
           setSimilarProducts([]);
         }
       } catch (err) {
-        console.error('Ürün detayı çekilirken hata:', err);
+        console.error('Ürün detayı çekilirken hata:', err?.message || err?.response?.data?.message);
         setProduct(null);
         setError(err?.response?.data?.message || err.message || 'Ürün bulunamadı veya bir hata oluştu.');
       } finally {
@@ -141,7 +155,7 @@ export default function ProductDetailPage({ onAddToCart }) {
   const allImages = useMemo(() => {
     if (!product) return [];
     const extras = Array.isArray(product.additionalImages) ? product.additionalImages : [];
-    return [product.image || product.gorsel, ...extras].filter(Boolean);
+    return [product.image || product.gorsel, ...extras].map(asImageSrc).filter(Boolean);
   }, [product]);
 
   const rawPrice = Number(product?.price || product?.fiyat || 0);
@@ -151,7 +165,8 @@ export default function ProductDetailPage({ onAddToCart }) {
   const outOfStock = stock <= 0;
   const title = product?.title || product?.name || 'Ürün';
   const mainImg = allImages[0] || FALLBACK_IMAGE;
-  const displayImage = activeImage || mainImg;
+  const displayImage = asImageSrc(activeImage) || mainImg;
+  const videoSrc = resolveProductVideo(product?.video);
 
   const showToast = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
@@ -293,7 +308,8 @@ export default function ProductDetailPage({ onAddToCart }) {
             { name: 'Ürünler', path: '/products' },
             { name: categoryLabel(product.category), path: `/products?category=${encodeURIComponent(product.category || '')}` },
             { name: title, path: productPath }
-          ])
+          ]),
+          ...(faqItems.length ? [faqSchema(faqItems)] : [])
         ]}
       />
       <Container maxWidth="lg">
@@ -325,7 +341,10 @@ export default function ProductDetailPage({ onAddToCart }) {
         >
           <Box sx={{ minWidth: 0, position: { lg: 'sticky' }, top: { lg: 108 } }}>
             <Box
-              onClick={() => handleOpenLightbox(Math.max(0, allImages.indexOf(displayImage)))}
+              onClick={() => {
+                if (mediaView === 'video') return;
+                handleOpenLightbox(Math.max(0, allImages.indexOf(displayImage)));
+              }}
               sx={{
                 width: '100%',
                 aspectRatio: { xs: '1 / 1', md: '4 / 5' },
@@ -335,7 +354,7 @@ export default function ProductDetailPage({ onAddToCart }) {
                 backgroundColor: '#fff',
                 border: '1px solid rgba(148,109,109,0.12)',
                 boxShadow: '0 22px 50px -24px rgba(46,59,85,0.35)',
-                cursor: 'zoom-in'
+                cursor: mediaView === 'video' ? 'default' : 'zoom-in'
               }}
             >
               <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '70%' }}>
@@ -343,22 +362,28 @@ export default function ProductDetailPage({ onAddToCart }) {
                 {discountRate > 0 && <Chip label={`%${discountRate} indirim`} sx={badgeSx('#946D6D')} />}
                 {outOfStock && <Chip label="Tükendi" sx={badgeSx('#6E5252')} />}
               </Box>
-              <Box sx={zoomHintSx}>
-                <ZoomInRounded sx={{ fontSize: 18 }} />
-              </Box>
-              <Box
-                component="img"
-                src={displayImage}
-                alt={title}
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = FALLBACK_IMAGE;
-                }}
-                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
+              {mediaView !== 'video' ? (
+                <Box sx={zoomHintSx}>
+                  <ZoomInRounded sx={{ fontSize: 18 }} />
+                </Box>
+              ) : null}
+              {mediaView === 'video' && videoSrc ? (
+                <ProductClip key={videoSrc} src={videoSrc} poster={mainImg} title={title} />
+              ) : (
+                <Box
+                  component="img"
+                  src={displayImage}
+                  alt={title}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              )}
             </Box>
 
-            {allImages.length > 1 && (
+            {(allImages.length > 1 || videoSrc) && (
               <Box
                 sx={{
                   display: 'grid',
@@ -368,11 +393,14 @@ export default function ProductDetailPage({ onAddToCart }) {
                 }}
               >
                 {allImages.map((img, idx) => {
-                  const active = displayImage === img;
+                  const active = mediaView === 'photo' && displayImage === img;
                   return (
                     <Box
                       key={`${img}-${idx}`}
-                      onClick={() => setActiveImage(img)}
+                      onClick={() => {
+                        setMediaView('photo');
+                        setActiveImage(img);
+                      }}
                       sx={{
                         aspectRatio: '1 / 1',
                         borderRadius: '14px',
@@ -389,6 +417,28 @@ export default function ProductDetailPage({ onAddToCart }) {
                 })}
               </Box>
             )}
+            {videoSrc ? (
+              <Box
+                component="button"
+                type="button"
+                onClick={() => setMediaView((view) => (view === 'video' ? 'photo' : 'video'))}
+                sx={{
+                  mt: 1.2,
+                  p: 0,
+                  border: 0,
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  color: '#946D6D',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  letterSpacing: 0.2,
+                  textDecoration: mediaView === 'video' ? 'underline' : 'none'
+                }}
+              >
+                {mediaView === 'video' ? 'Fotoğraflara dön' : 'Videoyu izle'}
+              </Box>
+            ) : null}
           </Box>
 
           <Box sx={{ minWidth: 0 }}>
@@ -404,9 +454,11 @@ export default function ProductDetailPage({ onAddToCart }) {
             </Typography>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
-              <Rating value={Number(product.rating || 5)} precision={0.1} readOnly sx={{ color: '#DDA15E' }} />
+              <Rating value={Number(product.numReviews ? product.rating : 0)} precision={0.1} readOnly sx={{ color: '#DDA15E' }} />
               <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 700 }}>
-                {Number(product.rating || 5).toFixed(1)} · {product.numReviews || 0} değerlendirme
+                {product.numReviews
+                  ? `${Number(product.rating).toFixed(1)} · ${product.numReviews} değerlendirme`
+                  : 'Henüz değerlendirme yok'}
               </Typography>
               {product.soldCount > 0 && (
                 <Typography variant="body2" sx={{ color: '#A290B7', fontWeight: 700 }}>
@@ -416,7 +468,7 @@ export default function ProductDetailPage({ onAddToCart }) {
             </Box>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 1.5, mb: 3 }}>
-              <Typography className="custom-gradient-text" fontWeight={800} sx={{ fontSize: { xs: '2rem', md: '2.4rem' }, lineHeight: 1 }}>
+              <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: { xs: '2rem', md: '2.4rem' }, lineHeight: 1 }}>
                 {formatPrice(discountedPrice)} ₺
               </Typography>
               {discountRate > 0 && (
@@ -506,32 +558,20 @@ export default function ProductDetailPage({ onAddToCart }) {
               </IconButton>
             </Box>
 
-            <Box sx={infoCardSx}>
-              <Box sx={{ color: '#DDA15E' }}>
-                {product.immediateDelivery ? <LocalShippingOutlinedIcon /> : <HandymanOutlinedIcon />}
-              </Box>
-              <Box>
-                <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>
-                  {product.immediateDelivery ? 'Hemen kargoda' : 'Kişiye özel üretim'}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>
-                  {product.immediateDelivery
-                    ? 'Sipariş 24 saat içinde kargoya verilir.'
-                    : `Üretim süresi: ${product.customProductionTime || '1-3 iş günü'}`}
-                </Typography>
-              </Box>
-            </Box>
+            <ProductFulfillment product={product} />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.2, mb: 3 }}>
-              <Box sx={miniFactSx}>
-                <VerifiedOutlined sx={{ color: '#946D6D', fontSize: 20 }} />
-                <Typography variant="body2" fontWeight={700} sx={{ color: '#2E3B55' }}>El işçiliği, sınırlı üretim</Typography>
-              </Box>
-              <Box sx={miniFactSx}>
-                <CheckCircleOutlineRounded sx={{ color: '#946D6D', fontSize: 20 }} />
-                <Typography variant="body2" fontWeight={700} sx={{ color: '#2E3B55' }}>Güvenli ödeme ve iade</Typography>
-              </Box>
-            </Box>
+            <AtelierCard
+              atelier={product.atelier || {
+                magazaAdi: 'Nik Bag Atölyesi',
+                slug: null,
+                magazaTuruEtiket: 'El yapımı',
+                aciklama: 'Geleneksel el işçiliğiyle modern çizgilerin buluştuğu ev atölyesi.',
+                sehir: 'Türkiye',
+                instagram: 'nikbag',
+                isHouse: true
+              }}
+              compact
+            />
 
             <Divider sx={{ mb: 1, borderColor: 'rgba(148,109,109,0.12)' }} />
 
@@ -565,25 +605,28 @@ export default function ProductDetailPage({ onAddToCart }) {
           </Box>
         </Box>
 
+        <ProductQuestions
+          productId={product._id || product.id || id}
+          productSellerId={product.seller}
+          user={user}
+          onAnsweredChange={setFaqItems}
+        />
+
+        <ProductReviews
+          productId={product._id || product.id || id}
+          user={user}
+          onSummaryChange={({ rating, numReviews }) => {
+            setProduct((prev) => (prev ? { ...prev, rating, numReviews } : prev));
+          }}
+        />
+
         {similarProducts.length > 0 && (
           <Box sx={{ mt: { xs: 7, md: 10 }, pt: { xs: 4, md: 6 }, borderTop: '1px solid rgba(148,109,109,0.12)' }}>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.5rem', md: '1.85rem' }, letterSpacing: '-0.03em' }}>
               Bunlar da ilginizi çekebilir
             </Typography>
             <Typography sx={{ color: '#6E5252', mb: 3.5, mt: 0.5 }}>Aynı kategorideki diğer el işi tasarımlar.</Typography>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-                gap: { xs: 1.5, md: 2.5 }
-              }}
-            >
-              {similarProducts.map((simProduct) => (
-                <Box key={simProduct._id || simProduct.id} sx={{ minWidth: 0 }}>
-                  <ProductCard product={simProduct} fullWidth onAddToCart={onAddToCart} />
-                </Box>
-              ))}
-            </Box>
+            <ProductSlider products={similarProducts} ariaLabel="Benzer ürünler" />
           </Box>
         )}
       </Container>
@@ -729,27 +772,6 @@ const iconActionSx = {
   height: 56,
   bgcolor: '#fff',
   '&:hover': { borderColor: '#946D6D', bgcolor: '#fff' }
-};
-
-const infoCardSx = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1.5,
-  p: 2.2,
-  mb: 2,
-  borderRadius: '18px',
-  bgcolor: 'rgba(255,255,255,0.78)',
-  border: '1px solid rgba(148,109,109,0.12)'
-};
-
-const miniFactSx = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  p: 1.5,
-  borderRadius: '16px',
-  bgcolor: 'rgba(255,255,255,0.65)',
-  border: '1px solid rgba(148,109,109,0.1)'
 };
 
 const accordionSx = {

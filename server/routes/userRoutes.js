@@ -6,6 +6,7 @@ const router = express.Router();
 const {
     getProfile, // veya getMe
     updateProfile,
+    uploadAvatar,
     changePassword,
     addAddress,
     deleteAddress,
@@ -18,6 +19,7 @@ const {
 // Kimlik doğrulama ara katmanını (Middleware) içe aktar
 // JWT kontrolü yapan middleware'in yolunu projene göre ayarla
 const { protect } = require('../middleware/authMiddleware'); // Kendi dosya ismine göre değiştir 
+const { avatarImage } = require('../middleware/uploadMiddleware'); 
 
 // ==========================================
 // 1. PROFİL ROTALARI
@@ -28,6 +30,7 @@ router.get('/profile', protect, getProfile);
 
 // PUT /api/users/profile/update - Ad, Soyad, Telefon güncelle
 router.put('/profile/update', protect, updateProfile);
+router.post('/profile/avatar', protect, avatarImage, uploadAvatar);
 
 // PUT /api/users/profile/change-password - Şifre değiştir
 router.put('/profile/change-password', protect, changePassword);

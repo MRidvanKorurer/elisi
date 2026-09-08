@@ -42,7 +42,7 @@ import Seo from '../components/Seo';
 import { breadcrumbSchema, itemListSchema } from '../utils/schema';
 import { categoryLabel, mergeCatalogCategories } from '../utils/categories';
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 8;
 const DEFAULT_MAX_PRICE = 10000;
 
 const SORT_OPTIONS = [
@@ -1066,8 +1066,7 @@ export default function ProductsPage() {
                                     gridTemplateColumns: {
                                         xs: 'repeat(2, minmax(0, 1fr))',
                                         sm: 'repeat(2, minmax(0, 1fr))',
-                                        md: 'repeat(3, minmax(0, 1fr))',
-                                        lg: 'repeat(4, minmax(0, 1fr))'
+                                        md: 'repeat(4, minmax(0, 1fr))'
                                     },
                                     gap: { xs: 1.25, md: 2.5 }
                                 }}
@@ -1110,8 +1109,7 @@ export default function ProductsPage() {
                                         gridTemplateColumns: {
                                             xs: 'repeat(2, minmax(0, 1fr))',
                                             sm: 'repeat(2, minmax(0, 1fr))',
-                                            md: 'repeat(3, minmax(0, 1fr))',
-                                            lg: 'repeat(4, minmax(0, 1fr))'
+                                            md: 'repeat(4, minmax(0, 1fr))'
                                         },
                                         gap: { xs: 1.25, md: 2.5 }
                                     }}
