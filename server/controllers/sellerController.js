@@ -17,6 +17,42 @@ const { CATEGORY_LABELS } = require('../constants/categories');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const MAGAZA_ETIKET = CATEGORY_LABELS;
 
+const isLocalUpload = (src = '') => String(src).startsWith('/uploads/') || String(src).includes('/uploads/');
+
+const pickCoverImages = (docs = []) => {
+    const seen = new Set();
+    const local = [];
+    const remote = [];
+
+    const take = (src, bucket) => {
+        const value = String(src || '').trim();
+        if (!value || seen.has(value)) return false;
+        if (/images\.unsplash\.com/i.test(value)) return false;
+        seen.add(value);
+        bucket.push(value);
+        return true;
+    };
+
+    for (const item of docs) {
+        const src = item?.image;
+        if (isLocalUpload(src)) take(src, local);
+        else if (/^https?:\/\//i.test(String(src || ''))) take(src, remote);
+        if (local.length >= 4) break;
+    }
+
+    if (local.length < 4) {
+        for (const item of docs) {
+            for (const src of item?.additionalImages || []) {
+                if (isLocalUpload(src)) take(src, local);
+                if (local.length >= 4) break;
+            }
+            if (local.length >= 4) break;
+        }
+    }
+
+    return [...local, ...remote].slice(0, 4);
+};
+
 const sanitizeIban = (iban = '') => String(iban).replace(/\s+/g, '').toUpperCase();
 
 const isValidIbanTr = (iban) => /^TR\d{24}$/.test(iban);
@@ -491,8 +527,8 @@ const getPublicSeller = async (req, res) => {
             ]),
             Product.find(publicMatch)
                 .sort({ soldCount: -1, createdAt: -1 })
-                .select('image additionalImages title')
-                .limit(4)
+                .select('image additionalImages')
+                .limit(16)
                 .lean()
         ]);
 
@@ -511,10 +547,7 @@ const getPublicSeller = async (req, res) => {
                 count: row.count
             }));
 
-        const coverImages = (coverDocs || [])
-            .flatMap((item) => [item.image, ...(item.additionalImages || [])])
-            .filter(Boolean)
-            .slice(0, 4);
+        const coverImages = pickCoverImages(coverDocs);
 
         return res.status(200).json({
             success: true,

@@ -146,8 +146,8 @@ export default function HeroBanner({ user, onNavigateAuth }) {
         position: 'relative',
         width: '100%',
         // Altın bölüm + pay; ilk ekranda alttaki bölümün başlığı görünsün
-        height: 'min(calc(100svh / 1.6180339887 + 80px), calc(100svh - 168px))',
-        minHeight: { xs: 460, md: 'unset' },
+        height: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 108px))',
+        minHeight: { xs: 520, md: 'unset' },
         mt: 0,
         mb: { xs: 2, md: 3 },
         display: 'flex',

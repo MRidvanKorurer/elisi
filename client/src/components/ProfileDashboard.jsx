@@ -8,6 +8,7 @@ import { useTheme } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import userService from '../api/userService';
+import { setFavoriteIds, setProductFavorite } from '../utils/favoritesStore';
 
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -123,7 +124,9 @@ export default function ProfileDashboard() {
           setOrders(ordersRes.value.orders || []);
         }
         if (favRes.status === 'fulfilled' && favRes.value?.success) {
-          setFavorites((favRes.value.favorites || []).filter(Boolean));
+          const list = (favRes.value.favorites || []).filter(Boolean);
+          setFavorites(list);
+          setFavoriteIds(list);
         }
       } catch (error) {
         if (error?.response?.status === 401) {
@@ -238,6 +241,7 @@ export default function ProfileDashboard() {
     try {
       await userService.removeFavorite(productId);
       setFavorites((prev) => prev.filter((fav) => String(fav._id || fav.id) !== String(productId)));
+      setProductFavorite(productId, false);
       showAlert('Ürün favorilerden çıkarıldı.');
     } catch {
       showAlert('Favorilerden çıkarılırken hata oluştu.', 'error');

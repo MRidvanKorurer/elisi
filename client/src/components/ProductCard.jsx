@@ -407,6 +407,12 @@ import { Favorite, FavoriteBorderOutlined } from '@mui/icons-material';
 import { cartService } from '../api/cartServices';
 import userService from '../api/userService';
 import { imgBagOrange } from '../assets/media';
+import {
+  FAVORITES_UPDATED,
+  isProductFavorite,
+  loadFavoriteIds,
+  setProductFavorite
+} from '../utils/favoritesStore';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -418,30 +424,6 @@ export const productCardGridSx = {
   gridTemplateColumns: `repeat(auto-fill, ${PRODUCT_CARD_WIDTH}px)`,
   justifyContent: 'center',
   gap: { xs: 2, md: 3 }
-};
-
-// =========================================================================
-// OPTİMİZASYON: Tüm kartların aynı anda API'ye saldırmasını engellemek için
-// Favori listesini sadece 1 kez çekecek Global Cache (Önbellek) Mekanizması
-// =========================================================================
-let globalFavoritesPromise = null;
-let globalFavoritesCache = null;
-
-const getCachedFavorites = async () => {
-  // Veri zaten çekildiyse direkt dön
-  if (globalFavoritesCache) return globalFavoritesCache;
-  
-  // Eğer şu an çekiliyorsa (başka bir kart istek attıysa) aynı isteği bekle
-  if (!globalFavoritesPromise) {
-    globalFavoritesPromise = userService.getFavorites().then(res => {
-      globalFavoritesCache = res.success ? res.favorites : [];
-      return globalFavoritesCache;
-    }).catch(() => {
-      globalFavoritesCache = [];
-      return [];
-    });
-  }
-  return globalFavoritesPromise;
 };
 
 export default function ProductCard({ product, fullWidth = false }) {
@@ -466,29 +448,17 @@ export default function ProductCard({ product, fullWidth = false }) {
     ? (price - (price * (product.discountPercentage / 100))) 
     : price;
 
-  // --- SAYFA YÜKLENDİĞİNDE FAVORİ KONTROLÜ ---
   useEffect(() => {
-    const checkInitialFavorite = async () => {
-      // 1. Giriş yapılmamışsa (Token yoksa) API'yi boşuna yorma
-      const token = localStorage.getItem('token') || localStorage.getItem('user'); 
-      if (!token) return;
+    if (!id) return undefined;
 
-      // 2. Backend zaten ürüne "isFavorite" bilgisi ekleyip gönderdiyse direkt onu kullan
-      if (typeof product?.isFavorite === 'boolean') {
-        setIsFavorite(product.isFavorite);
-        return;
-      }
+    const sync = () => setIsFavorite(isProductFavorite(id));
+    sync();
+    loadFavoriteIds().then(sync);
 
-      // 3. Bilinmiyorsa, Global Cache üzerinden kontrol et
-      const favorites = await getCachedFavorites();
-      const isFav = favorites.some(fav => (fav._id || fav.id) === id);
-      setIsFavorite(isFav);
-    };
-
-    if (id) {
-      checkInitialFavorite();
-    }
-  }, [id, product?.isFavorite]);
+    const onUpdate = () => sync();
+    window.addEventListener(FAVORITES_UPDATED, onUpdate);
+    return () => window.removeEventListener(FAVORITES_UPDATED, onUpdate);
+  }, [id]);
 
   useLayoutEffect(() => {
     const node = descRef.current;
@@ -539,23 +509,19 @@ export default function ProductCard({ product, fullWidth = false }) {
     try {
       if (isFavorite) {
         await userService.removeFavorite(id);
-        setIsFavorite(false);
-        // Önbellekten de sil
-        if (globalFavoritesCache) {
-            globalFavoritesCache = globalFavoritesCache.filter(fav => (fav._id || fav.id) !== id);
-        }
+        setProductFavorite(id, false);
         setToast({ open: true, message: 'Ürün favorilerden çıkarıldı.', severity: 'info' });
       } else {
-        await userService.addFavorite(id);
-        setIsFavorite(true);
-        // Önbelleğe ekle
-        if (globalFavoritesCache) {
-            globalFavoritesCache.push({ _id: id });
+        try {
+          await userService.addFavorite(id);
+        } catch (addError) {
+          if (addError?.response?.status !== 400) throw addError;
         }
+        setProductFavorite(id, true);
         setToast({ open: true, message: 'Ürün favorilere eklendi!', severity: 'success' });
       }
     } catch (error) {
-      if (error.response?.status === 401 || error.message.includes('token') || error.message.includes('Giriş')) {
+      if (error.response?.status === 401 || error.message?.includes('token') || error.message?.includes('Giriş')) {
         setToast({ open: true, message: 'Favorilere eklemek için giriş yapmalısınız.', severity: 'warning' });
       } else {
         setToast({ open: true, message: error.response?.data?.message || 'İşlem başarısız.', severity: 'error' });

@@ -47,6 +47,12 @@ import AtelierCard from '../components/AtelierCard';
 import ProductFulfillment from '../components/ProductFulfillment';
 import ProductClip from '../components/ProductClip';
 import { resolveProductVideo } from '../utils/productVideo';
+import {
+  FAVORITES_UPDATED,
+  isProductFavorite,
+  loadFavoriteIds,
+  setProductFavorite
+} from '../utils/favoritesStore';
 
 const asImageSrc = (img) => {
   if (!img) return '';
@@ -136,20 +142,16 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   }, [id]);
 
   useEffect(() => {
-    const syncFavorite = async () => {
-      const productId = product?._id || product?.id;
-      if (!productId) return;
+    const productId = product?._id || product?.id;
+    if (!productId) return undefined;
 
-      try {
-        const favRes = await userService.getFavorites();
-        const favList = favRes?.favorites || [];
-        setIsFavorite(favList.some((item) => String(item?._id || item?.id || item) === String(productId)));
-      } catch {
-        setIsFavorite(false);
-      }
-    };
+    const sync = () => setIsFavorite(isProductFavorite(productId));
+    sync();
+    loadFavoriteIds().then(sync);
 
-    syncFavorite();
+    const onUpdate = () => sync();
+    window.addEventListener(FAVORITES_UPDATED, onUpdate);
+    return () => window.removeEventListener(FAVORITES_UPDATED, onUpdate);
   }, [product]);
 
   const allImages = useMemo(() => {
@@ -212,11 +214,15 @@ export default function ProductDetailPage({ onAddToCart, user }) {
     try {
       if (isFavorite) {
         await userService.removeFavorite(productId);
-        setIsFavorite(false);
+        setProductFavorite(productId, false);
         showToast('Ürün favorilerden çıkarıldı.', 'info');
       } else {
-        await userService.addFavorite(productId);
-        setIsFavorite(true);
+        try {
+          await userService.addFavorite(productId);
+        } catch (addError) {
+          if (addError?.response?.status !== 400) throw addError;
+        }
+        setProductFavorite(productId, true);
         showToast('Ürün favorilere eklendi.');
       }
     } catch (err) {

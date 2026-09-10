@@ -12,6 +12,7 @@ import API from './api/api';
 import './index.css';
 import useSmoothScroll from './hooks/useSmoothScroll';
 import { isSuperAdmin } from './utils/roles';
+import { clearFavoriteCache, loadFavoriteIds } from './utils/favoritesStore';
 
 // Ağır sayfalar yalnızca ziyaret edildiğinde indirilir
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -103,6 +104,12 @@ export default function App() {
     };
     checkAuthStatus();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (user) loadFavoriteIds(true);
+    else clearFavoriteCache();
+  }, [user, loading]);
 
   // Rota değişiminde sayfa başına dön
   useEffect(() => {
