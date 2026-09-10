@@ -2,6 +2,7 @@
 
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Card, Typography, TextField, Button, Tabs, Tab, 
   InputAdornment, IconButton, Alert 
@@ -13,12 +14,18 @@ import LockOutlined from '@mui/icons-material/LockOutlined';
 import PersonOutlineOutlined from '@mui/icons-material/PersonOutlineOutlined';
 import ChangeHistoryRounded from '@mui/icons-material/ChangeHistoryRounded';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
+import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
+import CheckRounded from '@mui/icons-material/CheckRounded';
+import CardGiftcardOutlined from '@mui/icons-material/CardGiftcardOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/api';
-import { imgMood1, videoLook5 } from '../assets/media';
+import { imgMood1 } from '../assets/media';
+import { mediaUrl } from '../api/lookbookService';
+import { SITE_VIDEO } from '../utils/siteVideos';
 import Seo from '../components/Seo';
 
 export default function AuthPage({ onLoginSuccess }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0); // 0: Giriş, 1: Kayıt
   const [showPassword, setShowPassword] = useState(false);
   
@@ -27,6 +34,8 @@ export default function AuthPage({ onLoginSuccess }) {
   const [adSoyad, setAdSoyad] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [welcomeCode, setWelcomeCode] = useState('');
+  const [copied, setCopied] = useState(false);
 
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
@@ -84,6 +93,12 @@ const handleSubmit = async (e) => {
     // Backend'den gelen kullanici verisini ilet
     const userData = res.data.kullanici || res.data.user;
 
+    if (tab === 1 && userData?.kampanyaKodu) {
+      if (onLoginSuccess) onLoginSuccess(userData, { redirect: false });
+      setWelcomeCode(userData.kampanyaKodu);
+      return;
+    }
+
     if (onLoginSuccess) {
       onLoginSuccess(userData);
     }
@@ -110,7 +125,7 @@ const handleSubmit = async (e) => {
       <Seo title="Giriş Yap veya Üye Ol" path="/auth" noindex />
       <Box
         component="video"
-        src={videoLook5}
+        src={mediaUrl(SITE_VIDEO.clutch)}
         poster={imgMood1}
         autoPlay
         muted
@@ -168,10 +183,85 @@ const handleSubmit = async (e) => {
                 Nik Bag
               </Typography>
               <Typography variant="body1" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.8 }}>
-                {tab === 0 ? 'Hesabınıza giriş yapın' : 'Aramıza katılın & fırsatları yakalayın'}
+                {welcomeCode ? 'Kodunu kopyala, ilk siparişinde kullan' : tab === 0 ? 'Hesabınıza giriş yapın' : 'Aramıza katılın & fırsatları yakalayın'}
               </Typography>
             </Box>
 
+            {welcomeCode ? (
+              <Box sx={{ textAlign: 'center' }}>
+                <Box
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: '18px',
+                    background: 'linear-gradient(135deg, #B0CDE6 0%, #A290B7 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2
+                  }}
+                >
+                  <CardGiftcardOutlined sx={{ color: '#2E3B55', fontSize: 34 }} />
+                </Box>
+                <Typography variant="h5" fontWeight={800} sx={{ color: '#946D6D', mb: 1 }}>
+                  Hoş geldin indirimin hazır
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mb: 2.5 }}>
+                  İlk siparişinde ürün tutarına %10 indirim. Kod yalnızca senin hesabına ait ve bir kez kullanılır.
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                    mb: 2.5,
+                    px: 2,
+                    py: 1.4,
+                    borderRadius: '16px',
+                    backgroundColor: 'rgba(253, 244, 210, 0.9)',
+                    border: '1px dashed rgba(148,109,109,0.35)'
+                  }}
+                >
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55', letterSpacing: 1.2, fontSize: '1.15rem' }}>
+                    {welcomeCode}
+                  </Typography>
+                  <IconButton
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(welcomeCode);
+                        setCopied(true);
+                      } catch {
+                        setCopied(false);
+                      }
+                    }}
+                    sx={{ color: '#946D6D' }}
+                    aria-label="Kodu kopyala"
+                  >
+                    {copied ? <CheckRounded /> : <ContentCopyRounded />}
+                  </IconButton>
+                </Box>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => navigate('/')}
+                  endIcon={<ArrowForwardRounded />}
+                  sx={{
+                    py: 1.8,
+                    borderRadius: '18px',
+                    backgroundColor: '#B0CDE6',
+                    color: '#2E3B55',
+                    fontWeight: 800,
+                    fontSize: '1.05rem',
+                    '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' }
+                  }}
+                >
+                  Alışverişe başla
+                </Button>
+              </Box>
+            ) : (
+              <>
             <Tabs 
               value={tab} 
               onChange={(_, newValue) => { setTab(newValue); setError(''); }}
@@ -285,6 +375,8 @@ const handleSubmit = async (e) => {
                 </motion.div>
               </AnimatePresence>
             </form>
+              </>
+            )}
           </Card>
         </motion.div>
       </Container>

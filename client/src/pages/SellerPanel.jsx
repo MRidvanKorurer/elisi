@@ -10,16 +10,15 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   MenuItem,
-  Switch,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  Select
 } from '@mui/material';
 import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
@@ -30,32 +29,20 @@ import Inventory2Rounded from '@mui/icons-material/Inventory2Rounded';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
-import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
-import ImageUploader from '../components/ImageUploader';
+import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
+import AddRounded from '@mui/icons-material/AddRounded';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton, panelButton } from '../components/PanelShell';
+import SellerProductEditor, { emptyProductForm, formFromProduct } from '../components/SellerProductEditor';
 import { sellerService } from '../api/sellerService';
 import { questionService } from '../api/questionService';
 import { isSellerRole } from '../utils/roles';
 import { formatIban, sanitizeIban } from '../utils/sellerValidation';
-import { APPROVAL_STATUS, ORDER_STATUS, PAYMENT_STATUS, T, money, when } from '../utils/panel';
-
-import { CATEGORY_OPTIONS } from '../utils/categories';
+import { APPROVAL_STATUS, ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money, when } from '../utils/panel';
+import { lineTotalOf, salePriceOf } from '../utils/price';
+import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
 
 const MAGAZA_TURLERI = CATEGORY_OPTIONS;
-
-const emptyProduct = {
-  title: '',
-  description: '',
-  category: 'canta',
-  price: '',
-  stock: 1,
-  discountPercentage: 0,
-  colors: '',
-  sizes: '',
-  immediateDelivery: true,
-  customProductionTime: '1-3 İş Günü',
-  measureNote: '',
-  video: ''
-};
 
 const headCell = {
   fontWeight: 800,
@@ -93,6 +80,9 @@ export default function SellerPanel({ user, handleLogout }) {
   const [overview, setOverview] = useState(null);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [orderFilter, setOrderFilter] = useState('all');
+  const [openOrder, setOpenOrder] = useState(null);
+  const [updatingOrder, setUpdatingOrder] = useState('');
   const [questions, setQuestions] = useState([]);
   const [questionFilter, setQuestionFilter] = useState('all');
   const [answerOpen, setAnswerOpen] = useState(false);
@@ -101,15 +91,19 @@ export default function SellerPanel({ user, handleLogout }) {
   const [savingAnswer, setSavingAnswer] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyProduct);
+  const [form, setForm] = useState(emptyProductForm);
   const [mainImage, setMainImage] = useState(null);
   const [gallery, setGallery] = useState([]);
+  const [removedImages, setRemovedImages] = useState([]);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [productFilter, setProductFilter] = useState('all');
   const [store, setStore] = useState(null);
   const [savingStore, setSavingStore] = useState(false);
   const [removing, setRemoving] = useState(null);
+  const [promos, setPromos] = useState([]);
+  const [promoForm, setPromoForm] = useState({ code: '', percent: 10, minSubtotal: 0, note: '', isActive: true });
+  const [savingPromo, setSavingPromo] = useState(false);
 
   const fail = (err, fallback) => setError(err.response?.data?.mesaj || fallback);
   const flash = (text) => {
@@ -136,16 +130,18 @@ export default function SellerPanel({ user, handleLogout }) {
   };
 
   const loadPanel = async () => {
-    const [ov, pr, or, qs] = await Promise.all([
+    const [ov, pr, or, qs, pm] = await Promise.all([
       sellerService.getOverview(),
       sellerService.getMyProducts(),
       sellerService.getMyOrders(),
-      questionService.getSellerInbox('all')
+      questionService.getSellerInbox('all'),
+      sellerService.getMyPromos()
     ]);
     setOverview(ov.overview);
     setProducts(pr.products || []);
     setOrders(or.orders || []);
     setQuestions(qs.questions || []);
+    setPromos(pm.promos || []);
   };
 
   useEffect(() => {
@@ -168,13 +164,24 @@ export default function SellerPanel({ user, handleLogout }) {
   }, []);
 
   const q = query.trim().toLowerCase();
-  const filteredProducts = useMemo(
-    () => products.filter((p) => !q || `${p.title} ${p.category}`.toLowerCase().includes(q)),
-    [products, q]
-  );
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      if (productFilter === 'live' && !(p.isActive && p.approvalStatus === 'approved')) return false;
+      if (productFilter === 'hidden' && p.isActive) return false;
+      if (productFilter === 'pending' && p.approvalStatus !== 'pending') return false;
+      if (productFilter === 'rejected' && p.approvalStatus !== 'rejected') return false;
+      if (productFilter === 'low' && p.stock > 5) return false;
+      if (!q) return true;
+      return `${p.title} ${p.category} ${p.productCode} ${p.description}`.toLowerCase().includes(q);
+    });
+  }, [products, q, productFilter]);
   const filteredOrders = useMemo(
-    () => orders.filter((o) => !q || `${o.customerInfo?.firstName} ${o.customerInfo?.lastName} ${o._id}`.toLowerCase().includes(q)),
-    [orders, q]
+    () => orders.filter((o) => {
+      if (orderFilter !== 'all' && o.orderStatus !== orderFilter) return false;
+      if (!q) return true;
+      return `${o.customerInfo?.firstName} ${o.customerInfo?.lastName} ${o.customerInfo?.phone} ${o._id}`.toLowerCase().includes(q);
+    }),
+    [orders, q, orderFilter]
   );
   const filteredQuestions = useMemo(() => {
     return questions.filter((item) => {
@@ -185,6 +192,13 @@ export default function SellerPanel({ user, handleLogout }) {
       return `${item.question} ${item.answer} ${item.user?.adSoyad} ${item.product?.title}`.toLowerCase().includes(q);
     });
   }, [questions, q, questionFilter]);
+  const filteredPromos = useMemo(
+    () => promos.filter((promo) => {
+      if (!q) return true;
+      return `${promo.code} ${promo.note} ${promo.percent}`.toLowerCase().includes(q);
+    }),
+    [promos, q]
+  );
 
   if (!user) return <Navigate to="/auth" replace />;
   if (!isSellerRole(user.rol)) return <Navigate to="/" replace />;
@@ -207,76 +221,88 @@ export default function SellerPanel({ user, handleLogout }) {
     }
   };
 
+  const updateOrderStatus = async (id, orderStatus) => {
+    setUpdatingOrder(id);
+    try {
+      const data = await sellerService.updateMyOrder(id, { orderStatus });
+      await loadPanel();
+      if (openOrder?._id === id) setOpenOrder(data.order || { ...openOrder, orderStatus });
+      flash('Sipariş durumu güncellendi.');
+    } catch (err) {
+      fail(err, 'Sipariş güncellenemedi.');
+    } finally {
+      setUpdatingOrder('');
+    }
+  };
+
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyProduct);
+    setForm(emptyProductForm);
     setMainImage(null);
     setGallery([]);
-    setDialogOpen(true);
+    setRemovedImages([]);
+    setView('editor');
   };
 
   const openEdit = (product) => {
     setEditing(product);
-    setForm({
-      title: product.title || '',
-      description: product.description || '',
-      category: product.category || 'canta',
-      price: product.price ?? '',
-      stock: product.stock ?? 1,
-      discountPercentage: product.discountPercentage || 0,
-      colors: (product.colors || []).join(', '),
-      sizes: (product.sizes || []).join(', '),
-      immediateDelivery: product.immediateDelivery !== false,
-      customProductionTime: product.customProductionTime || '1-3 İş Günü',
-      measureNote: product.measureNote || '',
-      video: product.video || ''
-    });
+    setForm(formFromProduct(product));
     setMainImage(null);
     setGallery([]);
-    setDialogOpen(true);
+    setRemovedImages([]);
+    setView('editor');
+  };
+
+  const closeEditor = () => {
+    setView('products');
+    setEditing(null);
+    setMainImage(null);
+    setGallery([]);
+    setRemovedImages([]);
   };
 
   const saveProduct = async () => {
+    if (!form.title.trim() || !form.description.trim() || form.price === '' || form.stock === '') {
+      setError('Başlık, açıklama, fiyat ve stok zorunludur.');
+      return;
+    }
     if (!editing && !mainImage?.file) {
-      setError('Ana görsel yüklemelisiniz.');
+      setError('Kapak görseli yüklemelisiniz.');
       return;
     }
     setSavingProduct(true);
     setError('');
     try {
-      if (editing) {
-        await sellerService.updateProduct(editing._id, {
-          description: form.description,
-          price: Number(form.price),
-          stock: Number(form.stock),
-          discountPercentage: Number(form.discountPercentage) || 0,
-          immediateDelivery: form.immediateDelivery,
-          customProductionTime: form.customProductionTime,
-          measureNote: form.measureNote,
-          video: form.video
-        });
-        flash('Ürün güncellendi.');
-      } else {
-        const body = new FormData();
-        body.append('title', form.title);
-        body.append('description', form.description);
-        body.append('category', form.category);
-        body.append('price', form.price);
-        body.append('stock', form.stock);
-        body.append('discountPercentage', form.discountPercentage || 0);
-        body.append('colors', form.colors);
-        body.append('sizes', form.sizes);
-        body.append('immediateDelivery', String(form.immediateDelivery));
-        body.append('customProductionTime', form.customProductionTime);
-        body.append('measureNote', form.measureNote);
-        body.append('video', form.video);
-        body.append('image', mainImage.file);
-        gallery.forEach((item) => body.append('gallery', item.file));
+      const body = new FormData();
+      body.append('title', form.title.trim());
+      body.append('description', form.description.trim());
+      body.append('category', form.category);
+      body.append('price', form.price);
+      body.append('stock', form.stock);
+      body.append('discountPercentage', form.discountPercentage || 0);
+      body.append('colors', (form.colors || []).join(', '));
+      body.append('sizes', (form.sizes || []).join(', '));
+      body.append('features', (form.features || []).join(', '));
+      body.append('careInstructions', form.careInstructions || '');
+      body.append('immediateDelivery', String(form.immediateDelivery));
+      body.append('customProductionTime', form.customProductionTime);
+      body.append('measureNote', form.measureNote || '');
+      body.append('video', form.video || '');
+      body.append('widthCm', form.widthCm);
+      body.append('heightCm', form.heightCm);
+      body.append('depthCm', form.depthCm);
+      body.append('strapCm', form.strapCm);
+      body.append('weightG', form.weightG);
+      body.append('fits', form.fits || '');
+      if (mainImage?.file) body.append('image', mainImage.file);
+      gallery.forEach((item) => body.append('gallery', item.file));
+      if (removedImages.length) body.append('removeImages', removedImages.join(','));
 
-        const data = await sellerService.createProduct(body);
-        flash(data.mesaj || 'Ürün onaya gönderildi.');
-      }
-      setDialogOpen(false);
+      const data = editing
+        ? await sellerService.updateProduct(editing._id, body)
+        : await sellerService.createProduct(body);
+      flash(data.mesaj || (editing ? 'Ürün güncellendi.' : 'Ürün onaya gönderildi.'));
+      closeEditor();
       await refresh();
     } catch (err) {
       fail(err, 'Ürün kaydedilemedi.');
@@ -320,11 +346,59 @@ export default function SellerPanel({ user, handleLogout }) {
     }
   };
 
+  const savePromo = async (event) => {
+    event.preventDefault();
+    try {
+      setSavingPromo(true);
+      await sellerService.createPromo({
+        code: promoForm.code,
+        percent: Number(promoForm.percent),
+        minSubtotal: Number(promoForm.minSubtotal) || 0,
+        note: promoForm.note,
+        isActive: promoForm.isActive
+      });
+      setPromoForm({ code: '', percent: 10, minSubtotal: 0, note: '', isActive: true });
+      flash('Kampanya kodu eklendi. Yalnızca senin ürünlerinde geçerli.');
+      await refresh();
+    } catch (err) {
+      fail(err, 'Kampanya eklenemedi.');
+    } finally {
+      setSavingPromo(false);
+    }
+  };
+
+  const togglePromo = async (promo) => {
+    try {
+      await sellerService.updatePromo(promo.id, { isActive: !promo.isActive });
+      flash(promo.isActive ? 'Kampanya durduruldu.' : 'Kampanya açıldı.');
+      await refresh();
+    } catch (err) {
+      fail(err, 'Kampanya güncellenemedi.');
+    }
+  };
+
+  const removePromo = async (promo) => {
+    try {
+      await sellerService.deletePromo(promo.id);
+      flash('Kampanya kodu silindi.');
+      await refresh();
+    } catch (err) {
+      fail(err, 'Kampanya silinemedi.');
+    }
+  };
+
   const goView = (id) => {
     setView(id);
     setQuery('');
     setQuestionFilter('all');
+    setProductFilter('all');
     setMobileOpen(false);
+    if (id !== 'editor') {
+      setEditing(null);
+      setMainImage(null);
+      setGallery([]);
+      setRemovedImages([]);
+    }
   };
 
   const openAnswer = (item) => {
@@ -364,40 +438,80 @@ export default function SellerPanel({ user, handleLogout }) {
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.openOrders || 0 },
     { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
     { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
+    { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
     { id: 'store', label: 'Mağaza bilgileri', icon: StorefrontOutlined }
   ];
 
   return (
     <PanelShell
       nav={nav}
-      view={view}
+      view={view === 'editor' ? 'products' : view}
       onView={goView}
       user={user}
       roleLabel="Satıcı paneli"
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : 'Kendi ürün ve siparişlerinde ara'}
+      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'promos' ? 'Kampanya kodu ara' : 'Kendi ürün ve siparişlerinde ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
+      siteHref={seller.slug ? `/atolye/${seller.slug}` : '/'}
     >
       {error ? <Alert severity="error" sx={{ mb: 2, borderRadius: '14px' }}>{error}</Alert> : null}
       {message ? <Alert severity="success" sx={{ mb: 2, borderRadius: '14px' }} onClose={() => setMessage('')}>{message}</Alert> : null}
+
+      {view === 'editor' && (
+        <SellerProductEditor
+          editing={editing}
+          form={form}
+          setForm={setForm}
+          mainImage={mainImage}
+          setMainImage={setMainImage}
+          gallery={gallery}
+          setGallery={setGallery}
+          removedImages={removedImages}
+          setRemovedImages={setRemovedImages}
+          saving={savingProduct}
+          onCancel={closeEditor}
+          onSave={saveProduct}
+        />
+      )}
 
       {view === 'dashboard' && overview && (
         <Box>
           <SectionTitle
             overline="MAĞAZAM"
             title={seller.magazaAdi}
-            subtitle="Ürünlerinizi ekleyip fiyat ve stok güncelleyebilir, siparişlerinizi takip edebilirsiniz."
-            action={<Button onClick={openCreate} sx={primaryButton}>Yeni ürün ekle</Button>}
+            subtitle="Vitrininizi yönetin, siparişleri kargoya verin, ürünlerinizi baştan sona düzenleyin."
+            action={
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {seller.slug ? (
+                  <Button
+                    startIcon={<OpenInNewRounded />}
+                    onClick={() => window.open(`/atolye/${seller.slug}`, '_blank')}
+                    sx={{ ...panelButton, color: T.navy, border: `1px solid ${T.line}`, bgcolor: '#fff', px: 2 }}
+                  >
+                    Atölyeyi gör
+                  </Button>
+                ) : null}
+                <Button startIcon={<AddRounded />} onClick={openCreate} sx={primaryButton}>Yeni ürün</Button>
+              </Box>
+            }
           />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 1.8, mb: 2 }}>
-            <StatCard icon={Inventory2Rounded} title="Yayındaki ürün" value={overview.published} hint={`${overview.products} toplam`} tone={T.navy} />
-            <StatCard icon={PendingActionsOutlined} title="Onay bekleyen" value={overview.pendingApproval} hint="Süper admin onayı" tone="#C08A4A" />
-            <StatCard icon={ShoppingBagOutlined} title="Siparişlerim" value={overview.orders} hint={`${overview.openOrders} hazırlanıyor`} tone={T.lavender} />
-            <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint="Müşteri soruları" tone={T.blue} />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, 1fr)' }, gap: 1.8, mb: 2 }}>
+            <Box onClick={() => goView('products')} sx={{ cursor: 'pointer' }}>
+              <StatCard icon={Inventory2Rounded} title="Yayındaki ürün" value={overview.published} hint={`${overview.products} toplam`} tone={T.navy} />
+            </Box>
+            <Box onClick={() => goView('products')} sx={{ cursor: 'pointer' }}>
+              <StatCard icon={PendingActionsOutlined} title="Onay bekleyen" value={overview.pendingApproval} hint="Süper admin onayı" tone="#C08A4A" />
+            </Box>
+            <Box onClick={() => goView('orders')} sx={{ cursor: 'pointer' }}>
+              <StatCard icon={ShoppingBagOutlined} title="Siparişlerim" value={overview.orders} hint={`${overview.openOrders} hazırlanıyor`} tone={T.lavender} />
+            </Box>
+            <Box onClick={() => goView('questions')} sx={{ cursor: 'pointer' }}>
+              <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint="Müşteri soruları" tone={T.blue} />
+            </Box>
             <StatCard icon={PaymentsOutlined} title="Tahsil edilen" value={money(overview.revenue)} hint="Ödenen siparişler" tone={T.rose} />
           </Box>
 
@@ -416,7 +530,7 @@ export default function SellerPanel({ user, handleLogout }) {
               <Table size="small">
                 <TableBody>
                   {(overview.recentOrders || []).map((order) => (
-                    <TableRow key={order._id} hover>
+                    <TableRow key={order._id} hover sx={{ cursor: 'pointer' }} onClick={() => { setOpenOrder(order); goView('orders'); }}>
                       <TableCell sx={bodyCell}>
                         <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
                         <Typography sx={{ fontSize: 12, color: T.muted }}>{when(order.createdAt)}</Typography>
@@ -446,7 +560,7 @@ export default function SellerPanel({ user, handleLogout }) {
                 </Box>
               ))}
               <Typography sx={{ color: T.muted, fontSize: '0.83rem', mt: 1.8 }}>
-                Başlık, kategori ve görsel değişiklikleri süper admin tarafından yapılır.
+                Ürün adı, görsel, ölçü ve stok dahil tüm kataloğu siz yönetirsiniz.
               </Typography>
             </PanelCard>
           </Box>
@@ -458,13 +572,22 @@ export default function SellerPanel({ user, handleLogout }) {
           <SectionTitle
             overline="SATIŞLAR"
             title="Siparişlerim"
-            subtitle="Yalnızca kendi ürünlerinizin geçtiği siparişleri ve size ait tutarı görürsünüz."
+            subtitle="Gelen siparişin durumunu siz güncellersiniz: hazırlanıyor, kargoda, teslim veya iptal."
+            action={
+              <Select size="small" value={orderFilter} onChange={(e) => setOrderFilter(e.target.value)} sx={{ minWidth: 190, bgcolor: '#fff', borderRadius: '12px' }}>
+                <MenuItem value="all">Tümü</MenuItem>
+                <MenuItem value="processing">Hazırlanıyor</MenuItem>
+                <MenuItem value="shipped">Kargoda</MenuItem>
+                <MenuItem value="delivered">Teslim edildi</MenuItem>
+                <MenuItem value="cancelled">İptal</MenuItem>
+              </Select>
+            }
           />
           <PanelCard sx={{ p: 0, overflow: 'auto' }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  {['Müşteri', 'Ürünler', 'Tutarım', 'Ödeme', 'Durum', 'Tarih'].map((h) => (
+                  {['Müşteri', 'Ürünler', 'Tutarım', 'Ödeme', 'Durum', 'Tarih', ''].map((h) => (
                     <TableCell key={h} sx={headCell}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -485,12 +608,27 @@ export default function SellerPanel({ user, handleLogout }) {
                     </TableCell>
                     <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(order.sellerTotal)}</TableCell>
                     <TableCell sx={bodyCell}><StatusChip map={PAYMENT_STATUS} value={order.paymentStatus} /></TableCell>
-                    <TableCell sx={bodyCell}><StatusChip map={ORDER_STATUS} value={order.orderStatus} /></TableCell>
+                    <TableCell sx={bodyCell}>
+                      <Select
+                        size="small"
+                        value={order.orderStatus || 'processing'}
+                        disabled={updatingOrder === order._id}
+                        onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                        sx={{ minWidth: 155, borderRadius: '12px', bgcolor: '#fff' }}
+                      >
+                        {Object.entries(ORDER_STATUS).map(([key, text]) => (
+                          <MenuItem key={key} value={key}>{text}</MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
                     <TableCell sx={{ ...bodyCell, color: T.muted }}>{when(order.createdAt)}</TableCell>
+                    <TableCell sx={bodyCell}>
+                      <Button onClick={() => setOpenOrder(order)} sx={{ fontWeight: 800, color: T.rose }}>Detay</Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filteredOrders.length === 0 && (
-                  <TableRow><TableCell colSpan={6} sx={{ ...bodyCell, color: T.muted }}>Sipariş bulunamadı.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} sx={{ ...bodyCell, color: T.muted }}>Sipariş bulunamadı.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -586,68 +724,201 @@ export default function SellerPanel({ user, handleLogout }) {
           <SectionTitle
             overline="KATALOĞUM"
             title="Ürünlerim"
-            subtitle="Yeni ürünler süper admin onayından sonra yayına alınır."
-            action={<Button onClick={openCreate} sx={primaryButton}>Yeni ürün ekle</Button>}
+            subtitle="Karttan tüm detaya girin. Görsel, ölçü, fiyat ve stok dahil her alanı siz güncellersiniz."
+            action={<Button startIcon={<AddRounded />} onClick={openCreate} sx={primaryButton}>Yeni ürün</Button>}
           />
-          <PanelCard sx={{ p: 0, overflow: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  {['Ürün', 'Fiyat', 'Stok', 'Onay', 'Yayın', ''].map((h) => (
-                    <TableCell key={h} sx={headCell}>{h}</TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product._id} hover>
-                    <TableCell sx={bodyCell}>
-                      <Box sx={{ display: 'flex', gap: 1.4, alignItems: 'center' }}>
-                        <Box component="img" src={product.image} alt="" sx={{ width: 52, height: 52, objectFit: 'cover', borderRadius: '12px', bgcolor: T.surfaceSoft }} />
-                        <Box>
-                          <Typography sx={{ fontWeight: 800 }}>{product.title}</Typography>
-                          <Typography sx={{ fontSize: 12, color: T.muted }}>{product.category}</Typography>
-                        </Box>
+          <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 2.2 }}>
+            {[
+              ['all', 'Tümü'],
+              ['live', 'Yayında'],
+              ['pending', 'Onayda'],
+              ['hidden', 'Gizli'],
+              ['rejected', 'Reddedilen'],
+              ['low', 'Kritik stok']
+            ].map(([id, label]) => (
+              <Chip
+                key={id}
+                clickable
+                label={label}
+                onClick={() => setProductFilter(id)}
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: productFilter === id ? T.navy : '#fff',
+                  color: productFilter === id ? '#fff' : T.navy,
+                  border: `1px solid ${productFilter === id ? T.navy : T.line}`
+                }}
+              />
+            ))}
+          </Box>
+          {filteredProducts.length === 0 ? (
+            <PanelCard sx={{ textAlign: 'center', py: 6 }}>
+              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.8 }}>Henüz ürün yok</Typography>
+              <Typography sx={{ color: T.muted, mb: 2 }}>Atölyenizin ilk parçasını ekleyin; onay sonrası vitrine düşer.</Typography>
+              <Button onClick={openCreate} sx={primaryButton}>Ürün ekle</Button>
+            </PanelCard>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, 1fr)', xl: 'repeat(4, 1fr)' }, gap: 1.8 }}>
+              {filteredProducts.map((product) => {
+                const discount = Number(product.discountPercentage) || 0;
+                const sale = salePriceOf(product);
+                return (
+                  <PanelCard key={product._id} sx={{ p: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ position: 'relative', height: 240, bgcolor: T.surfaceSoft }}>
+                      <Box component="img" src={product.image} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <Box sx={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 0.6, flexWrap: 'wrap' }}>
+                        <StatusChip map={APPROVAL_STATUS} value={product.approvalStatus || 'approved'} />
+                        <Chip
+                          size="small"
+                          label={product.isActive ? 'Yayında' : 'Gizli'}
+                          sx={{ fontWeight: 800, bgcolor: '#fff', color: product.isActive ? '#3F6B47' : T.muted }}
+                        />
                       </Box>
-                    </TableCell>
-                    <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(product.price)}</TableCell>
-                    <TableCell sx={{ ...bodyCell, fontWeight: 800, color: product.stock <= 5 ? '#96393C' : T.navy }}>{product.stock}</TableCell>
-                    <TableCell sx={bodyCell}>
-                      <StatusChip map={APPROVAL_STATUS} value={product.approvalStatus || 'approved'} />
+                    </Box>
+                    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 0.6, flex: 1 }}>
+                      <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: T.lavender }}>
+                        {categoryLabel(product.category).toUpperCase()}
+                      </Typography>
+                      <Typography sx={{ fontWeight: 900, color: T.navy, lineHeight: 1.3 }}>{product.title}</Typography>
+                      <Typography sx={{ fontSize: 12, color: T.muted }}>
+                        {product.productCode || 'Kod yok'} · Stok {product.stock}
+                        {product.stock <= 5 ? ' · kritik' : ''}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.8, mt: 0.4 }}>
+                        <Typography sx={{ fontWeight: 900, color: T.navy }}>{money(sale)}</Typography>
+                        {discount > 0 ? (
+                          <Typography sx={{ fontSize: 12, color: T.muted, textDecoration: 'line-through' }}>{money(product.price)}</Typography>
+                        ) : null}
+                      </Box>
                       {product.approvalStatus === 'rejected' && product.rejectionReason ? (
-                        <Typography sx={{ fontSize: 12, color: '#96393C', mt: 0.4 }}>{product.rejectionReason}</Typography>
+                        <Typography sx={{ fontSize: 12, color: '#96393C' }}>{product.rejectionReason}</Typography>
                       ) : null}
-                    </TableCell>
-                    <TableCell sx={bodyCell}>
-                      <Chip
-                        size="small"
-                        label={product.isActive ? 'Yayında' : 'Gizli'}
-                        sx={{ fontWeight: 800, bgcolor: product.isActive ? 'rgba(150,190,150,0.24)' : 'rgba(46,59,85,0.07)', color: product.isActive ? '#3F6B47' : T.muted }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ ...bodyCell, whiteSpace: 'nowrap' }}>
-                      <Button onClick={() => openEdit(product)} sx={{ fontWeight: 800, color: T.rose }}>Düzenle</Button>
-                      {product.approvalStatus === 'approved' && (
-                        <Button onClick={() => toggleActive(product)} sx={{ fontWeight: 800, color: T.navy }}>
-                          {product.isActive ? 'Gizle' : 'Yayınla'}
+                      <Box sx={{ display: 'flex', gap: 0.6, flexWrap: 'wrap', mt: 'auto', pt: 1.4 }}>
+                        <Button onClick={() => openEdit(product)} sx={{ ...panelButton, color: '#fff', bgcolor: T.navy, px: 1.6, '&:hover': { bgcolor: T.navyDeep } }}>
+                          Detay / düzenle
                         </Button>
-                      )}
-                      <Button color="error" onClick={() => setRemoving(product)} sx={{ fontWeight: 800 }}>Sil</Button>
-                    </TableCell>
+                        {product.approvalStatus === 'approved' && (
+                          <Button onClick={() => toggleActive(product)} sx={{ ...panelButton, color: T.navy, border: `1px solid ${T.line}` }}>
+                            {product.isActive ? 'Gizle' : 'Yayınla'}
+                          </Button>
+                        )}
+                        <Button onClick={() => window.open(`/product/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
+                          <OpenInNewRounded sx={{ fontSize: 18 }} />
+                        </Button>
+                        <Button color="error" onClick={() => setRemoving(product)} sx={{ ...panelButton, ml: 'auto' }}>Sil</Button>
+                      </Box>
+                    </Box>
+                  </PanelCard>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {view === 'promos' && (
+        <Box>
+          <SectionTitle
+            overline="KAMPANYALAR"
+            title="Atölye indirim kodları"
+            subtitle="Oluşturduğun kodlar yalnızca senin ürünlerinde geçerlidir. Minimum tutar da o ürünlerin ara toplamına bakılır."
+          />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '0.9fr 1.3fr' }, gap: 1.8 }}>
+            <PanelCard>
+              <Box component="form" onSubmit={savePromo}>
+                <TextField
+                  fullWidth
+                  label="Kod"
+                  value={promoForm.code}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                  placeholder="ATOLYE10"
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="İndirim %"
+                  value={promoForm.percent}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, percent: e.target.value }))}
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Minimum tutar (₺)"
+                  value={promoForm.minSubtotal}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, minSubtotal: e.target.value }))}
+                  helperText="Yalnızca senin ürünlerinin tutarına bakılır. 0 yazarsan eşik olmaz."
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Not (opsiyonel)"
+                  value={promoForm.note}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, note: e.target.value }))}
+                  placeholder="Kendi ürünlerimde %10"
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <Button type="submit" disabled={savingPromo} sx={primaryButton}>
+                  {savingPromo ? 'Kaydediliyor...' : 'Kod ekle'}
+                </Button>
+              </Box>
+            </PanelCard>
+            <PanelCard sx={{ p: 0, overflow: 'auto' }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {['Kod', 'İndirim', 'Eşik', 'Kullanım', 'Durum', ''].map((h) => (
+                      <TableCell key={h} sx={headCell}>{h}</TableCell>
+                    ))}
                   </TableRow>
-                ))}
-                {filteredProducts.length === 0 && (
-                  <TableRow><TableCell colSpan={6} sx={{ ...bodyCell, color: T.muted }}>Henüz ürün yok.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </PanelCard>
+                </TableHead>
+                <TableBody>
+                  {filteredPromos.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} sx={{ ...bodyCell, color: T.muted, py: 3 }}>
+                        {promos.length === 0 ? 'Henüz kampanya kodun yok.' : 'Aramaya uyan kod yok.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredPromos.map((promo) => (
+                    <TableRow key={promo.id} hover>
+                      <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{promo.code}</TableCell>
+                      <TableCell sx={bodyCell}>%{promo.percent}</TableCell>
+                      <TableCell sx={bodyCell}>{promo.minSubtotal > 0 ? money(promo.minSubtotal) : 'Eşik yok'}</TableCell>
+                      <TableCell sx={bodyCell}>{promo.usedCount || 0}</TableCell>
+                      <TableCell sx={bodyCell}>
+                        <Chip
+                          size="small"
+                          label={promo.isActive ? 'Açık' : 'Kapalı'}
+                          sx={{ fontWeight: 800, bgcolor: promo.isActive ? 'rgba(129,178,154,0.28)' : 'rgba(148,109,109,0.16)' }}
+                        />
+                      </TableCell>
+                      <TableCell sx={bodyCell}>
+                        <Button onClick={() => togglePromo(promo)} sx={{ fontWeight: 800, color: T.navy, mr: 1 }}>
+                          {promo.isActive ? 'Durdur' : 'Aç'}
+                        </Button>
+                        <Button color="error" onClick={() => removePromo(promo)} sx={{ fontWeight: 800 }}>Sil</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </PanelCard>
+          </Box>
         </Box>
       )}
 
       {view === 'store' && store && (
         <Box>
-          <SectionTitle overline="AYARLAR" title="Mağaza bilgileri" subtitle="İletişim, adres ve ödeme bilgilerinizi güncel tutun." />
+          <SectionTitle
+            overline="AYARLAR"
+            title="Mağaza bilgileri"
+            subtitle="İletişim, adres ve ödeme bilgilerinizi güncel tutun. Bu bilgiler atölye sayfanızda görünür."
+            action={seller.slug ? (
+              <Button startIcon={<OpenInNewRounded />} onClick={() => window.open(`/atolye/${seller.slug}`, '_blank')} sx={{ ...panelButton, color: T.navy, border: `1px solid ${T.line}`, bgcolor: '#fff', px: 2 }}>
+                Atölye sayfası
+              </Button>
+            ) : null}
+          />
           <PanelCard>
             <Box component="form" onSubmit={saveStore} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
               <TextField label="Mağaza adı" value={store.magazaAdi} onChange={(e) => setStore((s) => ({ ...s, magazaAdi: e.target.value }))} required sx={fieldSx} />
@@ -671,68 +942,6 @@ export default function SellerPanel({ user, handleLogout }) {
           </PanelCard>
         </Box>
       )}
-
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '24px' } }}>
-        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>{editing ? 'Ürünü düzenle' : 'Yeni ürün'}</DialogTitle>
-        <DialogContent sx={{ pt: '12px !important' }}>
-          <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
-            {editing
-              ? 'Başlık, kategori ve görselleri süper admin düzenler. Fiyat, stok ve açıklamayı siz güncelleyebilirsiniz.'
-              : 'Ürün kaydedildikten sonra süper admin onayına düşer, onaylanınca yayınlanır.'}
-          </Alert>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <TextField label="Başlık" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} disabled={Boolean(editing)} required sx={fieldSx} />
-              <TextField select label="Kategori" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} disabled={Boolean(editing)} sx={fieldSx}>
-                {MAGAZA_TURLERI.map((item) => (
-                  <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
-                ))}
-              </TextField>
-              <TextField label="Açıklama" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} multiline minRows={4} required sx={fieldSx} />
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.4 }}>
-                <TextField label="Fiyat" type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} required sx={fieldSx} />
-                <TextField label="Stok" type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))} required sx={fieldSx} />
-                <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} sx={fieldSx} />
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'grid', gap: 2, alignContent: 'start' }}>
-              {editing ? (
-                <Box>
-                  <Typography sx={{ fontWeight: 800, color: T.navy, mb: 0.8, fontSize: '0.9rem' }}>Ürün görselleri</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {[editing.image, ...(editing.additionalImages || [])].filter(Boolean).map((url) => (
-                      <Box key={url} component="img" src={url} alt="" sx={{ width: 86, height: 86, objectFit: 'cover', borderRadius: '14px', border: `1px solid ${T.line}` }} />
-                    ))}
-                  </Box>
-                </Box>
-              ) : (
-                <>
-                  <ImageUploader label="Ana görsel" value={mainImage} onChange={setMainImage} hint="Vitrinde görünen kapak görseli" />
-                  <ImageUploader label="Galeri (opsiyonel)" multiple value={gallery} onChange={setGallery} hint="En fazla 6 ek görsel" height={110} />
-                  <TextField label="Renkler (virgülle)" value={form.colors} onChange={(e) => setForm((p) => ({ ...p, colors: e.target.value }))} sx={fieldSx} />
-                  <TextField label="Bedenler (virgülle)" value={form.sizes} onChange={(e) => setForm((p) => ({ ...p, sizes: e.target.value }))} sx={fieldSx} />
-                </>
-              )}
-              <TextField label="Ölçü / kullanım notu" value={form.measureNote} onChange={(e) => setForm((p) => ({ ...p, measureNote: e.target.value }))} placeholder="Örn. 28×18 cm, telefon ve cüzdan sığar" sx={fieldSx} />
-              <TextField label="Ürün videosu (isteğe bağlı)" value={form.video} onChange={(e) => setForm((p) => ({ ...p, video: e.target.value }))} placeholder="mp4 bağlantısı — tıklanınca yüklenir" sx={fieldSx} />
-              <FormControlLabel
-                control={<Switch checked={form.immediateDelivery} onChange={(e) => setForm((p) => ({ ...p, immediateDelivery: e.target.checked }))} />}
-                label="Hemen kargo"
-              />
-              {!form.immediateDelivery ? (
-                <TextField label="Üretim süresi" value={form.customProductionTime} onChange={(e) => setForm((p) => ({ ...p, customProductionTime: e.target.value }))} sx={fieldSx} />
-              ) : null}
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.4 }}>
-          <Button onClick={() => setDialogOpen(false)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
-          <Button onClick={saveProduct} disabled={savingProduct} sx={primaryButton}>
-            {savingProduct ? 'Kaydediliyor...' : editing ? 'Kaydet' : 'Onaya gönder'}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <Dialog open={Boolean(removing)} onClose={() => setRemoving(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '22px' } }}>
         <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Ürünü sil</DialogTitle>
@@ -770,6 +979,67 @@ export default function SellerPanel({ user, handleLogout }) {
           <Button onClick={saveAnswer} disabled={savingAnswer || answerText.trim().length < 8} sx={primaryButton}>
             {savingAnswer ? 'Kaydediliyor...' : 'Yanıtı kaydet'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(openOrder)} onClose={() => setOpenOrder(null)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Sipariş detayı</DialogTitle>
+        <DialogContent>
+          {openOrder && (
+            <Box>
+              <Typography sx={{ fontWeight: 800, color: T.navy }}>
+                {openOrder.customerInfo?.firstName} {openOrder.customerInfo?.lastName}
+              </Typography>
+              <Typography sx={{ color: T.muted }}>
+                {openOrder.customerInfo?.phone}
+                {openOrder.customerInfo?.email ? ` · ${openOrder.customerInfo.email}` : ''}
+              </Typography>
+              <Typography sx={{ mt: 1.2, mb: 2, color: T.navy }}>
+                {openOrder.shippingAddress?.address}
+                {openOrder.shippingAddress?.address ? ', ' : ''}
+                {openOrder.shippingAddress?.district}/{openOrder.shippingAddress?.city}
+              </Typography>
+              {(openOrder.orderItems || []).map((item, idx) => (
+                <Box key={idx} sx={{ display: 'flex', gap: 1.2, alignItems: 'center', py: 0.8, borderBottom: `1px solid ${T.line}` }}>
+                  {item.image ? (
+                    <Box component="img" src={item.image} alt="" sx={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '12px', bgcolor: T.surfaceSoft }} />
+                  ) : null}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ color: T.navy, fontWeight: 800 }}>
+                      {item.name} × {item.quantity}
+                    </Typography>
+                    {item.color || item.size ? (
+                      <Typography sx={{ fontSize: 12, color: T.muted }}>{[item.color, item.size].filter(Boolean).join(' · ')}</Typography>
+                    ) : null}
+                    {Number(item.quantity) > 1 ? (
+                      <Typography sx={{ fontSize: 12, color: T.muted }}>{money(item.price)} / adet</Typography>
+                    ) : null}
+                  </Box>
+                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{money(lineTotalOf(item))}</Typography>
+                </Box>
+              ))}
+              <Typography sx={{ fontWeight: 900, my: 1.8, color: T.navy }}>Tutarınız {money(openOrder.sellerTotal)}</Typography>
+              <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2 }}>
+                Ödeme: {PAYMENT_STATUS[openOrder.paymentStatus] || openOrder.paymentStatus}
+                {openOrder.paymentMethod ? ` · ${PAYMENT_METHOD[openOrder.paymentMethod] || openOrder.paymentMethod}` : ''}
+              </Typography>
+              <Select
+                fullWidth
+                size="small"
+                value={openOrder.orderStatus || 'processing'}
+                disabled={updatingOrder === openOrder._id}
+                onChange={(e) => updateOrderStatus(openOrder._id, e.target.value)}
+                sx={{ borderRadius: '12px', bgcolor: '#fff' }}
+              >
+                {Object.entries(ORDER_STATUS).map(([key, text]) => (
+                  <MenuItem key={key} value={key}>{text}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setOpenOrder(null)} sx={{ fontWeight: 800, color: T.muted }}>Kapat</Button>
         </DialogActions>
       </Dialog>
     </PanelShell>

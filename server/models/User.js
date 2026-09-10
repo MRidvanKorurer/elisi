@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema({
     adSoyad: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     sifre: { type: String, required: true },
-    kampanyaKodu: { type: String, unique: true },
+    kampanyaKodu: { type: String, unique: true, sparse: true },
+    kampanyaKullanildi: { type: Boolean, default: false },
     rol: { 
         type: String, 
         enum: ['user', 'admin', 'superadmin', 'seller'], 
@@ -57,10 +58,9 @@ userSchema.pre('save', async function() {
         this.sifre = await bcrypt.hash(this.sifre, salt);
     }
 
-    // Kampanya kodu yoksa oluştur
     if (!this.kampanyaKodu) {
-        const rastgeleKarakterler = Math.random().toString(36).substring(2, 8).toUpperCase();
-        this.kampanyaKodu = `KAMP-${rastgeleKarakterler}`;
+        const { generateWelcomeCode } = require('../utils/welcomeCoupon');
+        this.kampanyaKodu = generateWelcomeCode();
     }
 });
 

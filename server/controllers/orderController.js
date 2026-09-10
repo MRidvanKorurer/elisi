@@ -4,13 +4,69 @@ const Cart = require('../models/Cart');
 const iyzipay = require('../config/iyzipay');
 const Iyzipay = require('iyzipay');
 const mongoose = require('mongoose');
+const User = require('../models/User');
+const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts } = require('../utils/welcomeCoupon');
+const { evaluatePromo } = require('../utils/promoCode');
+const PromoCode = require('../models/PromoCode');
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5174';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
 const FREE_SHIPPING_LIMIT = 500;
 const SHIPPING_FEE = 49.9;
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
+
+const releaseWelcomeCoupon = async (order) => {
+    if (!order?.user || !order.couponCode) return;
+    const stillUsed = await couponAlreadyConsumed({ _id: order.user });
+    if (stillUsed) return;
+    await User.findByIdAndUpdate(order.user, { $set: { kampanyaKullanildi: false } });
+};
+
+const releasePromoUse = async (order) => {
+    if (!order?.promoCode) return;
+    await PromoCode.findOneAndUpdate(
+        { code: order.promoCode, usedCount: { $gt: 0 } },
+        { $inc: { usedCount: -1 } }
+    );
+};
+
+const deleteOrderAndReleaseCoupon = async (order) => {
+    if (!order?._id) return;
+    await releaseWelcomeCoupon(order);
+    await releasePromoUse(order);
+    await Order.findByIdAndDelete(order._id);
+};
+
+const buildIyzicoBasket = (items, couponDiscount, shippingCost) => {
+    const subtotal = money(items.reduce((sum, item) => sum + (item.price * item.quantity), 0));
+    const discounted = money(Math.max(0, subtotal - couponDiscount));
+    const ratio = subtotal > 0 ? discounted / subtotal : 1;
+    const basketItems = items.map((item, index) => ({
+        id: `${item.product.toString()}-${index}`,
+        name: String(item.name).slice(0, 120),
+        category1: 'El Sanatları',
+        itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
+        price: money(item.price * item.quantity * ratio).toFixed(2)
+    }));
+    const goodsSum = money(basketItems.reduce((sum, item) => sum + parseFloat(item.price), 0));
+    const goodsDiff = money(discounted - goodsSum);
+    if (goodsDiff !== 0 && basketItems.length) {
+        const last = basketItems[basketItems.length - 1];
+        last.price = money(parseFloat(last.price) + goodsDiff).toFixed(2);
+    }
+    if (shippingCost > 0) {
+        basketItems.push({
+            id: 'shipping',
+            name: 'Kargo',
+            category1: 'Kargo',
+            itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
+            price: money(shippingCost).toFixed(2)
+        });
+    }
+    const basketTotal = money(basketItems.reduce((sum, item) => sum + parseFloat(item.price), 0));
+    return { basketItems, basketTotal };
+};
 
 const formatGsm = (phone) => {
     const digits = String(phone || '').replace(/\D/g, '');
@@ -46,7 +102,7 @@ const unitPriceOf = (product) => {
 
 exports.createOrder = async (req, res) => {
     try {
-        const { customerInfo, shippingAddress, orderItems, paymentMethod, savedCardId } = req.body;
+        const { customerInfo, shippingAddress, orderItems, paymentMethod, savedCardId, couponCode, promoCode } = req.body;
 
         if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
             return res.status(400).json({ success: false, message: 'Sepetiniz boş.' });
@@ -88,6 +144,7 @@ exports.createOrder = async (req, res) => {
 
             normalizedItems.push({
                 product: product._id,
+                seller: product.seller || undefined,
                 name: product.title,
                 quantity,
                 price: unitPriceOf(product),
@@ -98,8 +155,45 @@ exports.createOrder = async (req, res) => {
         }
 
         const subtotal = money(normalizedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0));
+
+        let couponDiscount = 0;
+        let appliedCode = '';
+        const requestedCode = normalizeCode(couponCode);
+        if (requestedCode) {
+            if (!req.user) {
+                return res.status(401).json({ success: false, message: 'İndirim kodu için giriş yapmalısın.' });
+            }
+            const owner = await User.findById(req.user._id);
+            if (!owner || normalizeCode(owner.kampanyaKodu) !== requestedCode) {
+                return res.status(400).json({ success: false, message: 'Bu indirim kodu bu hesaba ait değil.' });
+            }
+            if (paymentMethod === 'credit_card') {
+                await clearAbandonedCardAttempts(owner._id);
+            }
+            if (await couponAlreadyConsumed(owner)) {
+                await User.findByIdAndUpdate(owner._id, { $set: { kampanyaKullanildi: true } });
+                return res.status(400).json({ success: false, message: 'Hoş geldin indirimin yalnızca ilk siparişte geçerlidir.' });
+            }
+            couponDiscount = couponDiscountOf(subtotal);
+            appliedCode = owner.kampanyaKodu;
+        }
+
+        let promoDiscount = 0;
+        let appliedPromo = '';
+        let appliedPromoPercent = 0;
+        const requestedPromo = normalizeCode(promoCode);
+        if (requestedPromo) {
+            const promoResult = await evaluatePromo(requestedPromo, { subtotal, items: normalizedItems });
+            if (!promoResult.ok) {
+                return res.status(promoResult.status || 400).json({ success: false, message: promoResult.mesaj });
+            }
+            promoDiscount = promoResult.indirim;
+            appliedPromo = promoResult.kod;
+            appliedPromoPercent = promoResult.indirimOrani;
+        }
+
         const shippingCost = subtotal >= FREE_SHIPPING_LIMIT ? 0 : SHIPPING_FEE;
-        const totalPrice = money(subtotal + shippingCost);
+        const totalPrice = money(Math.max(0, subtotal - couponDiscount - promoDiscount) + shippingCost);
 
         const order = new Order({
             user: req.user ? req.user._id : null,
@@ -116,24 +210,39 @@ exports.createOrder = async (req, res) => {
             },
             orderItems: normalizedItems,
             subtotal,
+            couponCode: appliedCode,
+            couponPercent: appliedCode ? WELCOME_PERCENT : 0,
+            couponDiscount,
+            promoCode: appliedPromo,
+            promoPercent: appliedPromoPercent,
+            promoDiscount,
             shippingCost,
             totalPrice,
             paymentMethod,
-            paymentStatus: 'pending'
+            paymentStatus: 'pending',
+            sellerFulfillments: [...new Set(
+                normalizedItems.map((item) => item.seller).filter(Boolean).map(String)
+            )].map((sellerId) => ({ seller: sellerId, status: 'processing' }))
         });
 
         const savedOrder = await order.save();
 
+        if (appliedCode && req.user) {
+            await User.findByIdAndUpdate(req.user._id, { $set: { kampanyaKullanildi: true } });
+        }
+        if (appliedPromo) {
+            await PromoCode.findOneAndUpdate({ code: appliedPromo }, { $inc: { usedCount: 1 } });
+        }
+
         if (paymentMethod === 'credit_card' && savedCardId) {
             if (!req.user) {
-                await Order.findByIdAndDelete(savedOrder._id);
+                await deleteOrderAndReleaseCoupon(savedOrder);
                 return res.status(401).json({ success: false, message: 'Kayıtlı kart için giriş yapmalısınız.' });
             }
-            const User = require('../models/User');
             const owner = await User.findById(req.user._id);
             const card = owner?.kayitliKartlar?.id(savedCardId);
             if (!card) {
-                await Order.findByIdAndDelete(savedOrder._id);
+                await deleteOrderAndReleaseCoupon(savedOrder);
                 return res.status(400).json({ success: false, message: 'Seçilen kart bulunamadı.' });
             }
 
@@ -149,15 +258,7 @@ exports.createOrder = async (req, res) => {
         }
 
         if (paymentMethod === 'credit_card') {
-            const basketItems = normalizedItems.map((item, index) => ({
-                id: `${item.product.toString()}-${index}`,
-                name: String(item.name).slice(0, 120),
-                category1: 'El Sanatları',
-                itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
-                price: money(item.price * item.quantity).toFixed(2)
-            }));
-
-            const basketTotal = money(basketItems.reduce((sum, item) => sum + parseFloat(item.price), 0));
+            const { basketItems, basketTotal } = buildIyzicoBasket(normalizedItems, couponDiscount + promoDiscount, shippingCost);
 
             const request = {
                 locale: Iyzipay.LOCALE.TR,
@@ -207,13 +308,13 @@ exports.createOrder = async (req, res) => {
                     });
                 }
 
-                await Order.findByIdAndDelete(savedOrder._id);
+                await deleteOrderAndReleaseCoupon(savedOrder);
                 return res.status(400).json({
                     success: false,
                     message: result.errorMessage || 'Ödeme altyapısı başlatılamadı. Havale/EFT veya WhatsApp ile devam edebilirsiniz.'
                 });
             } catch (paymentError) {
-                await Order.findByIdAndDelete(savedOrder._id);
+                await deleteOrderAndReleaseCoupon(savedOrder);
                 console.error('İyzico başlatma hatası:', paymentError);
                 return res.status(502).json({
                     success: false,
@@ -266,7 +367,13 @@ const finishPaymentCallback = async (req, res) => {
         }
 
         if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
-            await Order.findByIdAndUpdate(orderId, { paymentStatus: 'failed' });
+            const failedOrder = await Order.findById(orderId);
+            if (failedOrder && failedOrder.paymentStatus !== 'completed') {
+                failedOrder.paymentStatus = 'failed';
+                await failedOrder.save();
+                await releaseWelcomeCoupon(failedOrder);
+                await releasePromoUse(failedOrder);
+            }
         }
 
         const reason = paymentResult.errorMessage || 'Ödeme tamamlanamadı.';

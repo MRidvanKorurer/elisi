@@ -3,7 +3,9 @@ import { Box, Button, Container, Typography } from '@mui/material';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { useNavigate } from 'react-router-dom';
-import { imgBagGreen, videoLook4 } from '../assets/media';
+import { imgBagGreen } from '../assets/media';
+import { mediaUrl } from '../api/lookbookService';
+import { SITE_VIDEO } from '../utils/siteVideos';
 import { isSellerRole } from '../utils/roles';
 
 export default function SellerCtaBanner({ user }) {
@@ -53,7 +55,7 @@ export default function SellerCtaBanner({ user }) {
         <Box
           component="video"
           ref={videoRef}
-          src={activated ? videoLook4 : undefined}
+          src={activated ? mediaUrl(SITE_VIDEO.hareket) : undefined}
           poster={imgBagGreen}
           muted
           loop

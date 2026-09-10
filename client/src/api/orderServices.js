@@ -6,7 +6,7 @@ export const orderService = {
   createOrder: async (orderData) => {
     try {
       // baseURL zaten '/api' içerdiği için sadece '/orders' ekliyoruz
-      const response = await API.post('/orders/create', orderData);
+      const response = await API.post('/orders/create', orderData, { timeout: 30000 });
       
       return response.data; 
     } catch (error) {

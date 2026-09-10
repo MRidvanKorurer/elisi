@@ -338,10 +338,7 @@ const updateOrder = async (req, res) => {
 
     const { orderStatus, paymentStatus } = req.body;
     if (orderStatus) {
-      if (!['processing', 'shipped', 'delivered', 'cancelled'].includes(orderStatus)) {
-        return res.status(400).json({ mesaj: 'Geçersiz sipariş durumu.' });
-      }
-      order.orderStatus = orderStatus;
+      return res.status(403).json({ mesaj: 'Sipariş durumunu ilgili satıcı günceller.' });
     }
     if (paymentStatus) {
       if (!['pending', 'completed', 'failed'].includes(paymentStatus)) {

@@ -1,22 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Container, Skeleton, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import {
-  imgBagGreen,
-  imgBagOrange,
-  imgMood3,
-  videoLook1,
-  videoLook2,
-  videoLook3
-} from '../assets/media';
-import productService from '../api/productService';
-import { mediaUrl } from '../api/lookbookService';
+import { imgBagOrange } from '../assets/media';
+import { lookbookService, mediaUrl } from '../api/lookbookService';
+import HomepageFilm from './HomepageFilm';
 import Reveal from './Reveal';
 
-const LOCAL_CLIPS = [
-  { src: videoLook1, poster: imgBagOrange, label: 'El örgüsü doku' },
-  { src: videoLook2, poster: imgBagGreen, label: 'Ahşap sap detayı' },
-  { src: videoLook3, poster: imgMood3, label: 'Atölye ışığı' }
+const TOP_CLIPS = [
+  { key: 'orgu-doku', label: 'El örgüsü detay' },
+  { key: 'ahsap-sap', label: 'Ahşap sap detay' }
 ];
 
 const isVideoUrl = (value = '') => /\.(mp4|webm|ogg)(\?|$)/i.test(value);
@@ -122,7 +114,7 @@ function StudioClip({ src, poster, label, onClick }) {
 
 export default function AtelierLookbook() {
   const navigate = useNavigate();
-  const [clips, setClips] = useState(LOCAL_CLIPS);
+  const [clips, setClips] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -130,29 +122,26 @@ export default function AtelierLookbook() {
 
     const load = async () => {
       try {
-        const response = await productService.getLookbook();
-        const products = response?.products || [];
+        const lookbookRes = await lookbookService.list(false, 'lookbook');
         if (cancelled) return;
 
-        const uploaded = products
-          .map((product) => {
-            const video = mediaUrl(product.video);
-            if (!video || (!video.startsWith('http') && !video.startsWith('/uploads/') && !video.includes('/uploads/'))) {
-              return null;
-            }
-            return {
-              id: product.productId || null,
-              src: video,
-              poster: mediaUrl(product.image) || imgBagOrange,
-              label: product.lookbookLabel || product.title || 'Lookbook'
-            };
-          })
-          .filter(Boolean);
+        const byKey = new Map((lookbookRes.items || []).map((item) => [item.key, item]));
+        const fromDb = TOP_CLIPS.map((slot) => {
+          const item = byKey.get(slot.key);
+          const src = mediaUrl(item?.videoUrl);
+          if (!src) return null;
+          return {
+            id: item.product || null,
+            src,
+            poster: mediaUrl(item.posterUrl) || imgBagOrange,
+            label: slot.label
+          };
+        }).filter(Boolean);
 
-        setClips([...LOCAL_CLIPS, ...uploaded]);
+        setClips(fromDb);
       } catch (error) {
         console.error('Lookbook yüklenemedi:', error);
-        if (!cancelled) setClips(LOCAL_CLIPS);
+        if (!cancelled) setClips([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -164,9 +153,6 @@ export default function AtelierLookbook() {
     };
   }, []);
 
-  const topClips = clips.slice(0, 2);
-  const restClips = clips.slice(2);
-
   return (
     <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
       <Box sx={{ mb: 3 }}>
@@ -177,7 +163,7 @@ export default function AtelierLookbook() {
           Çantalar hareket halinde
         </Typography>
         <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.8, maxWidth: 560 }}>
-          El örgüsü doku, ahşap sap ve doğal ışık. Koleksiyonun stüdyo kareleri.
+          El örgüsü detay, ahşap sap ve stüdyo ışığı. Koleksiyonun üç karesi.
         </Typography>
       </Box>
 
@@ -187,35 +173,26 @@ export default function AtelierLookbook() {
           <Skeleton variant="rounded" height={360} sx={{ borderRadius: '28px' }} />
         </Box>
       ) : (
-        <>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: topClips.length > 1 ? '1fr 1fr' : '1fr' },
-              gap: { xs: 1.5, md: 2 }
-            }}
-          >
-            {topClips.map((clip, index) => (
-              <Reveal key={clip.id || clip.label} delay={index * 0.08}>
-                <StudioClip
-                  {...clip}
-                  onClick={clip.id ? () => navigate(`/product/${clip.id}`) : undefined}
-                />
-              </Reveal>
-            ))}
-          </Box>
-          {restClips.map((clip) => (
-            <Box key={clip.id || clip.label} sx={{ mt: { xs: 1.5, md: 2 } }}>
-              <Reveal>
-                <StudioClip
-                  {...clip}
-                  onClick={clip.id ? () => navigate(`/product/${clip.id}`) : undefined}
-                />
-              </Reveal>
-            </Box>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: clips.length > 1 ? '1fr 1fr' : '1fr' },
+            gap: { xs: 1.5, md: 2 }
+          }}
+        >
+          {clips.map((clip, index) => (
+            <Reveal key={clip.id || clip.label} delay={index * 0.08}>
+              <StudioClip
+                {...clip}
+                onClick={clip.id ? () => navigate(`/product/${clip.id}`) : undefined}
+              />
+            </Reveal>
           ))}
-        </>
+        </Box>
       )}
+      <Box sx={{ mt: { xs: 1.5, md: 2 } }}>
+        <HomepageFilm embedded />
+      </Box>
     </Container>
   );
 }

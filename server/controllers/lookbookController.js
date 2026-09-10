@@ -8,6 +8,11 @@ const listLookbook = async (req, res) => {
   try {
     const includeInactive = req.user?.rol === 'superadmin' && req.query.all === '1';
     const filter = includeInactive ? {} : { isActive: true };
+    const placement = String(req.query.placement || '').trim();
+    if (placement) filter.placement = placement;
+    else if (!includeInactive) {
+      filter.$or = [{ placement: 'lookbook' }, { placement: { $exists: false } }, { placement: null }];
+    }
     const items = await Lookbook.find(filter).sort({ order: 1, createdAt: -1 });
     return res.json({ success: true, items });
   } catch (error) {
@@ -29,6 +34,7 @@ const createLookbook = async (req, res) => {
       videoUrl: publicUrl(videoFile.filename, 'lookbook'),
       posterUrl: posterFile ? publicUrl(posterFile.filename, 'lookbook') : '',
       product: req.body.productId && String(req.body.productId).trim() ? req.body.productId : null,
+      placement: ['lookbook', 'hero', 'homepage'].includes(req.body.placement) ? req.body.placement : 'lookbook',
       order: Number(req.body.order) || 0,
       isActive: req.body.isActive !== 'false'
     });

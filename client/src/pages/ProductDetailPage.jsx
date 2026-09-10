@@ -37,6 +37,7 @@ import { cartService } from '../api/cartServices';
 import userService from '../api/userService';
 import ProductSlider from '../components/ProductSlider';
 import { imgBagOrange } from '../assets/media';
+import { formatTRY, salePriceOf } from '../utils/price';
 import Seo from '../components/Seo';
 import { breadcrumbSchema, faqSchema, productSchema } from '../utils/schema';
 import { productDescription } from '../utils/seo';
@@ -63,8 +64,7 @@ const asImageSrc = (img) => {
 
 const FALLBACK_IMAGE = asImageSrc(imgBagOrange);
 
-const formatPrice = (value) =>
-  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const formatPrice = (value) => formatTRY(value);
 
 export default function ProductDetailPage({ onAddToCart, user }) {
   const { id } = useParams();
@@ -162,7 +162,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
   const rawPrice = Number(product?.price || product?.fiyat || 0);
   const discountRate = Number(product?.discountPercentage || product?.indirimOrani || 0);
-  const discountedPrice = discountRate > 0 ? rawPrice - rawPrice * (discountRate / 100) : rawPrice;
+  const discountedPrice = salePriceOf(product);
   const stock = Number(product?.stock ?? 0);
   const outOfStock = stock <= 0;
   const title = product?.title || product?.name || 'Ürün';

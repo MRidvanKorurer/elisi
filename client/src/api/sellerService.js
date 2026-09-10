@@ -26,6 +26,11 @@ export const sellerService = {
     return response.data;
   },
 
+  updateMyOrder: async (id, payload) => {
+    const response = await API.put(`/sellers/me/orders/${id}`, payload);
+    return response.data;
+  },
+
   getMyProducts: async () => {
     const response = await API.get('/sellers/me/products');
     return response.data;
@@ -46,12 +51,36 @@ export const sellerService = {
   },
 
   updateProduct: async (id, payload) => {
-    const response = await API.put(`/sellers/me/products/${id}`, payload);
+    const response = await API.put(
+      `/sellers/me/products/${id}`,
+      payload,
+      payload instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 } : undefined
+    );
     return response.data;
   },
 
   deleteProduct: async (id) => {
     const response = await API.delete(`/sellers/me/products/${id}`);
+    return response.data;
+  },
+
+  getMyPromos: async () => {
+    const response = await API.get('/sellers/me/promos');
+    return response.data;
+  },
+
+  createPromo: async (payload) => {
+    const response = await API.post('/sellers/me/promos', payload);
+    return response.data;
+  },
+
+  updatePromo: async (id, payload) => {
+    const response = await API.put(`/sellers/me/promos/${id}`, payload);
+    return response.data;
+  },
+
+  deletePromo: async (id) => {
+    const response = await API.delete(`/sellers/me/promos/${id}`);
     return response.data;
   },
 

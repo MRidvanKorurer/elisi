@@ -25,6 +25,7 @@ import { productService } from '../api/productService';
 import { CATEGORY_ICON_NAMES, categoryLabel, mergeCatalogCategories, normalize, sortCategories } from '../utils/categories';
 import DynamicIcon from './DynamicIcon';
 import { imgBagOrange } from '../assets/media';
+import { formatTRY, salePriceOf } from '../utils/price';
 
 const FALLBACK_IMAGE = imgBagOrange;
 const RECENT_KEY = 'nikbag:recent-searches';
@@ -68,7 +69,7 @@ const writeRecent = (list) => {
   }
 };
 
-const money = (value) => `₺${Number(value || 0).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`;
+const money = (value) => `₺${formatTRY(value)}`;
 
 /** Eşleşen harfleri vurgulayarak sonucun neden geldiğini görünür kılar. */
 function Highlight({ text, term }) {
@@ -523,7 +524,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
             {option.kind === 'product' && (() => {
               const product = option.product;
               const title = product.title || product.baslik || 'Ürün';
-              const price = product.finalPrice ?? product.price ?? 0;
+              const price = salePriceOf(product);
               const hasDiscount = Number(product.discountPercentage) > 0;
 
               return (

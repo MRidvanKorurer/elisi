@@ -17,6 +17,7 @@ const {
   listCategories,
   updateCategory
 } = require('../controllers/adminController');
+const { listPromos, createPromo, updatePromo, deletePromo } = require('../controllers/promoController');
 
 router.use(protect, superAdmin);
 
@@ -33,5 +34,9 @@ router.put('/products/:id/approval', setProductApproval);
 router.delete('/products/:id', deleteProduct);
 router.get('/categories', listCategories);
 router.put('/categories/:id', categoryImage, updateCategory);
+router.get('/promos', listPromos);
+router.post('/promos', createPromo);
+router.put('/promos/:id', updatePromo);
+router.delete('/promos/:id', deletePromo);
 
 module.exports = router;

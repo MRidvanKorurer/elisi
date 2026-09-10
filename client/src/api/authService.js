@@ -17,5 +17,10 @@ export const authService = {
   getProfile: async () => {
     const response = await API.get('/auth/me');
     return response.data;
+  },
+
+  verifyCampaign: async (kod) => {
+    const response = await API.post('/auth/verify-campaign', { kod });
+    return response.data;
   }
 };

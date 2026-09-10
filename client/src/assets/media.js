@@ -1,11 +1,3 @@
-// Videolar `npm run optimize:media` ile 1280p/CRF30 sürümlerinden servis edilir
-export { default as videoHero } from './optimized/1.mp4';
-export { default as videoLook1 } from './optimized/2.mp4';
-export { default as videoLook2 } from './optimized/3.mp4';
-export { default as videoLook3 } from './optimized/4.mp4';
-export { default as videoLook4 } from './optimized/5.mp4';
-export { default as videoLook5 } from './optimized/6.mp4';
-
 // Görseller derlemede webp'ye çevrilip ölçeklenir
 export { default as imgBagOrange } from './sendgb-p7W4jZ0UCo1/2.jpg?w=1280&format=webp&quality=72';
 export { default as imgBagGreen } from './sendgb-p7W4jZ0UCo1/3.jpg?w=1280&format=webp&quality=72';

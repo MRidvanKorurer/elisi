@@ -7,7 +7,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import WhatsAppWidget from './components/WhatsAppWidget';
+import SupportDock from './components/SupportDock';
 import API from './api/api';
 import './index.css';
 import useSmoothScroll from './hooks/useSmoothScroll';
@@ -213,7 +213,7 @@ export default function App() {
           />
         )}
 
-        {!isAdminRoute && <WhatsAppWidget />}
+        {!isAdminRoute && <SupportDock />}
 
         <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 0 }}>
           <Suspense fallback={<RouteFallback />}>

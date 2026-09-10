@@ -5,6 +5,12 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const ProductQuestion = require('../models/ProductQuestion');
 const { isSuperAdmin } = require('../utils/roles');
+const {
+    ORDER_STATUSES,
+    deriveOrderStatus,
+    ensureSellerFulfillments,
+    sellerStatusOf
+} = require('../utils/orderFulfillment');
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -375,25 +381,29 @@ const updateMySeller = async (req, res) => {
 };
 
 // Satıcı yalnızca kendi ürünlerinin geçtiği siparişleri ve kendi tutarını görür
-const buildSellerOrders = (orders, productIds) => {
+const buildSellerOrders = (orders, productIds, sellerId) => {
     const owned = new Set(productIds.map(String));
     return orders
         .map((order) => {
             const items = (order.orderItems || []).filter((item) => owned.has(String(item.product)));
             if (!items.length) return null;
             const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const sellerStatus = sellerStatusOf(order, sellerId);
             return {
                 _id: order._id,
                 createdAt: order.createdAt,
-                orderStatus: order.orderStatus,
+                orderStatus: sellerStatus,
+                overallStatus: order.orderStatus,
                 paymentStatus: order.paymentStatus,
                 paymentMethod: order.paymentMethod,
                 customerInfo: {
                     firstName: order.customerInfo?.firstName,
                     lastName: order.customerInfo?.lastName,
+                    email: order.customerInfo?.email,
                     phone: order.customerInfo?.phone
                 },
                 shippingAddress: {
+                    address: order.shippingAddress?.address,
                     city: order.shippingAddress?.city,
                     district: order.shippingAddress?.district
                 },
@@ -414,9 +424,56 @@ const getMyOrders = async (req, res) => {
             .limit(200)
             .lean();
 
-        return res.json({ success: true, orders: buildSellerOrders(orders, productIds) });
+        return res.json({ success: true, orders: buildSellerOrders(orders, productIds, req.user._id) });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Siparişler alınamadı.', hata: error.message });
+    }
+};
+
+const updateMyOrder = async (req, res) => {
+    try {
+        const { orderStatus } = req.body;
+        if (!ORDER_STATUSES.includes(orderStatus)) {
+            return res.status(400).json({ mesaj: 'Geçersiz sipariş durumu.' });
+        }
+
+        const productIds = await Product.find({ seller: req.user._id }).distinct('_id');
+        const order = await Order.findOne({
+            _id: req.params.id,
+            'orderItems.product': { $in: productIds }
+        });
+        if (!order) {
+            return res.status(404).json({ mesaj: 'Bu siparişte size ait ürün bulunamadı.' });
+        }
+
+        if (['shipped', 'delivered'].includes(orderStatus) && order.paymentStatus === 'failed') {
+            return res.status(400).json({ mesaj: 'Ödemesi başarısız sipariş kargoya verilemez.' });
+        }
+
+        await ensureSellerFulfillments(order);
+        let mine = (order.sellerFulfillments || []).find(
+            (row) => String(row.seller) === String(req.user._id)
+        );
+        if (!mine) {
+            order.sellerFulfillments.push({
+                seller: req.user._id,
+                status: order.orderStatus || 'processing'
+            });
+            mine = order.sellerFulfillments[order.sellerFulfillments.length - 1];
+        }
+
+        mine.status = orderStatus;
+        order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
+        await order.save();
+
+        const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id)[0];
+        return res.json({
+            success: true,
+            mesaj: 'Sipariş durumu güncellendi.',
+            order: serialized
+        });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Sipariş güncellenemedi.', hata: error.message });
     }
 };
 
@@ -430,7 +487,7 @@ const getMyOverview = async (req, res) => {
         const orders = productIds.length
             ? await Order.find({ 'orderItems.product': { $in: productIds } }).sort({ createdAt: -1 }).limit(200).lean()
             : [];
-        const sellerOrders = buildSellerOrders(orders, productIds);
+        const sellerOrders = buildSellerOrders(orders, productIds, req.user._id);
         const revenue = sellerOrders
             .filter((order) => order.paymentStatus === 'completed')
             .reduce((sum, order) => sum + order.sellerTotal, 0);
@@ -573,4 +630,13 @@ const getPublicSeller = async (req, res) => {
     }
 };
 
-module.exports = { registerSeller, getMySeller, updateMySeller, getMyOrders, getMyOverview, getPublicSeller, MAGAZA_ETIKET };
+module.exports = {
+    registerSeller,
+    getMySeller,
+    updateMySeller,
+    getMyOrders,
+    updateMyOrder,
+    getMyOverview,
+    getPublicSeller,
+    MAGAZA_ETIKET
+};

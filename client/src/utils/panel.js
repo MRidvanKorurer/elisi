@@ -47,7 +47,7 @@ export const SELLER_STATUS = {
 };
 
 export const money = (value = 0) =>
-  `₺${Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  `₺${Number(Number(value || 0).toFixed(2)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const when = (value) =>
   value

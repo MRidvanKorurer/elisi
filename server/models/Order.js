@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   name: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
@@ -34,6 +35,12 @@ const orderSchema = new mongoose.Schema({
   // Sepet ve Fiyatlandırma
   orderItems: [orderItemSchema],
   subtotal: { type: Number, required: true },
+  couponCode: { type: String, default: '' },
+  couponPercent: { type: Number, default: 0 },
+  couponDiscount: { type: Number, default: 0 },
+  promoCode: { type: String, default: '' },
+  promoPercent: { type: Number, default: 0 },
+  promoDiscount: { type: Number, default: 0 },
   shippingCost: { type: Number, required: true, default: 0 },
   totalPrice: { type: Number, required: true },
   
@@ -52,7 +59,15 @@ const orderSchema = new mongoose.Schema({
     type: String, 
     default: 'processing',
     enum: ['processing', 'shipped', 'delivered', 'cancelled']
-  }
+  },
+  sellerFulfillments: [{
+    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    status: {
+      type: String,
+      enum: ['processing', 'shipped', 'delivered', 'cancelled'],
+      default: 'processing'
+    }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

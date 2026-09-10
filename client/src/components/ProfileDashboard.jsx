@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import userService from '../api/userService';
 import { setFavoriteIds, setProductFavorite } from '../utils/favoritesStore';
+import { imgBagOrange } from '../assets/media';
+import Seo from './Seo';
+import { formatTRY, lineTotalOf, orderChargeRows, salePriceOf } from '../utils/price';
 
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -26,6 +29,8 @@ import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined';
 import HourglassEmptyRounded from '@mui/icons-material/HourglassEmptyRounded';
+import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
+import CardGiftcardOutlined from '@mui/icons-material/CardGiftcardOutlined';
 
 const TABS = [
   { id: 'profile', label: 'Profil', icon: <PersonOutlineOutlinedIcon /> },
@@ -46,11 +51,7 @@ const fieldSx = {
   '& .MuiInputLabel-root.Mui-focused': { color: '#946D6D' }
 };
 
-import { imgBagOrange } from '../assets/media';
-import Seo from './Seo';
-
-const formatPrice = (value) =>
-  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const formatPrice = (value) => formatTRY(value);
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -84,6 +85,8 @@ export default function ProfileDashboard() {
 
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', currentPassword: '', newPassword: '' });
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [welcomeCoupon, setWelcomeCoupon] = useState({ kod: '', used: false });
+  const [couponCopied, setCouponCopied] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [savedCards, setSavedCards] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -113,6 +116,10 @@ export default function ProfileDashboard() {
           newPassword: ''
         });
         setAvatarUrl(user.avatarUrl || '');
+        setWelcomeCoupon({
+          kod: user.kampanyaKodu || '',
+          used: Boolean(user.kampanyaKullanildi)
+        });
         setAddresses(user.adresler || user.addresses || []);
         setSavedCards(user.kayitliKartlar || user.savedCards || []);
 
@@ -381,6 +388,44 @@ export default function ProfileDashboard() {
                       <TextField fullWidth label="E-posta" value={formData.email} disabled sx={fieldSx} />
                       <TextField fullWidth label="Telefon" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="05xx xxx xx xx" sx={{ ...fieldSx, gridColumn: { xs: '1', sm: '1 / -1' } }} />
                     </Box>
+                    {welcomeCoupon.kod && (
+                      <Paper elevation={0} sx={{ mt: 2.5, p: 2, borderRadius: '16px', backgroundColor: 'rgba(253,244,210,0.7)', border: '1px dashed rgba(148,109,109,0.3)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.2 }}>
+                          <CardGiftcardOutlined sx={{ color: '#946D6D', mt: 0.2 }} />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>
+                              {welcomeCoupon.used ? 'Hoş geldin indirimin kullanıldı' : 'İlk siparişine %10 indirim'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.4 }}>
+                              {welcomeCoupon.used
+                                ? 'Bu kod daha önce bir siparişte uygulandı.'
+                                : 'Kod yalnızca senin hesabına aittir. Ödeme sayfasında otomatik uygulanır.'}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                              <Typography fontWeight={800} sx={{ color: '#946D6D', letterSpacing: 1 }}>{welcomeCoupon.kod}</Typography>
+                              {!welcomeCoupon.used && (
+                                <IconButton
+                                  size="small"
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(welcomeCoupon.kod);
+                                      setCouponCopied(true);
+                                      showAlert('İndirim kodu kopyalandı.');
+                                    } catch {
+                                      showAlert('Kod kopyalanamadı.', 'error');
+                                    }
+                                  }}
+                                  sx={{ color: '#946D6D' }}
+                                  aria-label="Kodu kopyala"
+                                >
+                                  {couponCopied ? <CheckCircleOutlineOutlinedIcon /> : <ContentCopyRounded fontSize="small" />}
+                                </IconButton>
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    )}
                     <Divider sx={{ my: 3, borderColor: 'rgba(148,109,109,0.12)' }}>
                       <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.06em' }}>ŞİFRE (OPSİYONEL)</Typography>
                     </Divider>
@@ -502,9 +547,7 @@ export default function ProfileDashboard() {
                       >
                         {favorites.map((fav) => {
                           const id = fav._id || fav.id;
-                          const price = fav.discountPercentage > 0
-                            ? fav.price - (fav.price * fav.discountPercentage / 100)
-                            : (fav.price || fav.fiyat || 0);
+                          const price = salePriceOf(fav);
                           return (
                             <Paper
                               key={id}
@@ -636,19 +679,35 @@ export default function ProfileDashboard() {
               <Typography sx={{ color: '#2E3B55', fontWeight: 600, mb: 2.5 }}>
                 {selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.district} / {selectedOrder.shippingAddress?.city}
               </Typography>
-              {(selectedOrder.orderItems || []).map((item, index) => (
-                <Box key={index} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 1.5, p: 1.2, borderRadius: '14px', border: '1px solid rgba(148,109,109,0.12)', minWidth: 0 }}>
-                  <Box component="img" src={item.image || FALLBACK_IMAGE} alt="" sx={{ width: 56, height: 56, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, display: 'block' }} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55' }}>{item.name}</Typography>
-                    <Typography variant="body2" sx={{ color: '#6E5252' }}>Adet: {item.quantity}</Typography>
+              {(selectedOrder.orderItems || []).map((item, index) => {
+                const qty = Number(item.quantity || 1);
+                const unit = Number(item.price || 0);
+                return (
+                  <Box key={index} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 1.5, p: 1.2, borderRadius: '14px', border: '1px solid rgba(148,109,109,0.12)', minWidth: 0 }}>
+                    <Box component="img" src={item.image || FALLBACK_IMAGE} alt="" sx={{ width: 56, height: 56, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, display: 'block' }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55' }}>{item.name}</Typography>
+                      <Typography variant="body2" sx={{ color: '#6E5252' }}>
+                        {qty} adet{qty > 1 ? ` · ${formatPrice(unit)} ₺` : ''}
+                        {[item.color, item.size].filter(Boolean).length ? ` · ${[item.color, item.size].filter(Boolean).join(' · ')}` : ''}
+                      </Typography>
+                    </Box>
+                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatPrice(lineTotalOf(item))} ₺</Typography>
                   </Box>
-                  <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatPrice(item.price)} ₺</Typography>
-                </Box>
-              ))}
+                );
+              })}
+              <Box sx={{ mt: 1, pt: 1.5, borderTop: '1px solid rgba(148,109,109,0.12)' }}>
+                {orderChargeRows(selectedOrder).map((row) => (
+                  <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.8 }}>
+                    <Typography sx={{ color: '#6E5252', fontWeight: row.total ? 800 : 600 }}>{row.label}</Typography>
+                    <Typography fontWeight={800} sx={{ color: row.accent ? '#2E7D32' : '#2E3B55' }}>
+                      {row.free ? 'Ücretsiz' : `${formatPrice(row.value)} ₺`}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
             </DialogContent>
-            <DialogActions sx={{ p: 2.5, justifyContent: 'space-between' }}>
-              <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Toplam {formatPrice(selectedOrder.totalPrice)} ₺</Typography>
+            <DialogActions sx={{ p: 2.5, justifyContent: 'flex-end' }}>
               <Button onClick={() => setIsOrderModalOpen(false)} variant="contained" sx={primaryBtnSx}>Kapat</Button>
             </DialogActions>
           </>

@@ -22,7 +22,6 @@ import {
     useMediaQuery,
     useTheme
 } from '@mui/material';
-import { AnimatePresence, motion } from 'framer-motion';
 import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -488,11 +487,15 @@ function FilterPanel({
                 </Box>
                 <Slider
                     size="small"
-                    value={priceRange}
+                    value={(() => {
+                        const lo = Math.min(priceBounds[1], Math.max(priceBounds[0], Number(priceRange[0]) || priceBounds[0]));
+                        const hi = Math.min(priceBounds[1], Math.max(priceBounds[0], Number(priceRange[1]) || priceBounds[1]));
+                        return lo <= hi ? [lo, hi] : [hi, lo];
+                    })()}
                     onChange={onPriceChange}
                     valueLabelDisplay="off"
                     min={priceBounds[0]}
-                    max={priceBounds[1]}
+                    max={Math.max(priceBounds[0] + 1, priceBounds[1])}
                     step={10}
                     sx={{
                         mt: 0.6,
@@ -669,14 +672,21 @@ export default function ProductsPage() {
         minRating
     ]);
 
+    const hydratingFromUrl = useRef(false);
+
     const hydrateFromParams = useCallback((params, bounds = priceBounds) => {
         const nextSearch = params.get('q') || '';
         const nextCategories = parseList(params.get('category'));
         const nextColors = parseList(params.get('color'));
+        const minBound = Number(bounds[0]) || 0;
+        const maxBound = Number(bounds[1]) || DEFAULT_MAX_PRICE;
+        const rawMin = params.get('min') ? Number(params.get('min')) : minBound;
+        const rawMax = params.get('max') ? Number(params.get('max')) : maxBound;
         const nextPrice = [
-            params.get('min') ? Number(params.get('min')) : bounds[0],
-            params.get('max') ? Number(params.get('max')) : bounds[1]
+            Number.isFinite(rawMin) ? Math.min(maxBound, Math.max(minBound, rawMin)) : minBound,
+            Number.isFinite(rawMax) ? Math.min(maxBound, Math.max(minBound, rawMax)) : maxBound
         ];
+        if (nextPrice[0] > nextPrice[1]) nextPrice.reverse();
         const nextSort = params.get('sort') || 'newest';
         const nextStock = params.get('stock') === '1';
         const nextSale = params.get('sale') === '1';
@@ -699,20 +709,21 @@ export default function ProductsPage() {
     useEffect(() => {
         const incoming = searchParams.toString();
         if (incoming === lastWrittenQuery.current) return;
+        hydratingFromUrl.current = true;
+        lastWrittenQuery.current = incoming;
         hydrateFromParams(searchParams);
     }, [searchParams, hydrateFromParams]);
 
     useEffect(() => {
-        const next = buildQueryParams(committedFilters);
-        const serialized = next.toString();
-        if (searchParams.toString() === serialized) {
-            lastWrittenQuery.current = serialized;
+        if (hydratingFromUrl.current) {
+            hydratingFromUrl.current = false;
             return;
         }
+        const next = buildQueryParams(committedFilters);
+        const serialized = next.toString();
+        if (serialized === lastWrittenQuery.current) return;
         lastWrittenQuery.current = serialized;
         setSearchParams(next, { replace: true });
-        // searchParams is applied in the hydrate effect above.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [committedFilters, setSearchParams]);
 
     useEffect(() => {
@@ -776,6 +787,7 @@ export default function ProductsPage() {
     useEffect(() => {
         if (prevFilterKey.current !== filterKey) {
             prevFilterKey.current = filterKey;
+            setProducts([]);
             if (limit !== ITEMS_PER_PAGE) {
                 setLimit(ITEMS_PER_PAGE);
                 return;
@@ -1104,6 +1116,7 @@ export default function ProductsPage() {
                         ) : (
                             <>
                                 <Box
+                                    key={filterKey}
                                     sx={{
                                         display: 'grid',
                                         gridTemplateColumns: {
@@ -1114,21 +1127,11 @@ export default function ProductsPage() {
                                         gap: { xs: 1.25, md: 2.5 }
                                     }}
                                 >
-                                    <AnimatePresence>
-                                        {products.map((product) => (
-                                            <motion.div
-                                                key={product._id || product.id}
-                                                layout
-                                                initial={{ opacity: 0, y: 12 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 8 }}
-                                                transition={{ duration: 0.25 }}
-                                                style={{ minWidth: 0 }}
-                                            >
-                                                <ProductCard product={product} fullWidth />
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
+                                    {products.map((product) => (
+                                        <Box key={product._id || product.id} sx={{ minWidth: 0 }}>
+                                            <ProductCard product={product} fullWidth />
+                                        </Box>
+                                    ))}
                                 </Box>
 
                                 {remaining > 0 && (

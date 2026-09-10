@@ -29,6 +29,7 @@ import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined';
 import MovieFilterOutlined from '@mui/icons-material/MovieFilterOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
@@ -36,6 +37,7 @@ import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
 import ImageUploader from '../components/ImageUploader';
 import { adminService } from '../api/adminService';
+import { promoService } from '../api/promoService';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
 import { isSuperAdmin } from '../utils/roles';
 import { toRelativeUpload } from '../utils/media';
@@ -50,6 +52,7 @@ import {
   when
 } from '../utils/panel';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
+import { lineTotalOf, orderChargeRows } from '../utils/price';
 
 const emptyForm = {
   title: '',
@@ -121,16 +124,20 @@ export default function AdminPanel({ user, handleLogout }) {
   const [openOrder, setOpenOrder] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [promos, setPromos] = useState([]);
+  const [promoForm, setPromoForm] = useState({ code: '', percent: 5, minSubtotal: 5000, note: '', isActive: true });
+  const [savingPromo, setSavingPromo] = useState(false);
 
   const load = async () => {
     try {
-      const [ov, us, se, pr, lb, or] = await Promise.all([
+      const [ov, us, se, pr, lb, or, pm] = await Promise.all([
         adminService.overview(),
         adminService.users(),
         adminService.sellers(),
         adminService.products(),
         lookbookService.list(true),
-        adminService.orders()
+        adminService.orders(),
+        promoService.list().catch(() => ({ promos: [] }))
       ]);
       setOverview(ov.overview);
       setUsers(us.users || []);
@@ -138,6 +145,7 @@ export default function AdminPanel({ user, handleLogout }) {
       setProducts(pr.products || []);
       setLookbook(lb.items || []);
       setOrders(or.orders || []);
+      setPromos(pm.promos || []);
       setError('');
     } catch (err) {
       setError(err.response?.data?.mesaj || 'Admin verileri yüklenemedi.');
@@ -213,6 +221,47 @@ export default function AdminPanel({ user, handleLogout }) {
       await load();
     } catch (err) {
       fail(err, 'Rol güncellenemedi.');
+    }
+  };
+
+  const savePromo = async (event) => {
+    event.preventDefault();
+    try {
+      setSavingPromo(true);
+      await promoService.create({
+        code: promoForm.code,
+        percent: Number(promoForm.percent),
+        minSubtotal: Number(promoForm.minSubtotal) || 0,
+        note: promoForm.note,
+        isActive: promoForm.isActive
+      });
+      setPromoForm({ code: '', percent: 5, minSubtotal: 5000, note: '', isActive: true });
+      flash('Kampanya kodu eklendi.');
+      await load();
+    } catch (err) {
+      fail(err, 'Kampanya eklenemedi.');
+    } finally {
+      setSavingPromo(false);
+    }
+  };
+
+  const togglePromo = async (promo) => {
+    try {
+      await promoService.update(promo.id, { isActive: !promo.isActive });
+      flash(promo.isActive ? 'Kampanya durduruldu.' : 'Kampanya açıldı.');
+      await load();
+    } catch (err) {
+      fail(err, 'Kampanya güncellenemedi.');
+    }
+  };
+
+  const removePromo = async (promo) => {
+    try {
+      await promoService.remove(promo.id);
+      flash('Kampanya kodu silindi.');
+      await load();
+    } catch (err) {
+      fail(err, 'Kampanya silinemedi.');
     }
   };
 
@@ -340,6 +389,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
     { id: 'customers', label: 'Müşteriler', icon: PeopleAltOutlined },
     { id: 'lookbook', label: 'İçerik', icon: MovieFilterOutlined },
+    { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
     { id: 'settings', label: 'Ayarlar', icon: SettingsOutlined }
   ];
 
@@ -374,7 +424,7 @@ export default function AdminPanel({ user, handleLogout }) {
           <SectionTitle
             overline="SÜPER ADMİN"
             title="Günlük durum"
-            subtitle="Sipariş, ödeme, ürün onayı ve stok hareketlerini tek ekrandan yönetin."
+            subtitle="Ödeme onayı, ürün incelemesi ve satıcı başvurularını buradan yönetin. Sipariş kargosunu satıcı ilerletir."
           />
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 1.8, mb: 2 }}>
@@ -539,7 +589,7 @@ export default function AdminPanel({ user, handleLogout }) {
           <SectionTitle
             overline="SİPARİŞ YÖNETİMİ"
             title="Siparişler"
-            subtitle="Durum güncellemesi yaptığınızda sipariş akışı anında değişir."
+            subtitle="Sipariş akışını satıcı yönetir. Havale / EFT ödemelerini buradan işaretleyebilirsiniz."
             action={
               <Select size="small" value={orderFilter} onChange={(e) => setOrderFilter(e.target.value)} sx={{ minWidth: 190, bgcolor: '#fff', borderRadius: '12px' }}>
                 <MenuItem value="all">Tümü</MenuItem>
@@ -573,16 +623,7 @@ export default function AdminPanel({ user, handleLogout }) {
                       <Typography sx={{ fontSize: 12, color: T.muted, mt: 0.4 }}>{PAYMENT_METHOD[order.paymentMethod]}</Typography>
                     </TableCell>
                     <TableCell sx={bodyCell}>
-                      <Select
-                        size="small"
-                        value={order.orderStatus}
-                        onChange={(e) => updateOrder(order._id, { orderStatus: e.target.value })}
-                        sx={{ minWidth: 155, borderRadius: '12px', bgcolor: '#fff' }}
-                      >
-                        {Object.entries(ORDER_STATUS).map(([key, text]) => (
-                          <MenuItem key={key} value={key}>{text}</MenuItem>
-                        ))}
-                      </Select>
+                      <StatusChip map={ORDER_STATUS} value={order.orderStatus} />
                     </TableCell>
                     <TableCell sx={{ ...bodyCell, color: T.muted }}>{when(order.createdAt)}</TableCell>
                     <TableCell sx={bodyCell}>
@@ -763,6 +804,97 @@ export default function AdminPanel({ user, handleLogout }) {
         </Box>
       )}
 
+      {view === 'promos' && (
+        <Box>
+          <SectionTitle
+            overline="KAMPANYALAR"
+            title="İndirim kodları"
+            subtitle="Site kodları tüm sepette geçerlidir. Satıcıların kendi ürünlerine açtığı kodlar da burada görünür."
+          />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '0.9fr 1.3fr' }, gap: 1.8 }}>
+            <PanelCard>
+              <Box component="form" onSubmit={savePromo}>
+                <TextField
+                  fullWidth
+                  label="Kod"
+                  value={promoForm.code}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                  placeholder="BAHAR5"
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="İndirim %"
+                  value={promoForm.percent}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, percent: e.target.value }))}
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Minimum sepet (₺)"
+                  value={promoForm.minSubtotal}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, minSubtotal: e.target.value }))}
+                  helperText="0 yazarsan eşik olmaz"
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Not (opsiyonel)"
+                  value={promoForm.note}
+                  onChange={(e) => setPromoForm((p) => ({ ...p, note: e.target.value }))}
+                  placeholder="5.000 ₺ üzeri bahar indirimi"
+                  sx={{ ...fieldSx, mb: 2 }}
+                />
+                <Button type="submit" disabled={savingPromo} sx={primaryButton}>
+                  {savingPromo ? 'Kaydediliyor...' : 'Kod ekle'}
+                </Button>
+              </Box>
+            </PanelCard>
+            <PanelCard sx={{ p: 0, overflow: 'auto' }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {['Kod', 'Kapsam', 'İndirim', 'Eşik', 'Kullanım', 'Durum', ''].map((h) => (
+                      <TableCell key={h} sx={headCell}>{h}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {promos.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} sx={{ ...bodyCell, color: T.muted, py: 3 }}>Henüz kampanya kodu yok.</TableCell>
+                    </TableRow>
+                  ) : promos.map((promo) => (
+                    <TableRow key={promo.id} hover>
+                      <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{promo.code}</TableCell>
+                      <TableCell sx={bodyCell}>{promo.scope === 'seller' ? (promo.sellerName || 'Atölye') : 'Site'}</TableCell>
+                      <TableCell sx={bodyCell}>%{promo.percent}</TableCell>
+                      <TableCell sx={bodyCell}>{promo.minSubtotal > 0 ? money(promo.minSubtotal) : 'Eşik yok'}</TableCell>
+                      <TableCell sx={bodyCell}>{promo.usedCount || 0}</TableCell>
+                      <TableCell sx={bodyCell}>
+                        <Chip
+                          size="small"
+                          label={promo.isActive ? 'Açık' : 'Kapalı'}
+                          sx={{ fontWeight: 800, bgcolor: promo.isActive ? 'rgba(129,178,154,0.28)' : 'rgba(148,109,109,0.16)' }}
+                        />
+                      </TableCell>
+                      <TableCell sx={bodyCell}>
+                        <Button onClick={() => togglePromo(promo)} sx={{ fontWeight: 800, color: T.navy, mr: 1 }}>
+                          {promo.isActive ? 'Durdur' : 'Aç'}
+                        </Button>
+                        <Button color="error" onClick={() => removePromo(promo)} sx={{ fontWeight: 800 }}>Sil</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </PanelCard>
+          </Box>
+        </Box>
+      )}
+
       {view === 'settings' && (
         <Box>
           <SectionTitle overline="AYARLAR" title="Mağaza ayarları" subtitle="Genel bilgiler ve özet istatistikler." />
@@ -896,11 +1028,24 @@ export default function AdminPanel({ user, handleLogout }) {
               </Typography>
               {(openOrder.orderItems || []).map((item, idx) => (
                 <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.7, borderBottom: `1px solid ${T.line}` }}>
-                  <Typography sx={{ color: T.navy }}>{item.name} × {item.quantity}</Typography>
-                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{money(item.price * item.quantity)}</Typography>
+                  <Typography sx={{ color: T.navy }}>
+                    {item.name} × {item.quantity}
+                    {Number(item.quantity) > 1 ? ` · ${money(item.price)}` : ''}
+                  </Typography>
+                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{money(lineTotalOf(item))}</Typography>
                 </Box>
               ))}
-              <Typography sx={{ fontWeight: 900, my: 1.8, color: T.navy }}>Toplam {money(openOrder.totalPrice)}</Typography>
+              {orderChargeRows(openOrder).map((row) => (
+                <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, mt: row.total ? 1 : 0 }}>
+                  <Typography sx={{ color: T.muted, fontWeight: row.total ? 900 : 700 }}>{row.label}</Typography>
+                  <Typography sx={{ fontWeight: 900, color: T.navy }}>
+                    {row.free ? 'Ücretsiz' : money(row.value)}
+                  </Typography>
+                </Box>
+              ))}
+              <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2, mt: 1.2 }}>
+                Kargo durumunu satıcı yönetir. Buradan yalnızca ödemeyi işaretleyebilirsiniz.
+              </Typography>
               <Select
                 fullWidth
                 size="small"

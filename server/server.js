@@ -4,14 +4,15 @@ const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
+const path = require('path');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors'); // SADECE 1 KERE TANIMLANMALI
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db'); // Veritabanı bağlantı dosyanız
 
-// Çevre değişkenlerini yükle
-dotenv.config();
+// Çevre değişkenlerini yükle (her zaman server/.env)
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Veritabanına bağlan
 connectDB();
@@ -42,8 +43,10 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/sellers', require('./routes/sellerRoutes'));
 app.use('/api/lookbook', require('./routes/lookbookRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/promos', require('./routes/promoRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/questions', require('./routes/questionRoutes'));
+app.use('/api/support', require('./routes/supportRoutes'));
 
 // Arama motorları için güncel sitemap ve robots dosyaları
 app.use('/', require('./routes/seoRoutes'));
@@ -59,4 +62,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Sunucu ${PORT} portunda güvenli şekilde çalışıyor...`);
+  if (process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY) {
+    console.log('✅ Destek asistanı LLM anahtarı yüklendi');
+  }
 });

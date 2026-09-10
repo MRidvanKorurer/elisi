@@ -108,6 +108,7 @@ export default function PanelShell({
   searchPlaceholder = 'Ara',
   mobileOpen,
   setMobileOpen,
+  siteHref = '/',
   children
 }) {
   const initial = (user?.adSoyad || user?.email || 'N').trim()[0]?.toUpperCase();
@@ -282,7 +283,7 @@ export default function PanelShell({
           <Box sx={{ flex: 1 }} />
           <Tooltip title="Vitrini yeni sekmede aç">
             <Button
-              onClick={() => window.open('/', '_blank')}
+              onClick={() => window.open(siteHref, '_blank')}
               startIcon={<OpenInNewRounded />}
               sx={{ ...panelButton, display: { xs: 'none', sm: 'inline-flex' }, color: T.navy, border: `1px solid ${T.line}`, bgcolor: '#fff', px: 2 }}
             >

@@ -344,7 +344,10 @@ const getFilterOptions = async (req, res) => {
 
 const getLookbook = async (req, res) => {
     try {
-        const clips = await Lookbook.find({ isActive: true }).sort({ order: 1, createdAt: -1 }).limit(12);
+        const clips = await Lookbook.find({
+            isActive: true,
+            $or: [{ placement: 'lookbook' }, { placement: { $exists: false } }, { placement: null }]
+        }).sort({ order: 1, createdAt: -1 }).limit(12);
         return res.status(200).json({
             success: true,
             products: clips.map((clip) => ({
@@ -375,6 +378,32 @@ const getMyProducts = async (req, res) => {
     }
 };
 
+const toList = (value) => {
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+    return String(value || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+};
+
+const asBool = (value) => value === true || value === 'true' || value === '1';
+
+const readDimensions = (body = {}) => {
+    const num = (key) => {
+        if (body[key] === undefined || body[key] === '') return null;
+        const value = Number(body[key]);
+        return Number.isFinite(value) ? value : null;
+    };
+    return {
+        widthCm: num('widthCm'),
+        heightCm: num('heightCm'),
+        depthCm: num('depthCm'),
+        strapCm: num('strapCm'),
+        weightG: num('weightG'),
+        fits: String(body.fits || '').trim()
+    };
+};
+
 const createMyProduct = async (req, res) => {
     try {
         const {
@@ -387,6 +416,7 @@ const createMyProduct = async (req, res) => {
             immediateDelivery = 'true',
             colors = '',
             sizes = '',
+            features = '',
             careInstructions = '',
             customProductionTime = '1-3 İş Günü',
             measureNote = ''
@@ -400,12 +430,6 @@ const createMyProduct = async (req, res) => {
             return res.status(400).json({ mesaj: 'Başlık, açıklama, kategori, fiyat, stok ve ana görsel zorunludur.' });
         }
 
-        const toList = (value) =>
-            String(value)
-                .split(',')
-                .map((item) => item.trim())
-                .filter(Boolean);
-
         const product = await Product.create({
             seller: req.user._id,
             title: String(title).trim(),
@@ -417,11 +441,13 @@ const createMyProduct = async (req, res) => {
             additionalImages: galleryFiles.map(publicPath),
             colors: toList(colors),
             sizes: toList(sizes),
+            features: toList(features),
             careInstructions: String(careInstructions).trim(),
             discountPercentage: Math.min(100, Math.max(0, Number(discountPercentage) || 0)),
             immediateDelivery: String(immediateDelivery) !== 'false',
             customProductionTime: String(customProductionTime).trim() || '1-3 İş Günü',
             measureNote: String(measureNote).trim(),
+            dimensions: readDimensions(req.body),
             video: sanitizeVideoUrl(req.body.video),
             approvalStatus: 'pending',
             isActive: false
@@ -436,9 +462,6 @@ const createMyProduct = async (req, res) => {
     }
 };
 
-// Satıcı fiyat, stok ve açıklamayı yönetir; görsel/başlık/kategori süper adminde kalır
-const SELLER_EDITABLE = ['description', 'price', 'stock', 'discountPercentage', 'immediateDelivery', 'customProductionTime', 'measureNote', 'video'];
-
 const updateMyProduct = async (req, res) => {
     try {
         const product = await Product.findOne({ _id: req.params.id, seller: req.user._id });
@@ -446,24 +469,71 @@ const updateMyProduct = async (req, res) => {
             return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
         }
 
-        SELLER_EDITABLE.forEach((field) => {
-            if (req.body[field] === undefined) return;
-            if (field === 'price' || field === 'stock') product[field] = Number(req.body[field]);
-            else if (field === 'discountPercentage') product[field] = Math.min(100, Math.max(0, Number(req.body[field]) || 0));
-            else if (field === 'immediateDelivery') product[field] = Boolean(req.body[field]);
-            else if (field === 'video') product.video = sanitizeVideoUrl(req.body.video);
-            else product[field] = String(req.body[field]).trim();
-        });
+        const body = req.body || {};
+        const onlyToggle = body.isActive !== undefined && Object.keys(body).every((key) =>
+            ['isActive'].includes(key)
+        ) && !req.files?.image && !req.files?.gallery;
 
-        if (req.body.isActive !== undefined) {
+        if (body.title !== undefined) product.title = String(body.title).trim();
+        if (body.description !== undefined) product.description = String(body.description).trim();
+        if (body.category !== undefined) product.category = String(body.category).toLowerCase().trim();
+        if (body.price !== undefined && body.price !== '') product.price = Number(body.price);
+        if (body.stock !== undefined && body.stock !== '') product.stock = Number(body.stock);
+        if (body.discountPercentage !== undefined) {
+            product.discountPercentage = Math.min(100, Math.max(0, Number(body.discountPercentage) || 0));
+        }
+        if (body.immediateDelivery !== undefined) product.immediateDelivery = asBool(body.immediateDelivery);
+        if (body.customProductionTime !== undefined) {
+            product.customProductionTime = String(body.customProductionTime).trim() || '1-3 İş Günü';
+        }
+        if (body.measureNote !== undefined) product.measureNote = String(body.measureNote).trim();
+        if (body.careInstructions !== undefined) product.careInstructions = String(body.careInstructions).trim();
+        if (body.video !== undefined) product.video = sanitizeVideoUrl(body.video);
+        if (body.colors !== undefined) product.colors = toList(body.colors);
+        if (body.sizes !== undefined) product.sizes = toList(body.sizes);
+        if (body.features !== undefined) product.features = toList(body.features);
+        if (['widthCm', 'heightCm', 'depthCm', 'strapCm', 'weightG', 'fits'].some((key) => body[key] !== undefined)) {
+            product.dimensions = readDimensions(body);
+        }
+
+        if (body.removeImages) {
+            const removals = toList(body.removeImages);
+            product.additionalImages = (product.additionalImages || []).filter((url) => !removals.includes(url));
+            removals.forEach(removeUpload);
+        }
+
+        const mainFile = req.files?.image?.[0];
+        if (mainFile) {
+            removeUpload(product.image);
+            product.image = publicPath(mainFile);
+        }
+
+        const galleryFiles = req.files?.gallery || [];
+        if (galleryFiles.length) {
+            product.additionalImages = [...(product.additionalImages || []), ...galleryFiles.map(publicPath)].slice(0, 8);
+        }
+
+        if (body.isActive !== undefined) {
             if (product.approvalStatus !== 'approved') {
                 return res.status(403).json({ mesaj: 'Ürün onaylanmadan yayına alınamaz.' });
             }
-            product.isActive = Boolean(req.body.isActive);
+            product.isActive = asBool(body.isActive);
+        }
+
+        if (!onlyToggle && product.approvalStatus === 'rejected') {
+            product.approvalStatus = 'pending';
+            product.rejectionReason = '';
+            product.isActive = false;
         }
 
         await product.save();
-        return res.json({ success: true, mesaj: 'Ürün güncellendi.', product });
+        return res.json({
+            success: true,
+            mesaj: product.approvalStatus === 'pending'
+                ? 'Ürün güncellendi ve onaya gönderildi.'
+                : 'Ürün güncellendi.',
+            product
+        });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Ürün güncellenemedi.', hata: error.message });
     }

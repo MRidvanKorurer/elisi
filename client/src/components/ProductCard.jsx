@@ -413,6 +413,7 @@ import {
   loadFavoriteIds,
   setProductFavorite
 } from '../utils/favoritesStore';
+import { formatTRY, salePriceOf } from '../utils/price';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -443,10 +444,7 @@ export default function ProductCard({ product, fullWidth = false }) {
   const description = product?.description || product?.aciklama || 'Geleneksel el işçiliği tasarımı.';
   const price = product?.price || product?.fiyat || 0;
   const category = product?.category || product?.kategori || 'Atölye';
-  
-  const finalPrice = product?.discountPercentage > 0 
-    ? (price - (price * (product.discountPercentage / 100))) 
-    : price;
+  const finalPrice = salePriceOf(product);
 
   useEffect(() => {
     if (!id) return undefined;
@@ -748,9 +746,9 @@ export default function ProductCard({ product, fullWidth = false }) {
             <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem', whiteSpace: 'nowrap' }}>ÖZEL FİYAT</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0 }}>
               {product?.discountPercentage > 0 && (
-                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap' }}>₺{price}</Typography>
+                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap' }}>₺{formatTRY(price)}</Typography>
               )}
-              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: '1.15rem', whiteSpace: 'nowrap' }}>₺{finalPrice}</Typography>
+              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: '1.15rem', whiteSpace: 'nowrap' }}>₺{formatTRY(finalPrice)}</Typography>
             </Box>
           </Box>
         </CardContent>

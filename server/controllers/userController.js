@@ -17,6 +17,15 @@ exports.getProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
         }
 
+        if (!user.kampanyaKodu) {
+            const { generateWelcomeCode } = require('../utils/welcomeCoupon');
+            user.kampanyaKodu = generateWelcomeCode();
+            await user.save();
+        }
+
+        const { syncWelcomeCouponFlag } = require('../utils/welcomeCoupon');
+        await syncWelcomeCouponFlag(user);
+
         res.status(200).json({ success: true, user });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Sunucu hatası.', error: error.message });

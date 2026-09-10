@@ -1,19 +1,41 @@
-
-
-
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { WELCOME_PERCENT, normalizeCode, generateWelcomeCode, couponAlreadyConsumed, syncWelcomeCouponFlag } = require('../utils/welcomeCoupon');
 
-// Güvenli Cookie Ayarları
 const COOKIE_OPTIONS = {
-    httpOnly: true, // XSS Koruması: JavaScript erişemez
-    secure: process.env.NODE_ENV === 'production', // Production ortamında HTTPS zorunlu
-    sameSite: 'lax', // CSRF Koruması
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Gün
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000
 };
 
-// 1. KULLANICI KAYIT (Register)
+const publicUser = (user) => ({
+    id: user._id,
+    adSoyad: user.adSoyad,
+    email: user.email,
+    telefon: user.telefon || '',
+    kampanyaKodu: user.kampanyaKodu || '',
+    kampanyaKullanildi: Boolean(user.kampanyaKullanildi),
+    kampanyaIndirim: WELCOME_PERCENT,
+    rol: user.rol,
+    avatarUrl: user.avatarUrl || ''
+});
+
+const ensureWelcomeCode = async (user) => {
+    if (user.kampanyaKodu) return user;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        user.kampanyaKodu = generateWelcomeCode();
+        try {
+            await user.save();
+            return user;
+        } catch (error) {
+            if (error?.code !== 11000) throw error;
+        }
+    }
+    return user;
+};
+
 const register = async (req, res) => {
     try {
         const { adSoyad, email, sifre } = req.body;
@@ -24,30 +46,21 @@ const register = async (req, res) => {
         }
 
         const user = await User.create({ adSoyad, email, sifre });
+        await ensureWelcomeCode(user);
+        user.kampanyaKullanildi = false;
 
-        // JWT Token üretimi ve HttpOnly Cookie olarak fırlatılması
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.cookie('token', token, COOKIE_OPTIONS);
 
         res.status(201).json({
-            mesaj: 'Kayıt başarılı! Kampanya kodunuz oluşturuldu.',
-            kullanici: {
-                id: user._id,
-                adSoyad: user.adSoyad,
-                email: user.email,
-                telefon: user.telefon || '',
-                kampanyaKodu: user.kampanyaKodu,
-                rol: user.rol,
-                avatarUrl: user.avatarUrl || ''
-            }
+            mesaj: `Kayıt başarılı! İlk siparişine özel %${WELCOME_PERCENT} indirim kodun hazır.`,
+            kullanici: publicUser(user)
         });
-
     } catch (error) {
         res.status(500).json({ mesaj: 'Sunucu hatası', hata: error.message });
     }
 };
 
-// 2. KULLANICI GİRİŞ (Login)
 const login = async (req, res) => {
     try {
         const { email, sifre } = req.body;
@@ -62,30 +75,21 @@ const login = async (req, res) => {
             return res.status(401).json({ mesaj: 'Geçersiz email veya şifre.' });
         }
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+        await ensureWelcomeCode(user);
+        await syncWelcomeCouponFlag(user);
 
-        // GÜVENLİK: Token yanıt gövdesinde (body) DEĞİL, HttpOnly Cookie içinde gönderiliyor
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.cookie('token', token, COOKIE_OPTIONS);
 
         res.json({
             mesaj: 'Giriş başarılı',
-            kullanici: {
-                id: user._id,
-                adSoyad: user.adSoyad,
-                email: user.email,
-                telefon: user.telefon || '',
-                kampanyaKodu: user.kampanyaKodu,
-                rol: user.rol,
-                avatarUrl: user.avatarUrl || ''
-            }
+            kullanici: publicUser(user)
         });
-
     } catch (error) {
         res.status(500).json({ mesaj: 'Sunucu hatası', hata: error.message });
     }
 };
 
-// 3. ANLIK OTURUM DOĞRULAMA (Get Me - Sayfa Yenilendiğinde Çalışır)
 const getMe = async (req, res) => {
     try {
         const token = req.cookies.token;
@@ -100,23 +104,15 @@ const getMe = async (req, res) => {
             return res.status(401).json({ mesaj: 'Kullanıcı bulunamadı.' });
         }
 
-        res.json({
-            kullanici: {
-                id: user._id,
-                adSoyad: user.adSoyad,
-                email: user.email,
-                telefon: user.telefon || '',
-                kampanyaKodu: user.kampanyaKodu,
-                rol: user.rol,
-                avatarUrl: user.avatarUrl || ''
-            }
-        });
+        await ensureWelcomeCode(user);
+        await syncWelcomeCouponFlag(user);
+
+        res.json({ kullanici: publicUser(user) });
     } catch (error) {
         res.status(401).json({ mesaj: 'Geçersiz veya süresi dolmuş oturum.' });
     }
 };
 
-// 4. ÇIKIŞ YAP (Logout - Cookie Silme)
 const logout = async (req, res) => {
     try {
         res.clearCookie('token', COOKIE_OPTIONS);
@@ -126,27 +122,33 @@ const logout = async (req, res) => {
     }
 };
 
-// 5. KAMPANYA KODU DOĞRULAMA
 const verifyCampaignCode = async (req, res) => {
     try {
-        const { kod } = req.body;
-
-        const user = await User.findOne({ kampanyaKodu: kod });
-        if (!user) {
-            return res.status(400).json({ mesaj: 'Geçersiz veya süresi dolmuş kampanya kodu.' });
+        const kod = normalizeCode(req.body.kod || req.body.code);
+        if (!kod) {
+            return res.status(400).json({ success: false, mesaj: 'Bir indirim kodu yaz.' });
         }
 
-        res.json({ 
-            mesaj: 'Kampanya kodu başarıyla uygulandı!', 
-            indirimOrani: 10 
-        });
+        const mine = normalizeCode(req.user.kampanyaKodu);
+        if (!mine || mine !== kod) {
+            return res.status(400).json({ success: false, mesaj: 'Bu kod bu hesaba ait değil veya geçersiz.' });
+        }
+        await syncWelcomeCouponFlag(req.user);
+        if (await couponAlreadyConsumed(req.user, { ignorePendingCard: true })) {
+            return res.status(400).json({ success: false, mesaj: 'Hoş geldin indirimin yalnızca ilk siparişte geçerlidir.' });
+        }
 
+        res.json({
+            success: true,
+            mesaj: `Kod uygulandı. İlk siparişine %${WELCOME_PERCENT} indirim.`,
+            indirimOrani: WELCOME_PERCENT,
+            kod: req.user.kampanyaKodu
+        });
     } catch (error) {
-        res.status(500).json({ mesaj: 'Sunucu hatası', hata: error.message });
+        res.status(500).json({ success: false, mesaj: 'Sunucu hatası' });
     }
 };
 
-// 6. TÜM KULLANICILARI LİSTELE
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.find({}).select('-sifre');
@@ -156,11 +158,11 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-module.exports = { 
-    register, 
-    login, 
-    getMe, 
-    logout, 
-    verifyCampaignCode, 
-    getAllUsers 
+module.exports = {
+    register,
+    login,
+    getMe,
+    logout,
+    verifyCampaignCode,
+    getAllUsers
 };

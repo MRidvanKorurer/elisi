@@ -17,7 +17,6 @@ import { useNavigate } from 'react-router-dom';
 import { cartService } from '../api/cartServices';
 
 import {
-  videoHero,
   imgBagOrange,
   imgBanner1,
   imgBanner2,
@@ -25,9 +24,9 @@ import {
   imgBanner4
 } from '../assets/media';
 import { productService } from '../api/productService';
+import { formatTRY, salePriceOf } from '../utils/price';
 
-const LOCAL_HERO_SLIDES = [
-  { _id: 'hero-video', type: 'video', url: videoHero, poster: imgBanner1 },
+const IMAGE_SLIDES = [
   { _id: 'hero-banner1', url: imgBanner1 },
   { _id: 'hero-banner2', url: imgBanner2 },
   { _id: 'hero-banner3', url: imgBanner3 },
@@ -36,7 +35,7 @@ const LOCAL_HERO_SLIDES = [
 
 export default function HeroBanner({ user, onNavigateAuth }) {
   const navigate = useNavigate();
-  const [heroImages] = useState(LOCAL_HERO_SLIDES);
+  const heroImages = IMAGE_SLIDES;
   const [currentIndex, setCurrentIndex] = useState(0);
   const slide = heroImages[currentIndex];
 
@@ -56,14 +55,14 @@ export default function HeroBanner({ user, onNavigateAuth }) {
     if (heroImages.length <= 1 || !inView) return undefined;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % heroImages.length);
-    }, slide?.type === 'video' ? 11000 : 7000);
+    }, 7000);
     return () => clearInterval(timer);
-  }, [heroImages.length, currentIndex, slide?.type, inView]);
+  }, [heroImages.length, currentIndex, inView]);
 
   // Sıradaki görseli sessizce önden indir, geçiş anında bekleme olmasın
   useEffect(() => {
     const next = heroImages[(currentIndex + 1) % heroImages.length];
-    if (!next || next.type === 'video' || !next.url) return;
+    if (!next?.url) return;
     const preloader = new Image();
     preloader.src = next.url;
   }, [currentIndex, heroImages]);
@@ -85,9 +84,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
     const productId = product._id || product.id;
     if (!productId || addingId) return;
 
-    const discount = Number(product.discountPercentage || 0);
-    const listPrice = Number(product.price || 0);
-    const finalPrice = discount > 0 ? listPrice - (listPrice * discount) / 100 : listPrice;
+    const finalPrice = salePriceOf(product);
 
     setAddingId(productId);
     try {
@@ -166,49 +163,24 @@ export default function HeroBanner({ user, onNavigateAuth }) {
           transition={{ opacity: { duration: 0.7, ease: 'easeOut' }, scale: { duration: 7, ease: 'linear' } }}
           style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, willChange: 'opacity, transform' }}
         >
-          {slide?.type === 'video' ? (
-            <Box
-              component="video"
-              src={slide.url}
-              poster={slide.poster || imgBagOrange}
-              autoPlay
-              muted
-              loop
-              playsInline
-              disablePictureInPicture
-              preload="metadata"
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                minWidth: '100%',
-                minHeight: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-                display: 'block'
-              }}
-            />
-          ) : (
-            <Box
-              component="img"
-              src={slide?.url}
-              alt="Nik Bag Koleksiyon"
-              decoding="async"
-              fetchPriority={currentIndex === 0 ? 'high' : 'low'}
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                minWidth: '100%',
-                minHeight: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-                display: 'block'
-              }}
-            />
-          )}
+          <Box
+            component="img"
+            src={slide?.url}
+            alt="Nik Bag Koleksiyon"
+            decoding="async"
+            fetchPriority={currentIndex === 0 ? 'high' : 'low'}
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              minWidth: '100%',
+              minHeight: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center center',
+              display: 'block'
+            }}
+          />
           <Box
             sx={{
               position: 'absolute',
@@ -305,7 +277,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               }}
             >
               {!user
-                ? 'Geleneksel el işçiliğiyle modern çizgilerin buluştuğu eşsiz tasarımlar. Kayıt olarak size özel indirim kuponunu anında kullanın.'
+                ? 'Geleneksel el işçiliğiyle modern çizgilerin buluştuğu eşsiz tasarımlar. Kayıt ol, ilk siparişine özel %10 indirim kodunu anında kullan.'
                 : 'Atölyemizin en yeni ve seçkin tasarımlarını hemen inceleyin.'}
             </Typography>
 
@@ -589,7 +561,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
                     const productTitle = product.title || product.name;
                     const discount = Number(product.discountPercentage || 0);
                     const listPrice = Number(product.price || 0);
-                    const finalPrice = discount > 0 ? listPrice - (listPrice * discount) / 100 : listPrice;
+                    const finalPrice = salePriceOf(product);
                     const cover = product.image || (product.images && product.images[0]) || imgBagOrange;
 
                     return (
@@ -703,11 +675,11 @@ export default function HeroBanner({ user, onNavigateAuth }) {
 
                           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.9, mt: 'auto', pt: 1.2 }}>
                             <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '1.12rem' }}>
-                              ₺{finalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                              ₺{formatTRY(finalPrice)}
                             </Typography>
                             {discount > 0 && (
                               <Typography sx={{ color: '#9C8B8B', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'line-through' }}>
-                                ₺{listPrice.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                                ₺{formatTRY(listPrice)}
                               </Typography>
                             )}
                           </Box>

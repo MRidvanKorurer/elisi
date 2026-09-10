@@ -10,8 +10,10 @@ export const mediaUrl = (path) => {
 };
 
 export const lookbookService = {
-  list: async (all = false) => {
-    const response = await API.get(all ? '/lookbook/admin' : '/lookbook');
+  list: async (all = false, placement) => {
+    const response = await API.get(all ? '/lookbook/admin' : '/lookbook', {
+      params: placement ? { placement } : undefined
+    });
     return response.data;
   },
   create: async (formData) => {
