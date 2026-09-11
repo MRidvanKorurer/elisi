@@ -21,6 +21,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
+    "recharts": "^3.10.1",
     "vite-imagetools": "^12.0.1",
     "yet-another-react-lightbox": "^3.32.2"
   },

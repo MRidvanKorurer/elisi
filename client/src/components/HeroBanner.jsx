@@ -24,6 +24,7 @@ import {
   imgBanner4
 } from '../assets/media';
 import { productService } from '../api/productService';
+import { adsService } from '../api/adsService';
 import { formatTRY, salePriceOf } from '../utils/price';
 
 const IMAGE_SLIDES = [
@@ -119,6 +120,12 @@ export default function HeroBanner({ user, onNavigateAuth }) {
       const response = await productService.getSponsoredProducts();
       if (response.success && response.products && response.products.length > 0) {
         setSponsoredProducts(response.products);
+        adsService.track(response.products.map((product) => ({
+          type: 'impression',
+          surface: 'featured',
+          product: product._id || product.id,
+          seller: product.seller
+        })));
       } else {
         setSponsoredProducts([
           {
@@ -572,6 +579,12 @@ export default function HeroBanner({ user, onNavigateAuth }) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.34, delay: 0.06 * index, ease: [0.22, 0.61, 0.36, 1] }}
                         onClick={() => {
+                          adsService.track({
+                            type: 'click',
+                            surface: 'featured',
+                            product: productId,
+                            seller: product.seller
+                          });
                           setOpenSponsoredModal(false);
                           navigate(`/product/${productId}`);
                         }}

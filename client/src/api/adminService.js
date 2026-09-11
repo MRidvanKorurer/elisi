@@ -17,5 +17,7 @@ export const adminService = {
   hideProduct: async (id) => (await API.delete(`/admin/products/${id}`)).data,
   featured: async (params) => (await API.get('/admin/featured', { params })).data,
   reviewFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}`, payload)).data,
-  removeFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}/remove`, payload)).data
+  removeFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}/remove`, payload)).data,
+  reports: async () => (await API.get('/admin/reports')).data,
+  reportsSeller: async (sellerId) => (await API.get(`/admin/reports/sellers/${sellerId}`)).data
 };

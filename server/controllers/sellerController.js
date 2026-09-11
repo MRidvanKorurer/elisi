@@ -5,6 +5,8 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const ProductQuestion = require('../models/ProductQuestion');
 const FeaturedRequest = require('../models/FeaturedRequest');
+const Review = require('../models/Review');
+const PromoCode = require('../models/PromoCode');
 const { isSuperAdmin } = require('../utils/roles');
 const {
     ORDER_STATUSES,
@@ -12,6 +14,7 @@ const {
     ensureSellerFulfillments,
     sellerStatusOf
 } = require('../utils/orderFulfillment');
+const { stampFulfillment, timingOf } = require('../utils/fulfillmentTiming');
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -465,7 +468,7 @@ const updateMyOrder = async (req, res) => {
             mine = order.sellerFulfillments[order.sellerFulfillments.length - 1];
         }
 
-        mine.status = orderStatus;
+        stampFulfillment(mine, orderStatus);
         order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
         await order.save();
 
@@ -522,6 +525,465 @@ const getMyOverview = async (req, res) => {
         });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Mağaza özeti alınamadı.', hata: error.message });
+    }
+};
+
+const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;
+const isoDay = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
+};
+const isoMonth = (value) => isoDay(value).slice(0, 7);
+const bump = (map, key, seed, patch) => {
+    const current = map.get(key) || seed(key);
+    patch(current);
+    map.set(key, current);
+    return current;
+};
+const fillDaily = (from, to, map) => {
+    const rows = [];
+    const cursor = new Date(from);
+    cursor.setUTCHours(0, 0, 0, 0);
+    const last = new Date(to);
+    last.setUTCHours(0, 0, 0, 0);
+    while (cursor <= last) {
+        const date = cursor.toISOString().slice(0, 10);
+        const row = map.get(date) || { date, orders: 0, revenue: 0, qty: 0, cancelled: 0 };
+        rows.push({ ...row, revenue: roundMoney(row.revenue) });
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return rows;
+};
+const fillMonthly = (count, map) => {
+    const rows = [];
+    const cursor = new Date();
+    cursor.setUTCDate(1);
+    cursor.setUTCHours(0, 0, 0, 0);
+    cursor.setUTCMonth(cursor.getUTCMonth() - (count - 1));
+    for (let i = 0; i < count; i += 1) {
+        const month = cursor.toISOString().slice(0, 7);
+        const row = map.get(month) || { month, orders: 0, revenue: 0, qty: 0, cancelled: 0 };
+        rows.push({ ...row, revenue: roundMoney(row.revenue) });
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+    return rows;
+};
+
+const getMyReports = async (req, res) => {
+    try {
+        const sellerId = req.user._id;
+        const products = await Product.find({ seller: sellerId })
+            .select('_id title category image stock price rating numReviews')
+            .lean();
+        const productIds = products.map((item) => item._id);
+        const owned = new Set(productIds.map(String));
+        const productById = new Map(products.map((item) => [String(item._id), item]));
+
+        const [orders, reviews, questions, promos, featured] = await Promise.all([
+            productIds.length
+                ? Order.find({ 'orderItems.product': { $in: productIds } }).sort({ createdAt: 1 }).lean()
+                : Promise.resolve([]),
+            productIds.length ? Review.find({ product: { $in: productIds } }).lean() : Promise.resolve([]),
+            productIds.length
+                ? ProductQuestion.find({ product: { $in: productIds }, isPublic: true }).lean()
+                : Promise.resolve([]),
+            PromoCode.find({ seller: sellerId }).lean(),
+            FeaturedRequest.find({ seller: sellerId }).sort({ createdAt: -1 }).lean()
+        ]);
+
+        const sellerItemsOf = (order) => (order.orderItems || []).filter((item) => owned.has(String(item.product)));
+        const statusOf = (order) => sellerStatusOf(order, sellerId);
+        const itemQty = (item) => Number(item.quantity) || 0;
+        const itemRevenue = (item) => itemQty(item) * Number(item.price || 0);
+
+        const byProduct = new Map(products.map((product) => [String(product._id), {
+            id: product._id,
+            title: product.title,
+            category: product.category || 'diger',
+            image: product.image || '',
+            stock: product.stock || 0,
+            rating: product.rating || 0,
+            numReviews: product.numReviews || 0,
+            qty: 0,
+            revenue: 0,
+            orders: 0,
+            qty30: 0
+        }]));
+
+        const now = new Date();
+        const from30 = new Date(now);
+        from30.setUTCDate(from30.getUTCDate() - 29);
+        from30.setUTCHours(0, 0, 0, 0);
+        const from30Ms = from30.getTime();
+
+        const dailyMap = new Map();
+        const monthlyMap = new Map();
+        const byStatus = { processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
+        const payStatus = {
+            pending: { count: 0, revenue: 0 },
+            completed: { count: 0, revenue: 0 },
+            failed: { count: 0, revenue: 0 }
+        };
+        const payMethod = new Map();
+        const colorMap = new Map();
+        const sizeMap = new Map();
+        const customerMap = new Map();
+        const cityMap = new Map();
+        const promoSet = new Set(promos.map((item) => String(item.code || '').toUpperCase()).filter(Boolean));
+        const promoStats = new Map(promos.map((item) => [String(item.code || '').toUpperCase(), {
+            id: item._id,
+            code: item.code,
+            percent: item.percent,
+            usedCount: item.usedCount || 0,
+            isActive: item.isActive !== false,
+            orders: 0,
+            revenue: 0,
+            discount: 0
+        }]));
+        let promoOrders = 0;
+        let promoRevenue = 0;
+        let plainOrders = 0;
+        let plainRevenue = 0;
+        let fulfillDaysSum = 0;
+        let fulfillDaysCount = 0;
+
+        orders.forEach((order) => {
+            const items = sellerItemsOf(order);
+            if (!items.length) return;
+            const status = statusOf(order);
+            const cancelled = status === 'cancelled';
+            const qty = items.reduce((sum, item) => sum + itemQty(item), 0);
+            const revenue = items.reduce((sum, item) => sum + itemRevenue(item), 0);
+            const created = new Date(order.createdAt);
+            const day = isoDay(created);
+            const month = isoMonth(created);
+
+            byStatus[status] = (byStatus[status] || 0) + 1;
+            const timing = timingOf(order, sellerId);
+            if (timing.daysToShip != null) {
+                fulfillDaysSum += timing.daysToShip;
+                fulfillDaysCount += 1;
+            }
+
+            bump(dailyMap, day, (key) => ({ date: key, orders: 0, revenue: 0, qty: 0, cancelled: 0 }), (row) => {
+                if (cancelled) row.cancelled += 1;
+                else {
+                    row.orders += 1;
+                    row.qty += qty;
+                    row.revenue += revenue;
+                }
+            });
+            bump(monthlyMap, month, (key) => ({ month: key, orders: 0, revenue: 0, qty: 0, cancelled: 0 }), (row) => {
+                if (cancelled) row.cancelled += 1;
+                else {
+                    row.orders += 1;
+                    row.qty += qty;
+                    row.revenue += revenue;
+                }
+            });
+
+            const payKey = payStatus[order.paymentStatus] ? order.paymentStatus : 'pending';
+            payStatus[payKey].count += 1;
+            payStatus[payKey].revenue += cancelled ? 0 : revenue;
+            const methodKey = order.paymentMethod || 'unknown';
+            bump(payMethod, methodKey, (key) => ({ method: key, count: 0, revenue: 0 }), (row) => {
+                row.count += 1;
+                if (!cancelled) row.revenue += revenue;
+            });
+
+            const email = String(order.customerInfo?.email || '').trim().toLowerCase();
+            const customerKey = email || String(order.customerInfo?.phone || order._id);
+            const city = String(order.shippingAddress?.city || '').trim() || 'Belirtilmedi';
+            bump(customerMap, customerKey, () => ({
+                key: customerKey,
+                email,
+                name: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Misafir',
+                city,
+                orders: 0,
+                revenue: 0,
+                firstAt: created,
+                lastAt: created
+            }), (row) => {
+                row.orders += 1;
+                if (!cancelled) row.revenue += revenue;
+                if (created < row.firstAt) row.firstAt = created;
+                if (created > row.lastAt) row.lastAt = created;
+                if (!row.city && city) row.city = city;
+            });
+            if (!cancelled) {
+                bump(cityMap, city, (key) => ({ city: key, orders: 0, revenue: 0 }), (row) => {
+                    row.orders += 1;
+                    row.revenue += revenue;
+                });
+            }
+
+            const code = String(order.promoCode || '').toUpperCase();
+            if (!cancelled && promoSet.has(code) && promoStats.has(code)) {
+                promoOrders += 1;
+                promoRevenue += revenue;
+                const share = order.subtotal > 0 ? revenue / order.subtotal : 1;
+                bump(promoStats, code, () => promoStats.get(code), (row) => {
+                    row.orders += 1;
+                    row.revenue += revenue;
+                    row.discount += Number(order.promoDiscount || 0) * share;
+                });
+            } else if (!cancelled) {
+                plainOrders += 1;
+                plainRevenue += revenue;
+            }
+
+            const counted = new Set();
+            items.forEach((item) => {
+                const id = String(item.product);
+                const row = byProduct.get(id);
+                if (!row) return;
+                if (!cancelled) {
+                    const qtyValue = itemQty(item);
+                    row.qty += qtyValue;
+                    row.revenue += itemRevenue(item);
+                    if (created.getTime() >= from30Ms) row.qty30 += qtyValue;
+                    if (!counted.has(id)) {
+                        row.orders += 1;
+                        counted.add(id);
+                    }
+                    const color = String(item.color || '').trim();
+                    const size = String(item.size || '').trim();
+                    if (color) {
+                        bump(colorMap, color.toLowerCase(), () => ({ name: color, qty: 0, revenue: 0 }), (entry) => {
+                            entry.qty += qtyValue;
+                            entry.revenue += itemRevenue(item);
+                        });
+                    }
+                    if (size) {
+                        bump(sizeMap, size.toLowerCase(), () => ({ name: size, qty: 0, revenue: 0 }), (entry) => {
+                            entry.qty += qtyValue;
+                            entry.revenue += itemRevenue(item);
+                        });
+                    }
+                }
+            });
+        });
+
+        const productRows = [...byProduct.values()]
+            .map((row) => ({
+                ...row,
+                label: CATEGORY_LABELS[row.category] || row.category,
+                revenue: roundMoney(row.revenue),
+                dailyRate: Math.round((row.qty30 / 30) * 100) / 100,
+                daysLeft: row.qty30 > 0 ? Math.round((row.stock / (row.qty30 / 30)) * 10) / 10 : null
+            }))
+            .sort((a, b) => b.revenue - a.revenue || b.qty - a.qty);
+
+        const categoryMap = new Map();
+        productRows.forEach((row) => {
+            const key = row.category || 'diger';
+            bump(categoryMap, key, () => ({
+                category: key,
+                label: CATEGORY_LABELS[key] || key,
+                qty: 0,
+                revenue: 0,
+                products: 0,
+                soldProducts: 0
+            }), (current) => {
+                current.products += 1;
+                current.qty += row.qty;
+                current.revenue += row.revenue;
+                if (row.qty > 0) current.soldProducts += 1;
+            });
+        });
+        const categories = [...categoryMap.values()]
+            .map((row) => ({ ...row, revenue: roundMoney(row.revenue) }))
+            .sort((a, b) => b.revenue - a.revenue || b.qty - a.qty);
+        const sold = productRows.filter((row) => row.qty > 0);
+
+        const customers = [...customerMap.values()]
+            .map((row) => ({
+                ...row,
+                revenue: roundMoney(row.revenue),
+                repeat: row.orders > 1
+            }))
+            .sort((a, b) => b.revenue - a.revenue);
+        const repeatCustomers = customers.filter((row) => row.repeat);
+        const firstCustomers = customers.filter((row) => !row.repeat);
+
+        const featuredRows = featured.map((item) => {
+            const productId = String(item.product);
+            const product = productById.get(productId);
+            const start = item.startsAt ? new Date(item.startsAt) : new Date(item.createdAt);
+            const end = item.endsAt
+                ? new Date(item.endsAt)
+                : new Date(start.getTime() + (Number(item.days) || 0) * 86400000);
+            let revenue = 0;
+            let qty = 0;
+            orders.forEach((order) => {
+                if (statusOf(order) === 'cancelled') return;
+                const created = new Date(order.createdAt);
+                if (created < start || created > end) return;
+                sellerItemsOf(order).forEach((line) => {
+                    if (String(line.product) !== productId) return;
+                    qty += itemQty(line);
+                    revenue += itemRevenue(line);
+                });
+            });
+            const spent = ['approved', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
+            return {
+                id: item._id,
+                productId,
+                title: product?.title || 'Ürün',
+                image: product?.image || '',
+                days: item.days,
+                status: item.status,
+                spent,
+                revenue: roundMoney(revenue),
+                qty,
+                startsAt: start,
+                endsAt: end,
+                roi: spent > 0 ? Math.round(((revenue - spent) / spent) * 100) : null
+            };
+        });
+
+        const ratingBuckets = [1, 2, 3, 4, 5].map((star) => ({
+            star,
+            count: reviews.filter((item) => Number(item.rating) === star).length
+        }));
+        const answered = questions.filter((item) => String(item.answer || '').trim());
+        const answerHours = answered
+            .map((item) => {
+                if (!item.answeredAt || !item.createdAt) return null;
+                return (new Date(item.answeredAt) - new Date(item.createdAt)) / 3600000;
+            })
+            .filter((value) => value != null && value >= 0 && value < 24 * 60);
+
+        const payMethods = [...payMethod.values()]
+            .map((row) => ({ ...row, revenue: roundMoney(row.revenue) }))
+            .sort((a, b) => b.revenue - a.revenue);
+        const sortNamed = (rows) => rows
+            .map((row) => ({ ...row, revenue: roundMoney(row.revenue) }))
+            .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue);
+
+        return res.json({
+            success: true,
+            report: {
+                performance: {
+                    totals: {
+                        revenue: roundMoney(sold.reduce((sum, row) => sum + row.revenue, 0)),
+                        qty: sold.reduce((sum, row) => sum + row.qty, 0),
+                        products: sold.length,
+                        categories: categories.filter((row) => row.qty > 0).length
+                    },
+                    categories,
+                    products: productRows
+                },
+                timeseries: {
+                    daily: fillDaily(from30, now, dailyMap),
+                    monthly: fillMonthly(12, monthlyMap)
+                },
+                fulfillment: {
+                    byStatus: ['processing', 'shipped', 'delivered', 'cancelled'].map((status) => ({
+                        status,
+                        count: byStatus[status] || 0
+                    })),
+                    avgDays: fulfillDaysCount ? Math.round((fulfillDaysSum / fulfillDaysCount) * 10) / 10 : 0,
+                    open: (byStatus.processing || 0) + (byStatus.shipped || 0),
+                    delivered: byStatus.delivered || 0,
+                    cancelled: byStatus.cancelled || 0,
+                    total: Object.values(byStatus).reduce((sum, value) => sum + value, 0)
+                },
+                payments: {
+                    byStatus: Object.entries(payStatus).map(([status, row]) => ({
+                        status,
+                        count: row.count,
+                        revenue: roundMoney(row.revenue)
+                    })),
+                    byMethod: payMethods,
+                    totals: {
+                        pending: payStatus.pending.count,
+                        completed: payStatus.completed.count,
+                        failed: payStatus.failed.count,
+                        collected: roundMoney(payStatus.completed.revenue),
+                        outstanding: roundMoney(payStatus.pending.revenue)
+                    }
+                },
+                stock: {
+                    items: productRows
+                        .map((row) => ({
+                            id: row.id,
+                            title: row.title,
+                            image: row.image,
+                            category: row.label,
+                            stock: row.stock,
+                            qty: row.qty,
+                            qty30: row.qty30,
+                            dailyRate: row.dailyRate,
+                            daysLeft: row.daysLeft
+                        }))
+                        .sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999) || a.stock - b.stock),
+                    lowStock: productRows.filter((row) => row.stock <= 5).length,
+                    unsold: productRows.filter((row) => row.qty === 0).length,
+                    moving: productRows.filter((row) => row.qty30 > 0).length
+                },
+                variants: {
+                    colors: sortNamed([...colorMap.values()]),
+                    sizes: sortNamed([...sizeMap.values()])
+                },
+                customers: {
+                    totals: {
+                        all: customers.length,
+                        first: firstCustomers.length,
+                        repeat: repeatCustomers.length,
+                        firstRevenue: roundMoney(firstCustomers.reduce((sum, row) => sum + row.revenue, 0)),
+                        repeatRevenue: roundMoney(repeatCustomers.reduce((sum, row) => sum + row.revenue, 0))
+                    },
+                    cities: [...cityMap.values()]
+                        .map((row) => ({ ...row, revenue: roundMoney(row.revenue) }))
+                        .sort((a, b) => b.revenue - a.revenue)
+                        .slice(0, 10),
+                    list: customers.slice(0, 20)
+                },
+                promos: {
+                    codes: [...promoStats.values()]
+                        .map((row) => ({ ...row, revenue: roundMoney(row.revenue), discount: roundMoney(row.discount) }))
+                        .sort((a, b) => b.revenue - a.revenue),
+                    withPromo: { orders: promoOrders, revenue: roundMoney(promoRevenue) },
+                    withoutPromo: { orders: plainOrders, revenue: roundMoney(plainRevenue) }
+                },
+                featured: {
+                    items: featuredRows,
+                    totals: {
+                        spent: roundMoney(featuredRows.reduce((sum, row) => sum + row.spent, 0)),
+                        revenue: roundMoney(featuredRows.reduce((sum, row) => sum + row.revenue, 0)),
+                        live: featuredRows.filter((row) => row.status === 'approved').length
+                    }
+                },
+                quality: {
+                    ratings: ratingBuckets,
+                    avgRating: reviews.length
+                        ? Math.round((reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length) * 10) / 10
+                        : 0,
+                    reviewCount: reviews.length,
+                    questions: {
+                        total: questions.length,
+                        unanswered: questions.length - answered.length,
+                        avgHours: answerHours.length
+                            ? Math.round((answerHours.reduce((sum, value) => sum + value, 0) / answerHours.length) * 10) / 10
+                            : 0
+                    },
+                    products: productRows
+                        .map((row) => ({
+                            id: row.id,
+                            title: row.title,
+                            image: row.image,
+                            rating: row.rating,
+                            numReviews: row.numReviews,
+                            qty: row.qty
+                        }))
+                        .sort((a, b) => b.numReviews - a.numReviews || b.rating - a.rating)
+                }
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Rapor alınamadı.', hata: error.message });
     }
 };
 
@@ -642,5 +1104,6 @@ module.exports = {
     getMyOrders,
     updateMyOrder,
     getMyOverview,
+    getMyReports,
     getPublicSeller
 };

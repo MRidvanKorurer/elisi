@@ -21,6 +21,11 @@ export const sellerService = {
     return response.data;
   },
 
+  getMyReports: async () => {
+    const response = await API.get('/sellers/me/reports');
+    return response.data;
+  },
+
   getMyOrders: async () => {
     const response = await API.get('/sellers/me/orders');
     return response.data;

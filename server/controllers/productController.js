@@ -37,7 +37,7 @@ const publicMatch = (extra = {}) => ({
 });
 
 // GET ALL PRODUCTS
-const LIST_SELECT = 'title name image images description price category discountPercentage soldCount rating numReviews stock isNewProduct slug seller vendorName createdAt';
+const LIST_SELECT = 'title name image images description price category discountPercentage soldCount rating numReviews stock isNewProduct slug seller vendorName createdAt isSponsored';
 
 const listProjection = {
     title: 1,

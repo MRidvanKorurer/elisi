@@ -31,13 +31,20 @@ const uniqueSellerIds = async (order) => {
 const ensureSellerFulfillments = async (order) => {
   const sellerIds = await uniqueSellerIds(order);
   const existing = new Map(
-    (order.sellerFulfillments || []).map((row) => [String(row.seller), row.status])
+    (order.sellerFulfillments || []).map((row) => [String(row.seller), row])
   );
   const fallback = ORDER_STATUSES.includes(order.orderStatus) ? order.orderStatus : 'processing';
-  order.sellerFulfillments = sellerIds.map((id) => ({
-    seller: id,
-    status: existing.get(id) || fallback
-  }));
+  order.sellerFulfillments = sellerIds.map((id) => {
+    const prev = existing.get(id);
+    return {
+      seller: id,
+      status: prev?.status || fallback,
+      processingAt: prev?.processingAt,
+      shippedAt: prev?.shippedAt,
+      deliveredAt: prev?.deliveredAt,
+      cancelledAt: prev?.cancelledAt
+    };
+  });
   order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
   return order;
 };

@@ -33,8 +33,10 @@ import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
+import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton, panelButton } from '../components/PanelShell';
 import SellerProductEditor, { emptyProductForm, formFromProduct } from '../components/SellerProductEditor';
+import SellerPerformanceReport from '../components/SellerPerformanceReport';
 import { sellerService } from '../api/sellerService';
 import { questionService } from '../api/questionService';
 import { isSellerRole } from '../utils/roles';
@@ -113,6 +115,7 @@ export default function SellerPanel({ user, handleLogout }) {
   const [featureNote, setFeatureNote] = useState('');
   const [featureReceipt, setFeatureReceipt] = useState(null);
   const [savingFeature, setSavingFeature] = useState(false);
+  const [report, setReport] = useState(null);
 
   const fail = (err, fallback) => setError(err.response?.data?.mesaj || fallback);
   const flash = (text) => {
@@ -139,13 +142,14 @@ export default function SellerPanel({ user, handleLogout }) {
   };
 
   const loadPanel = async () => {
-    const [ov, pr, or, qs, pm, ft] = await Promise.all([
+    const [ov, pr, or, qs, pm, ft, rp] = await Promise.all([
       sellerService.getOverview(),
       sellerService.getMyProducts(),
       sellerService.getMyOrders(),
       questionService.getSellerInbox('all'),
       sellerService.getMyPromos(),
-      sellerService.getMyFeatured().catch(() => ({ requests: [] }))
+      sellerService.getMyFeatured().catch(() => ({ requests: [] })),
+      sellerService.getMyReports().catch(() => ({ report: null }))
     ]);
     setOverview(ov.overview);
     setProducts(pr.products || []);
@@ -153,6 +157,7 @@ export default function SellerPanel({ user, handleLogout }) {
     setQuestions(qs.questions || []);
     setPromos(pm.promos || []);
     setFeaturedRequests(ft.requests || []);
+    setReport(rp.report || null);
   };
 
   useEffect(() => {
@@ -527,6 +532,7 @@ export default function SellerPanel({ user, handleLogout }) {
     { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
     { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || 0 },
+    { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
     { id: 'store', label: 'Mağaza bilgileri', icon: StorefrontOutlined }
   ];
@@ -541,7 +547,7 @@ export default function SellerPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'promos' ? 'Kampanya kodu ara' : 'Kendi ürün ve siparişlerinde ara'}
+      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'reports' ? 'Raporlarda ara' : view === 'promos' ? 'Kampanya kodu ara' : 'Kendi ürün ve siparişlerinde ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
       siteHref={seller.slug ? `/atolye/${seller.slug}` : '/'}
@@ -654,6 +660,10 @@ export default function SellerPanel({ user, handleLogout }) {
             </PanelCard>
           </Box>
         </Box>
+      )}
+
+      {view === 'reports' && (
+        <SellerPerformanceReport report={report} query={query} />
       )}
 
       {view === 'orders' && (

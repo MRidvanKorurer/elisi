@@ -41,6 +41,7 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/sellers', require('./routes/sellerRoutes'));
+app.use('/api/ads', require('./routes/adsRoutes'));
 app.use('/api/lookbook', require('./routes/lookbookRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/promos', require('./routes/promoRoutes'));

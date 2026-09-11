@@ -406,6 +406,7 @@ import { Favorite, FavoriteBorderOutlined } from '@mui/icons-material';
 
 import { cartService } from '../api/cartServices';
 import userService from '../api/userService';
+import { adsService } from '../api/adsService';
 import { imgBagOrange } from '../assets/media';
 import {
   FAVORITES_UPDATED,
@@ -463,7 +464,14 @@ export default function ProductCard({ product, fullWidth = false }) {
   }, [description]);
 
   const handleCardClick = () => {
-    if (id) navigate(`/product/${id}`);
+    if (!id) return;
+    adsService.track({
+      type: 'click',
+      surface: product?.isSponsored ? 'featured' : 'product',
+      product: id,
+      seller: product?.seller
+    });
+    navigate(`/product/${id}`);
   };
 
   const handleAddToCart = async (e) => {

@@ -7,6 +7,7 @@ const {
   getMyOrders,
   updateMyOrder,
   getMyOverview,
+  getMyReports,
   getPublicSeller
 } = require('../controllers/sellerController');
 const {
@@ -34,6 +35,7 @@ router.get('/public/:slug', getPublicSeller);
 router.get('/me', protect, getMySeller);
 router.put('/me', protect, approvedSeller, updateMySeller);
 router.get('/me/overview', protect, approvedSeller, getMyOverview);
+router.get('/me/reports', protect, approvedSeller, getMyReports);
 router.get('/me/orders', protect, approvedSeller, getMyOrders);
 router.put('/me/orders/:id', protect, approvedSeller, updateMyOrder);
 router.get('/me/products', protect, approvedSeller, getMyProducts);

@@ -19,10 +19,13 @@ const {
 } = require('../controllers/adminController');
 const { listPromos, createPromo, updatePromo, deletePromo } = require('../controllers/promoController');
 const { listAdminFeatured, reviewFeatured, removeFeatured } = require('../controllers/featuredController');
+const { getAdminReports, getAdminSellerReport } = require('../controllers/adminReportsController');
 
 router.use(protect, superAdmin);
 
 router.get('/overview', getOverview);
+router.get('/reports', getAdminReports);
+router.get('/reports/sellers/:sellerId', getAdminSellerReport);
 router.get('/orders', listOrders);
 router.put('/orders/:id', updateOrder);
 router.get('/users', listUsers);

@@ -31,11 +31,13 @@ import MovieFilterOutlined from '@mui/icons-material/MovieFilterOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
+import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
+import AdminPlatformReport from '../components/AdminPlatformReport';
 import ImageUploader from '../components/ImageUploader';
 import { adminService } from '../api/adminService';
 import { promoService } from '../api/promoService';
@@ -136,10 +138,11 @@ export default function AdminPanel({ user, handleLogout }) {
   const [featuredReceiptView, setFeaturedReceiptView] = useState(null);
   const [featuredRemoving, setFeaturedRemoving] = useState(null);
   const [featuredRemoveReason, setFeaturedRemoveReason] = useState('');
+  const [report, setReport] = useState(null);
 
   const load = async () => {
     try {
-      const [ov, us, se, pr, lb, or, pm, ft] = await Promise.all([
+      const [ov, us, se, pr, lb, or, pm, ft, rp] = await Promise.all([
         adminService.overview(),
         adminService.users(),
         adminService.sellers(),
@@ -147,7 +150,8 @@ export default function AdminPanel({ user, handleLogout }) {
         lookbookService.list(true),
         adminService.orders(),
         promoService.list().catch(() => ({ promos: [] })),
-        adminService.featured().catch(() => ({ requests: [] }))
+        adminService.featured().catch(() => ({ requests: [] })),
+        adminService.reports().catch(() => ({ report: null }))
       ]);
       setOverview(ov.overview);
       setUsers(us.users || []);
@@ -157,6 +161,7 @@ export default function AdminPanel({ user, handleLogout }) {
       setOrders(or.orders || []);
       setPromos(pm.promos || []);
       setFeaturedRequests(ft.requests || []);
+      setReport(rp.report || null);
       setError('');
     } catch (err) {
       setError(err.response?.data?.mesaj || 'Admin verileri yüklenemedi.');
@@ -422,6 +427,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length },
+    { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'products', label: 'Ürünler', icon: Inventory2Outlined },
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
     { id: 'customers', label: 'Müşteriler', icon: PeopleAltOutlined },
@@ -450,7 +456,7 @@ export default function AdminPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder="Sipariş, ürün, müşteri veya mağaza ara"
+      searchPlaceholder={view === 'reports' ? 'Raporlarda ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
     >
@@ -706,6 +712,10 @@ export default function AdminPanel({ user, handleLogout }) {
             </Box>
           )}
         </Box>
+      )}
+
+      {view === 'reports' && (
+        <AdminPlatformReport report={report} query={query} />
       )}
 
       {view === 'orders' && (
