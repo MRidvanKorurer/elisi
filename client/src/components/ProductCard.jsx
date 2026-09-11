@@ -410,7 +410,6 @@ import { imgBagOrange } from '../assets/media';
 import {
   FAVORITES_UPDATED,
   isProductFavorite,
-  loadFavoriteIds,
   setProductFavorite
 } from '../utils/favoritesStore';
 import { formatTRY, salePriceOf } from '../utils/price';
@@ -451,7 +450,6 @@ export default function ProductCard({ product, fullWidth = false }) {
 
     const sync = () => setIsFavorite(isProductFavorite(id));
     sync();
-    loadFavoriteIds().then(sync);
 
     const onUpdate = () => sync();
     window.addEventListener(FAVORITES_UPDATED, onUpdate);
@@ -460,16 +458,8 @@ export default function ProductCard({ product, fullWidth = false }) {
 
   useLayoutEffect(() => {
     const node = descRef.current;
-    if (!node) return undefined;
-
-    const check = () => {
-      setDescClipped(node.scrollHeight > node.clientHeight + 1);
-    };
-
-    check();
-    const observer = new ResizeObserver(check);
-    observer.observe(node);
-    return () => observer.disconnect();
+    if (!node) return;
+    setDescClipped(node.scrollHeight > node.clientHeight + 1);
   }, [description]);
 
   const handleCardClick = () => {

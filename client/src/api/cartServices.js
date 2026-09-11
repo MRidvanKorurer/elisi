@@ -12,7 +12,19 @@ const matchesItem = (item, productId, color = '', size = '') =>
   (item.size || '') === (size || '');
 
 export const cartService = {
-  getCart: async () => {
+  guestCount: () => {
+    try {
+      const items = JSON.parse(localStorage.getItem('guestCart') || '[]');
+      return items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0);
+    } catch {
+      return 0;
+    }
+  },
+
+  getCart: async ({ guest = false } = {}) => {
+    if (guest) {
+      return { success: true, items: getLocalCart(), isGuest: true };
+    }
     try {
       const response = await API.get('/cart');
       return response.data;

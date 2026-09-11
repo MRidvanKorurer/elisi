@@ -84,6 +84,26 @@ export const sellerService = {
     return response.data;
   },
 
+  getMyFeatured: async () => {
+    const response = await API.get('/sellers/me/featured');
+    return response.data;
+  },
+
+  createFeatured: async (payload) => {
+    const isForm = typeof FormData !== 'undefined' && payload instanceof FormData;
+    const response = await API.post(
+      '/sellers/me/featured',
+      payload,
+      isForm ? { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 } : undefined
+    );
+    return response.data;
+  },
+
+  cancelFeatured: async (id) => {
+    const response = await API.delete(`/sellers/me/featured/${id}`);
+    return response.data;
+  },
+
   getPublic: async (slug, params = {}) => {
     const response = await API.get(`/sellers/public/${encodeURIComponent(slug)}`, { params });
     return response.data;

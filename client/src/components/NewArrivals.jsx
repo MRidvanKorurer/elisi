@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Typography, Container, IconButton } from '@mui/material';
 import { useReducedMotion } from 'framer-motion';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
@@ -23,35 +23,24 @@ const arrowSx = (disabled) => ({
   '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(148,109,109,0.12)' }
 });
 
-export default function NewArrivals({ products = [], onAddToCart }) {
+export default function NewArrivals({ onAddToCart }) {
   const trackRef = useRef(null);
   const progressRef = useRef(null);
   const reduced = useReducedMotion();
   const [edges, setEdges] = useState({ start: true, end: true });
-  const [bestSellers, setBestSellers] = useState([]);
+  const [arrivals, setArrivals] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    productService.getBestSellers()
+    productService.getFilteredProducts({ sort: 'newest', limit: VISIBLE_LIMIT, page: 1 })
       .then((data) => {
         if (cancelled) return;
-        const list = Array.isArray(data) ? data : data?.products || [];
-        setBestSellers(list);
+        const list = data?.products || (Array.isArray(data) ? data : []);
+        setArrivals(list.slice(0, VISIBLE_LIMIT));
       })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
-
-  const arrivals = useMemo(() => {
-    const source = bestSellers.length > 0 ? bestSellers : (Array.isArray(products) ? products : []);
-    return [...source]
-      .sort((a, b) => {
-        const sold = (b.soldCount || 0) - (a.soldCount || 0);
-        if (sold !== 0) return sold;
-        return (b.rating || 0) - (a.rating || 0);
-      })
-      .slice(0, VISIBLE_LIMIT);
-  }, [bestSellers, products]);
 
   const syncEdges = useCallback(() => {
     const node = trackRef.current;

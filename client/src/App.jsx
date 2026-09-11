@@ -7,12 +7,12 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import SupportDock from './components/SupportDock';
 import API from './api/api';
 import './index.css';
 import useSmoothScroll from './hooks/useSmoothScroll';
 import { isSuperAdmin } from './utils/roles';
 import { clearFavoriteCache, loadFavoriteIds } from './utils/favoritesStore';
+import { clearSession, hasCachedSession, persistSession, readCachedUser } from './utils/session';
 
 // Ağır sayfalar yalnızca ziyaret edildiğinde indirilir
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -26,6 +26,7 @@ const OrderResultPage = lazy(() => import('./pages/OrderResultPage'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const SellerPanel = lazy(() => import('./pages/SellerPanel'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const SupportDock = lazy(() => import('./components/SupportDock'));
 
 const customTheme = createTheme({
   palette: {
@@ -87,29 +88,34 @@ export default function App() {
   useSmoothScroll(!isAdminRoute);
 
   // Oturum ve Yükleme Stateleri
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => readCachedUser());
 
-  // SAYFA YÜKLENDİĞİNDE DOĞRUDAN BACKEND'E /ME İSTEĞİ AT
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await API.get('/auth/me');
-        setUser(response.data.kullanici || response.data.user || null);
-      } catch (error) {
+    if (!hasCachedSession()) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    API.get('/auth/me')
+      .then((response) => {
+        if (cancelled) return;
+        const nextUser = response.data.kullanici || response.data.user || null;
+        setUser(nextUser);
+        persistSession(nextUser);
+      })
+      .catch(() => {
+        if (cancelled) return;
         setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkAuthStatus();
+        clearSession();
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (loading) return;
     if (user) loadFavoriteIds(true);
     else clearFavoriteCache();
-  }, [user, loading]);
+  }, [user]);
 
   // Rota değişiminde sayfa başına dön
   useEffect(() => {
@@ -124,12 +130,14 @@ export default function App() {
       console.error('Çıkış hatası:', error);
     } finally {
       setUser(null);
+      clearSession();
       navigate('/'); // Çıkış yapınca Anasayfaya gönder
     }
   };
 
   const handleLoginSuccess = (userData, options = {}) => {
     setUser(userData);
+    persistSession(userData);
     if (options.redirect !== false) {
       navigate('/');
     }
@@ -142,7 +150,7 @@ export default function App() {
   };
 
   const routes = useMemo(() => (
-    <Routes location={location} key={location.pathname}>
+    <Routes location={location}>
       <Route
         path="/"
         element={<HomePage onNavigateAuth={() => navigate('/auth')} user={user} />}
@@ -191,15 +199,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [location, user]);
 
-  // Oturum doğrulanırken kısa yüklenme ekranı
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#FDF4D2' }}>
-        <CircularProgress sx={{ color: '#946D6D' }} />
-      </Box>
-    );
-  }
-
   return (
     <ThemeProvider theme={customTheme}>
       <CssBaseline />
@@ -213,7 +212,11 @@ export default function App() {
           />
         )}
 
-        {!isAdminRoute && <SupportDock />}
+        {!isAdminRoute && (
+          <Suspense fallback={null}>
+            <SupportDock />
+          </Suspense>
+        )}
 
         <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 0 }}>
           <Suspense fallback={<RouteFallback />}>

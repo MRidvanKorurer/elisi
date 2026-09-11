@@ -21,8 +21,13 @@ const {
   updateMyPromo,
   deleteMyPromo
 } = require('../controllers/promoController');
+const {
+  listMyFeatured,
+  createFeatured,
+  cancelFeatured
+} = require('../controllers/featuredController');
 const { protect, optionalProtect, approvedSeller } = require('../middleware/authMiddleware');
-const { productImages } = require('../middleware/uploadMiddleware');
+const { productImages, receiptFile } = require('../middleware/uploadMiddleware');
 
 router.post('/register', optionalProtect, registerSeller);
 router.get('/public/:slug', getPublicSeller);
@@ -39,5 +44,8 @@ router.get('/me/promos', protect, approvedSeller, listMyPromos);
 router.post('/me/promos', protect, approvedSeller, createMyPromo);
 router.put('/me/promos/:id', protect, approvedSeller, updateMyPromo);
 router.delete('/me/promos/:id', protect, approvedSeller, deleteMyPromo);
+router.get('/me/featured', protect, approvedSeller, listMyFeatured);
+router.post('/me/featured', protect, approvedSeller, receiptFile, createFeatured);
+router.delete('/me/featured/:id', protect, approvedSeller, cancelFeatured);
 
 module.exports = router;

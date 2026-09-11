@@ -32,15 +32,17 @@ import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton, panelButton } from '../components/PanelShell';
 import SellerProductEditor, { emptyProductForm, formFromProduct } from '../components/SellerProductEditor';
 import { sellerService } from '../api/sellerService';
 import { questionService } from '../api/questionService';
 import { isSellerRole } from '../utils/roles';
-import { formatIban, sanitizeIban } from '../utils/sellerValidation';
+import { asMagazaTurleri, formatIban, sanitizeIban } from '../utils/sellerValidation';
 import { APPROVAL_STATUS, ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money, when } from '../utils/panel';
 import { lineTotalOf, salePriceOf } from '../utils/price';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
+import { FEATURED_PACKAGES, FEATURED_STATUS, FEATURED_BANK, isReceiptPdf } from '../utils/featured';
 
 const MAGAZA_TURLERI = CATEGORY_OPTIONS;
 
@@ -104,6 +106,13 @@ export default function SellerPanel({ user, handleLogout }) {
   const [promos, setPromos] = useState([]);
   const [promoForm, setPromoForm] = useState({ code: '', percent: 10, minSubtotal: 0, note: '', isActive: true });
   const [savingPromo, setSavingPromo] = useState(false);
+  const [featuredRequests, setFeaturedRequests] = useState([]);
+  const [featureOpen, setFeatureOpen] = useState(false);
+  const [featureTarget, setFeatureTarget] = useState(null);
+  const [featureDays, setFeatureDays] = useState(3);
+  const [featureNote, setFeatureNote] = useState('');
+  const [featureReceipt, setFeatureReceipt] = useState(null);
+  const [savingFeature, setSavingFeature] = useState(false);
 
   const fail = (err, fallback) => setError(err.response?.data?.mesaj || fallback);
   const flash = (text) => {
@@ -116,7 +125,7 @@ export default function SellerPanel({ user, handleLogout }) {
     setSeller(data.satici);
     setStore({
       magazaAdi: data.satici.magazaAdi || '',
-      magazaTuru: data.satici.magazaTuru || 'canta',
+      magazaTuru: asMagazaTurleri(data.satici.magazaTuru),
       aciklama: data.satici.aciklama || '',
       telefon: data.satici.telefon || '',
       sehir: data.satici.sehir || '',
@@ -130,18 +139,20 @@ export default function SellerPanel({ user, handleLogout }) {
   };
 
   const loadPanel = async () => {
-    const [ov, pr, or, qs, pm] = await Promise.all([
+    const [ov, pr, or, qs, pm, ft] = await Promise.all([
       sellerService.getOverview(),
       sellerService.getMyProducts(),
       sellerService.getMyOrders(),
       questionService.getSellerInbox('all'),
-      sellerService.getMyPromos()
+      sellerService.getMyPromos(),
+      sellerService.getMyFeatured().catch(() => ({ requests: [] }))
     ]);
     setOverview(ov.overview);
     setProducts(pr.products || []);
     setOrders(or.orders || []);
     setQuestions(qs.questions || []);
     setPromos(pm.promos || []);
+    setFeaturedRequests(ft.requests || []);
   };
 
   useEffect(() => {
@@ -198,6 +209,21 @@ export default function SellerPanel({ user, handleLogout }) {
       return `${promo.code} ${promo.note} ${promo.percent}`.toLowerCase().includes(q);
     }),
     [promos, q]
+  );
+  const filteredFeatured = useMemo(
+    () => featuredRequests.filter((item) => {
+      if (!q) return true;
+      return `${item.product?.title || ''} ${item.status} ${item.days}`.toLowerCase().includes(q);
+    }),
+    [featuredRequests, q]
+  );
+  const pendingFeaturedProductIds = useMemo(
+    () => new Set(featuredRequests.filter((item) => item.status === 'pending').map((item) => String(item.product?.id || ''))),
+    [featuredRequests]
+  );
+  const liveFeatureProducts = useMemo(
+    () => products.filter((p) => p.approvalStatus === 'approved' && p.isActive),
+    [products]
   );
 
   if (!user) return <Navigate to="/auth" replace />;
@@ -387,6 +413,68 @@ export default function SellerPanel({ user, handleLogout }) {
     }
   };
 
+  const openFeature = (product = null) => {
+    setFeatureTarget(product);
+    setFeatureDays(3);
+    setFeatureNote('');
+    setFeatureReceipt(null);
+    setFeatureOpen(true);
+  };
+
+  const closeFeature = () => {
+    if (featureReceipt?.preview) URL.revokeObjectURL(featureReceipt.preview);
+    setFeatureOpen(false);
+    setFeatureTarget(null);
+    setFeatureReceipt(null);
+  };
+
+  const pickFeatureReceipt = (fileList) => {
+    const file = Array.from(fileList || [])[0];
+    if (!file) return;
+    const ok = file.type.startsWith('image/') || file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    if (!ok) {
+      setError('Dekont için görsel veya PDF yükleyin.');
+      return;
+    }
+    if (featureReceipt?.preview) URL.revokeObjectURL(featureReceipt.preview);
+    setFeatureReceipt({
+      file,
+      preview: URL.createObjectURL(file),
+      isPdf: file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
+    });
+    setError('');
+  };
+
+  const submitFeature = async () => {
+    if (!featureTarget || !featureReceipt?.file) return;
+    setSavingFeature(true);
+    try {
+      const body = new FormData();
+      body.append('productId', featureTarget._id);
+      body.append('days', featureDays);
+      body.append('note', featureNote);
+      body.append('receipt', featureReceipt.file);
+      await sellerService.createFeatured(body);
+      flash('Dekont gönderildi. Süper admin ödemeyi kontrol edip onaylarsa ürün önerilenlere düşer.');
+      closeFeature();
+      await refresh();
+    } catch (err) {
+      fail(err, 'Talep gönderilemedi.');
+    } finally {
+      setSavingFeature(false);
+    }
+  };
+
+  const cancelFeature = async (item) => {
+    try {
+      await sellerService.cancelFeatured(item.id);
+      flash('Talep iptal edildi.');
+      await refresh();
+    } catch (err) {
+      fail(err, 'Talep iptal edilemedi.');
+    }
+  };
+
   const goView = (id) => {
     setView(id);
     setQuery('');
@@ -438,6 +526,7 @@ export default function SellerPanel({ user, handleLogout }) {
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.openOrders || 0 },
     { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
     { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
+    { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || 0 },
     { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
     { id: 'store', label: 'Mağaza bilgileri', icon: StorefrontOutlined }
   ];
@@ -452,7 +541,7 @@ export default function SellerPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'promos' ? 'Kampanya kodu ara' : 'Kendi ürün ve siparişlerinde ara'}
+      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'promos' ? 'Kampanya kodu ara' : 'Kendi ürün ve siparişlerinde ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
       siteHref={seller.slug ? `/atolye/${seller.slug}` : '/'}
@@ -772,6 +861,9 @@ export default function SellerPanel({ user, handleLogout }) {
                           label={product.isActive ? 'Yayında' : 'Gizli'}
                           sx={{ fontWeight: 800, bgcolor: '#fff', color: product.isActive ? '#3F6B47' : T.muted }}
                         />
+                        {product.isSponsored ? (
+                          <Chip size="small" label="Öne çıkan" sx={{ fontWeight: 800, bgcolor: T.navy, color: '#fff' }} />
+                        ) : null}
                       </Box>
                     </Box>
                     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 0.6, flex: 1 }}>
@@ -799,6 +891,15 @@ export default function SellerPanel({ user, handleLogout }) {
                         {product.approvalStatus === 'approved' && (
                           <Button onClick={() => toggleActive(product)} sx={{ ...panelButton, color: T.navy, border: `1px solid ${T.line}` }}>
                             {product.isActive ? 'Gizle' : 'Yayınla'}
+                          </Button>
+                        )}
+                        {product.approvalStatus === 'approved' && product.isActive && (
+                          <Button
+                            disabled={pendingFeaturedProductIds.has(String(product._id))}
+                            onClick={() => openFeature(product)}
+                            sx={{ ...panelButton, color: T.rose, border: `1px solid ${T.line}` }}
+                          >
+                            {pendingFeaturedProductIds.has(String(product._id)) ? 'Talepte' : 'Öne çıkar'}
                           </Button>
                         )}
                         <Button onClick={() => window.open(`/product/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
@@ -907,6 +1008,74 @@ export default function SellerPanel({ user, handleLogout }) {
         </Box>
       )}
 
+      {view === 'featured' && (
+        <Box>
+          <SectionTitle
+            overline="VİTRİN"
+            title="Öne çıkan ürün talepleri"
+            subtitle="Ürün ve paket seçin, havale dekontunu yükleyin. Süper admin dekontu görünce onaylar; onaylanırsa seçilen süre boyunca ana sayfada görünür."
+            action={liveFeatureProducts.length ? (
+              <Button startIcon={<AutoAwesomeOutlined />} onClick={() => openFeature()} sx={primaryButton}>
+                Yeni talep
+              </Button>
+            ) : null}
+          />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.4, mb: 2.4 }}>
+            {FEATURED_PACKAGES.map((pack) => (
+              <PanelCard key={pack.days}>
+                <Typography sx={{ fontWeight: 800, color: T.lavender, fontSize: 12, letterSpacing: 1 }}>{pack.label.toUpperCase()}</Typography>
+                <Typography sx={{ fontWeight: 900, color: T.navy, fontSize: '1.6rem', mt: 0.4 }}>{money(pack.price)}</Typography>
+                <Typography sx={{ color: T.muted, fontSize: 13 }}>{pack.hint} · 1 ürün</Typography>
+              </PanelCard>
+            ))}
+          </Box>
+          {filteredFeatured.length === 0 ? (
+            <PanelCard sx={{ textAlign: 'center', py: 6 }}>
+              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.8 }}>Henüz talep yok</Typography>
+              <Typography sx={{ color: T.muted }}>Yeni talep ile ürün ve paket seçin, veya yayındaki bir üründen “Öne çıkar”a basın.</Typography>
+            </PanelCard>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8 }}>
+              {filteredFeatured.map((item) => (
+                <PanelCard key={item.id}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box component="img" src={item.product?.image} alt="" sx={{ width: 88, height: 88, objectFit: 'cover', borderRadius: '16px', bgcolor: T.surfaceSoft }} />
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                        <Typography sx={{ fontWeight: 900, color: T.navy }}>{item.product?.title || 'Ürün'}</Typography>
+                        <StatusChip map={FEATURED_STATUS} value={item.status} />
+                      </Box>
+                      <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
+                        {item.days} gün · {money(item.price)}
+                      </Typography>
+                      {item.endsAt ? (
+                        <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>Bitiş: {when(item.endsAt)}</Typography>
+                      ) : null}
+                      {item.receiptUrl ? (
+                        <Button
+                          href={item.receiptUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          sx={{ ...panelButton, mt: 0.8, color: T.navy, px: 0, minWidth: 0 }}
+                        >
+                          {isReceiptPdf(item.receiptUrl) ? 'Dekontu aç (PDF)' : 'Dekontu gör'}
+                        </Button>
+                      ) : null}
+                      {item.rejectionReason ? (
+                        <Typography sx={{ color: '#96393C', fontSize: 12, mt: 0.6 }}>{item.rejectionReason}</Typography>
+                      ) : null}
+                    </Box>
+                  </Box>
+                  {item.status === 'pending' ? (
+                    <Button onClick={() => cancelFeature(item)} sx={{ ...panelButton, mt: 1.6, color: T.muted }}>Talebi iptal et</Button>
+                  ) : null}
+                </PanelCard>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
+
       {view === 'store' && store && (
         <Box>
           <SectionTitle
@@ -922,11 +1091,37 @@ export default function SellerPanel({ user, handleLogout }) {
           <PanelCard>
             <Box component="form" onSubmit={saveStore} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
               <TextField label="Mağaza adı" value={store.magazaAdi} onChange={(e) => setStore((s) => ({ ...s, magazaAdi: e.target.value }))} required sx={fieldSx} />
-              <TextField select label="Mağaza türü" value={store.magazaTuru} onChange={(e) => setStore((s) => ({ ...s, magazaTuru: e.target.value }))} sx={fieldSx}>
-                {MAGAZA_TURLERI.map((item) => (
-                  <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
-                ))}
-              </TextField>
+              <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+                <Typography sx={{ fontWeight: 800, color: T.navy, mb: 0.6, fontSize: '0.92rem' }}>Üretim alanı</Typography>
+                <Typography sx={{ color: T.muted, fontWeight: 600, fontSize: '0.8rem', mb: 1 }}>
+                  Birden fazla alan seçebilirsiniz.
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {MAGAZA_TURLERI.map((item) => {
+                    const selected = store.magazaTuru.includes(item.value);
+                    return (
+                      <Chip
+                        key={item.value}
+                        clickable
+                        label={item.label}
+                        onClick={() => setStore((s) => {
+                          const current = asMagazaTurleri(s.magazaTuru);
+                          const magazaTuru = current.includes(item.value)
+                            ? current.filter((value) => value !== item.value)
+                            : [...current, item.value];
+                          return { ...s, magazaTuru };
+                        })}
+                        sx={{
+                          fontWeight: 800,
+                          bgcolor: selected ? T.rose : '#fff',
+                          color: selected ? '#fff' : T.navy,
+                          border: selected ? 'none' : `1px solid ${T.line}`
+                        }}
+                      />
+                    );
+                  })}
+                </Box>
+              </Box>
               <TextField label="Telefon" value={store.telefon} onChange={(e) => setStore((s) => ({ ...s, telefon: e.target.value }))} required sx={fieldSx} />
               <TextField label="IBAN" value={store.iban} onChange={(e) => setStore((s) => ({ ...s, iban: formatIban(e.target.value) }))} required sx={fieldSx} />
               <TextField label="Şehir" value={store.sehir} onChange={(e) => setStore((s) => ({ ...s, sehir: e.target.value }))} required sx={fieldSx} />
@@ -953,6 +1148,138 @@ export default function SellerPanel({ user, handleLogout }) {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setRemoving(null)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
           <Button color="error" onClick={removeProduct} sx={{ fontWeight: 800 }}>Sil</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={featureOpen} onClose={closeFeature} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Öne çıkanlara talep</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: T.muted, mb: 1.4 }}>
+            Önce ürünü ve paketi seçin. Havale/EFT yaptıktan sonra dekontu yükleyin; süper admin bu belgeye göre onaylar.
+          </Typography>
+          {liveFeatureProducts.length === 0 ? (
+            <Typography sx={{ color: T.muted, mb: 2 }}>Yayında onaylı ürününüz yok. Önce bir ürün yayınlayın.</Typography>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1, mb: 2, maxHeight: 280, overflowY: 'auto', pr: 0.4 }}>
+              {liveFeatureProducts.map((product) => {
+                const selected = String(featureTarget?._id) === String(product._id);
+                const pending = pendingFeaturedProductIds.has(String(product._id));
+                return (
+                  <Box
+                    key={product._id}
+                    onClick={() => {
+                      if (pending) return;
+                      setFeatureTarget(product);
+                    }}
+                    sx={{
+                      cursor: pending ? 'not-allowed' : 'pointer',
+                      opacity: pending ? 0.55 : 1,
+                      display: 'flex',
+                      gap: 1,
+                      alignItems: 'center',
+                      p: 1,
+                      borderRadius: '16px',
+                      border: selected ? `2px solid ${T.navy}` : `1px solid ${T.line}`,
+                      bgcolor: selected ? 'rgba(46,59,85,0.06)' : '#fff'
+                    }}
+                  >
+                    <Box component="img" src={product.image} alt="" sx={{ width: 52, height: 52, objectFit: 'cover', borderRadius: '12px', bgcolor: T.surfaceSoft, flexShrink: 0 }} />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {product.title}
+                      </Typography>
+                      <Typography sx={{ color: T.muted, fontSize: 12 }}>
+                        {pending ? 'Bekleyen talep var' : product.isSponsored ? 'Şu an öne çıkan' : money(product.price)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+          <Typography sx={{ fontWeight: 800, color: T.navy, mb: 1, fontSize: '0.92rem' }}>Paket süresi</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1 }}>
+            {FEATURED_PACKAGES.map((pack) => {
+              const selected = featureDays === pack.days;
+              return (
+                <Box
+                  key={pack.days}
+                  onClick={() => setFeatureDays(pack.days)}
+                  sx={{
+                    cursor: 'pointer',
+                    p: 1.6,
+                    borderRadius: '16px',
+                    border: selected ? `2px solid ${T.navy}` : `1px solid ${T.line}`,
+                    bgcolor: selected ? 'rgba(46,59,85,0.06)' : '#fff'
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{pack.label}</Typography>
+                  <Typography sx={{ fontWeight: 900, color: T.rose, mt: 0.3 }}>{money(pack.price)}</Typography>
+                </Box>
+              );
+            })}
+          </Box>
+          <Box sx={{ mt: 2, p: 1.6, borderRadius: '16px', border: `1px solid ${T.line}`, bgcolor: T.surfaceSoft }}>
+            <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: '0.92rem' }}>Havale / EFT</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>{FEATURED_BANK.name}</Typography>
+            <Typography sx={{ color: T.navy, fontWeight: 800, letterSpacing: 0.3, mt: 0.2 }}>{FEATURED_BANK.iban}</Typography>
+            <Typography sx={{ color: T.rose, fontWeight: 900, mt: 0.8 }}>
+              {money(FEATURED_PACKAGES.find((pack) => pack.days === featureDays)?.price || 0)}
+            </Typography>
+            <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>
+              Açıklama: {featureTarget?.title || 'ürün adı'} · öne çıkan
+            </Typography>
+          </Box>
+          <Typography sx={{ fontWeight: 800, color: T.navy, mb: 1, mt: 2, fontSize: '0.92rem' }}>Ödeme dekontu</Typography>
+          <Box
+            component="label"
+            sx={{
+              display: 'block',
+              cursor: 'pointer',
+              p: 1.8,
+              borderRadius: '16px',
+              border: `1.5px dashed ${featureReceipt ? T.navy : T.line}`,
+              bgcolor: featureReceipt ? 'rgba(46,59,85,0.06)' : T.surfaceSoft,
+              textAlign: 'center'
+            }}
+          >
+            <input
+              hidden
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+              onChange={(e) => { pickFeatureReceipt(e.target.files); e.target.value = ''; }}
+            />
+            {featureReceipt ? (
+              <Box>
+                {featureReceipt.isPdf ? (
+                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{featureReceipt.file.name}</Typography>
+                ) : (
+                  <Box component="img" src={featureReceipt.preview} alt="" sx={{ maxHeight: 140, maxWidth: '100%', objectFit: 'contain', borderRadius: '12px', mb: 0.8 }} />
+                )}
+                <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.6 }}>Değiştirmek için tekrar seçin</Typography>
+              </Box>
+            ) : (
+              <Box>
+                <Typography sx={{ fontWeight: 800, color: T.navy }}>Dekont yükleyin</Typography>
+                <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.4 }}>JPG, PNG veya PDF · en fazla 8 MB</Typography>
+              </Box>
+            )}
+          </Box>
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            label="Not (isteğe bağlı)"
+            value={featureNote}
+            onChange={(e) => setFeatureNote(e.target.value)}
+            sx={{ ...fieldSx, mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.4 }}>
+          <Button onClick={closeFeature} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button onClick={submitFeature} disabled={savingFeature || !featureTarget || !featureReceipt?.file} sx={primaryButton}>
+            {savingFeature ? 'Gönderiliyor...' : 'Talep gönder'}
+          </Button>
         </DialogActions>
       </Dialog>
 

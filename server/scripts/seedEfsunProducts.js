@@ -183,7 +183,7 @@ const ensureEfsun = async () => {
       user: user._id,
       magazaAdi: 'Efsun Atölye',
       hesapTipi: 'bireysel',
-      magazaTuru: 'taki',
+      magazaTuru: ['taki'],
       aciklama: 'Takı ve küçük el işi tasarımlar.',
       telefon: '05551112203',
       sehir: 'İzmir',

@@ -139,12 +139,13 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
   const settled = term.length >= 2 && term === debouncedTerm && !loading;
 
   useEffect(() => {
+    if (!open) return undefined;
     let alive = true;
     loadCategories().then((list) => {
       if (alive) setCategories(list);
     });
     return () => { alive = false; };
-  }, []);
+  }, [open]);
 
   // Ürünler sayfasındaki arama kutusuyla aynı terim gösterilsin.
   // Kategori filtresi yalnızca soldaki panelin işidir, buradan okunmaz.
@@ -162,9 +163,12 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
   }, [isMobile]);
 
   useEffect(() => {
-    if (debouncedTerm.length < 2) {
-      setResults([]);
-      setLoading(false);
+    if (!open || debouncedTerm.length < 2) {
+      if (!open) setLoading(false);
+      else {
+        setResults([]);
+        setLoading(false);
+      }
       return undefined;
     }
 
@@ -186,7 +190,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       });
 
     return () => { cancelled = true; };
-  }, [debouncedTerm]);
+  }, [debouncedTerm, open]);
 
   const matchedCategories = useMemo(() => {
     if (!term) return [];

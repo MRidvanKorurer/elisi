@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Container, Skeleton, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { imgBagOrange } from '../assets/media';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
+import { LOOKBOOK_CLIPS } from '../utils/siteVideos';
 import HomepageFilm from './HomepageFilm';
 import Reveal from './Reveal';
 
@@ -11,7 +11,8 @@ const TOP_CLIPS = [
   { key: 'ahsap-sap', label: 'Ahşap sap detay' }
 ];
 
-const isVideoUrl = (value = '') => /\.(mp4|webm|ogg)(\?|$)/i.test(value);
+const isVideoUrl = (value = '') =>
+  /\.(mp4|webm|ogg)(\?|$)/i.test(value) || /\/uploads\/videos\//i.test(value);
 
 // Kart yüksekliği sabit: video metadata'sı gelince yerleşim kaymaz
 const CLIP_HEIGHT = { xs: 240, md: 360 };
@@ -76,13 +77,13 @@ function StudioClip({ src, poster, label, onClick }) {
         <Box
           component="video"
           ref={videoRef}
-          src={activated ? src : undefined}
-          poster={poster}
+          src={src}
+          poster={poster || undefined}
           muted
           loop
           playsInline
           disablePictureInPicture
-          preload="none"
+          preload="metadata"
           sx={mediaSx}
         />
       ) : (
@@ -114,8 +115,15 @@ function StudioClip({ src, poster, label, onClick }) {
 
 export default function AtelierLookbook() {
   const navigate = useNavigate();
-  const [clips, setClips] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [clips, setClips] = useState(
+    TOP_CLIPS.map((slot) => ({
+      id: null,
+      src: LOOKBOOK_CLIPS[slot.key],
+      poster: '',
+      label: slot.label
+    }))
+  );
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,24 +134,19 @@ export default function AtelierLookbook() {
         if (cancelled) return;
 
         const byKey = new Map((lookbookRes.items || []).map((item) => [item.key, item]));
-        const fromDb = TOP_CLIPS.map((slot) => {
-          const item = byKey.get(slot.key);
-          const src = mediaUrl(item?.videoUrl);
-          if (!src) return null;
-          return {
-            id: item.product || null,
-            src,
-            poster: mediaUrl(item.posterUrl) || imgBagOrange,
-            label: slot.label
-          };
-        }).filter(Boolean);
-
-        setClips(fromDb);
+        setClips(
+          TOP_CLIPS.map((slot) => {
+            const item = byKey.get(slot.key);
+            return {
+              id: item?.product || null,
+              src: LOOKBOOK_CLIPS[slot.key] || mediaUrl(item?.videoUrl),
+              poster: mediaUrl(item?.posterUrl),
+              label: slot.label
+            };
+          }).filter((clip) => clip.src)
+        );
       } catch (error) {
         console.error('Lookbook yüklenemedi:', error);
-        if (!cancelled) setClips([]);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
 

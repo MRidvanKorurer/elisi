@@ -52,7 +52,7 @@ const emailMatch = (email) => new RegExp(`^${String(email).replace(/[.*+?^${}()|
       user: ridvan._id,
       magazaAdi: 'Rıdvan Atölye',
       hesapTipi: 'bireysel',
-      magazaTuru: 'canta',
+      magazaTuru: ['canta'],
       aciklama: 'El örgüsü çanta ve ahşap saplı tasarımlar.',
       telefon: ridvan.telefon || '05551112202',
       sehir: 'İstanbul',

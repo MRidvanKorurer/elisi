@@ -51,7 +51,6 @@ import { resolveProductVideo } from '../utils/productVideo';
 import {
   FAVORITES_UPDATED,
   isProductFavorite,
-  loadFavoriteIds,
   setProductFavorite
 } from '../utils/favoritesStore';
 
@@ -147,7 +146,6 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
     const sync = () => setIsFavorite(isProductFavorite(productId));
     sync();
-    loadFavoriteIds().then(sync);
 
     const onUpdate = () => sync();
     window.addEventListener(FAVORITES_UPDATED, onUpdate);

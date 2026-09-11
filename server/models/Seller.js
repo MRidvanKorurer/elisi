@@ -30,12 +30,19 @@ const sellerSchema = new mongoose.Schema(
             default: 'bireysel'
         },
         magazaTuru: {
-            type: String,
-            required: [true, 'Mağaza türü zorunludur.'],
-            lowercase: true,
-            enum: {
-                values: MAGAZA_TURLERI,
-                message: '{VALUE} geçerli bir mağaza türü değil.'
+            type: [{
+                type: String,
+                lowercase: true,
+                trim: true,
+                enum: {
+                    values: MAGAZA_TURLERI,
+                    message: '{VALUE} geçerli bir mağaza türü değil.'
+                }
+            }],
+            required: [true, 'Üretim alanı zorunludur.'],
+            validate: {
+                validator: (value) => Array.isArray(value) && value.length >= 1,
+                message: 'En az bir üretim alanı seçin.'
             }
         },
         aciklama: {

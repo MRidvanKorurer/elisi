@@ -1,4 +1,5 @@
 import userService from '../api/userService';
+import { hasCachedSession } from './session';
 
 export const FAVORITES_UPDATED = 'favoritesUpdated';
 
@@ -38,6 +39,10 @@ export const clearFavoriteCache = () => {
 };
 
 export const loadFavoriteIds = async (force = false) => {
+  if (!force && !hasCachedSession()) {
+    loaded = true;
+    return ids;
+  }
   if (!force && loaded) return ids;
   if (inflight && !force) return inflight;
 

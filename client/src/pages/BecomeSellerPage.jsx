@@ -42,6 +42,7 @@ import Seo from '../components/Seo';
 import { breadcrumbSchema } from '../utils/schema';
 import {
   STEP_FIELDS,
+  asMagazaTurleri,
   firstErrorMessage,
   getFieldError,
   mapServerErrorToField,
@@ -229,7 +230,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
     sifre: '',
     telefon: user?.telefon || '',
     magazaAdi: '',
-    magazaTuru: '',
+    magazaTuru: [],
     hesapTipi: 'bireysel',
     aciklama: '',
     sehir: '',
@@ -737,17 +738,26 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                         inputProps={{ maxLength: 60 }}
                         InputProps={{ startAdornment: <InputAdornment position="start"><StorefrontOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
 
-                      <Typography sx={{ fontWeight: 800, color: errors.magazaTuru ? '#d32f2f' : '#2E3B55', mb: 1.2 }}>Üretim alanı</Typography>
+                      <Typography sx={{ fontWeight: 800, color: errors.magazaTuru ? '#d32f2f' : '#2E3B55', mb: 0.6 }}>Üretim alanı</Typography>
+                      <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.82rem', mb: 1.2 }}>
+                        Birden fazla alan seçebilirsiniz.
+                      </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: errors.magazaTuru ? 0.6 : 2.4 }}>
                         {MAGAZA_TURLERI.map((item) => {
-                          const selected = form.magazaTuru === item.value;
+                          const selected = asMagazaTurleri(form.magazaTuru).includes(item.value);
                           return (
                             <Chip
                               key={item.value}
                               clickable
                               label={item.label}
                               onClick={() => {
-                                setForm((prev) => ({ ...prev, magazaTuru: item.value }));
+                                setForm((prev) => {
+                                  const current = asMagazaTurleri(prev.magazaTuru);
+                                  const next = current.includes(item.value)
+                                    ? current.filter((value) => value !== item.value)
+                                    : [...current, item.value];
+                                  return { ...prev, magazaTuru: next };
+                                });
                                 setErrors((prev) => {
                                   const next = { ...prev };
                                   delete next.magazaTuru;

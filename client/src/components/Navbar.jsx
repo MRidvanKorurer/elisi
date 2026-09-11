@@ -62,6 +62,13 @@ export default function Navbar({ setPage, user, handleLogout }) {
   }, [isHome]);
 
   useEffect(() => {
+    if (!user) {
+      setCartCount(cartService.guestCount());
+      const syncGuest = () => setCartCount(cartService.guestCount());
+      window.addEventListener('cartUpdated', syncGuest);
+      return () => window.removeEventListener('cartUpdated', syncGuest);
+    }
+
     const fetchCartData = async () => {
       try {
         const response = await cartService.getCart();

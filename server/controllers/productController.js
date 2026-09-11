@@ -7,6 +7,7 @@ const Category = require('../models/Category');
 const { CATEGORY_IDS } = require('../constants/categories');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { HOUSE_ATELIER, serializePublicAtelier } = require('../utils/publicAtelier');
+const { expireFeaturedProducts } = require('./featuredController');
 const { buildFulfillment } = require('../utils/productFulfillment');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 
@@ -36,9 +37,36 @@ const publicMatch = (extra = {}) => ({
 });
 
 // GET ALL PRODUCTS
+const LIST_SELECT = 'title name image images description price category discountPercentage soldCount rating numReviews stock isNewProduct slug seller vendorName createdAt';
+
+const listProjection = {
+    title: 1,
+    name: 1,
+    image: 1,
+    images: 1,
+    description: 1,
+    price: 1,
+    category: 1,
+    discountPercentage: 1,
+    soldCount: 1,
+    rating: 1,
+    numReviews: 1,
+    stock: 1,
+    isNewProduct: 1,
+    slug: 1,
+    seller: 1,
+    vendorName: 1,
+    createdAt: 1,
+    finalPrice: 1
+};
+
 const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find(publicMatch()).sort({ createdAt: -1 });
+        const products = await Product.find(publicMatch())
+            .select(LIST_SELECT)
+            .sort({ createdAt: -1 })
+            .limit(24)
+            .lean();
         res.status(200).json(products);
     } catch (error) {
         res.status(500).json({ message: 'Server error while fetching products.', error: error.message });
@@ -159,7 +187,12 @@ const getFilteredProducts = async (req, res) => {
 
         pipeline.push({
             $facet: {
-                products: [{ $sort: sortStage }, { $skip: skip }, { $limit: pageSize }],
+                products: [
+                    { $sort: sortStage },
+                    { $skip: skip },
+                    { $limit: pageSize },
+                    { $project: listProjection }
+                ],
                 totalCount: [{ $count: 'count' }]
             }
         });
@@ -242,8 +275,10 @@ const getBestSellers = async (req, res) => {
     try {
         // Sadece aktif ürünleri getir, çok satandan (soldCount) aza doğru sırala
         const bestSellers = await Product.find(publicMatch())
+            .select(LIST_SELECT)
             .sort({ soldCount: -1 })
-            .limit(12); // İhtiyacına göre limiti artırabilirsin
+            .limit(12)
+            .lean();
 
         res.status(200).json(bestSellers);
     } catch (error) {
@@ -276,8 +311,20 @@ const createProduct = async (req, res) => {
 // Sponsorlu ürünleri getiren metod
 const getSponsoredProducts = async (req, res) => {
     try {
-        // isSponsored: true olan aktif ürünleri çek
-        const sponsoredProducts = await Product.find(publicMatch({ isSponsored: true })).limit(6);
+        await expireFeaturedProducts();
+        const now = new Date();
+        const sponsoredProducts = await Product.find(publicMatch({
+            isSponsored: true,
+            $or: [
+                { sponsoredUntil: { $gt: now } },
+                { sponsoredUntil: null },
+                { sponsoredUntil: { $exists: false } }
+            ]
+        }))
+            .select(LIST_SELECT)
+            .sort({ sponsoredUntil: -1, updatedAt: -1 })
+            .limit(12)
+            .lean();
 
         res.status(200).json({
             success: true,

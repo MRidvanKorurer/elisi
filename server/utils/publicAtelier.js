@@ -1,10 +1,10 @@
-const { CATEGORY_LABELS } = require('../constants/categories');
+const { magazaTuruEtiket } = require('./sellerCategories');
 
 const HOUSE_ATELIER = {
   id: 'nikbag',
   magazaAdi: 'Nik Bag Atölyesi',
   slug: null,
-  magazaTuru: '',
+  magazaTuru: [],
   magazaTuruEtiket: 'El yapımı',
   aciklama: 'Geleneksel el işçiliğiyle modern çizgilerin buluştuğu ev atölyesi. Her parça sınırlı üretimle hazırlanır.',
   sehir: 'Türkiye',
@@ -52,8 +52,8 @@ const serializePublicAtelier = (seller, user, extras = {}) => ({
   id: String(seller._id),
   magazaAdi: seller.magazaAdi,
   slug: seller.slug,
-  magazaTuru: seller.magazaTuru || '',
-  magazaTuruEtiket: CATEGORY_LABELS[seller.magazaTuru] || seller.magazaTuru || 'Atölye',
+  magazaTuru: seller.magazaTuru || [],
+  magazaTuruEtiket: magazaTuruEtiket(seller.magazaTuru) || 'Atölye',
   aciklama: seller.aciklama || '',
   sehir: seller.sehir || '',
   ilce: seller.ilce || '',

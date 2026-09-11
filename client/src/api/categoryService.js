@@ -1,7 +1,8 @@
 import API from './api';
+import { cachedGet } from './cache';
 
 export const categoryService = {
-  getAllCategories: async () => {
+  getAllCategories: async () => cachedGet('categories:all', async () => {
     const response = await API.get('/categories');
     const data = response.data;
     if (Array.isArray(data)) {
@@ -12,5 +13,5 @@ export const categoryService = {
       categories: data?.categories || [],
       totalProducts: data?.totalProducts || 0
     };
-  }
+  }, 5 * 60_000)
 };

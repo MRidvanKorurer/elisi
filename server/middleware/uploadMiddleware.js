@@ -91,10 +91,38 @@ const avatarUpload = multer({
 
 const avatarImage = avatarUpload.single('avatar');
 
+const receiptDir = path.join(__dirname, '../uploads/receipts');
+fs.mkdirSync(receiptDir, { recursive: true });
+
+const receiptStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, receiptDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`);
+  }
+});
+
+const receiptUpload = multer({
+  storage: receiptStorage,
+  limits: { fileSize: 8 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\//.test(file.mimetype) || file.mimetype === 'application/pdf') return cb(null, true);
+    cb(new Error('Dekont için görsel veya PDF yükleyin.'));
+  }
+});
+
+const receiptFile = (req, res, next) => {
+  receiptUpload.single('receipt')(req, res, (err) => {
+    if (err) return res.status(400).json({ mesaj: err.message || 'Dekont yüklenemedi.' });
+    next();
+  });
+};
+
 const publicPath = (file) => (file ? `/uploads/products/${file.filename}` : '');
 const categoryPublicPath = (file) => (file ? `/uploads/categories/${file.filename}` : '');
 const reviewPublicPath = (file) => (file ? `/uploads/reviews/${file.filename}` : '');
 const avatarPublicPath = (file) => (file ? `/uploads/avatars/${file.filename}` : '');
+const receiptPublicPath = (file) => (file ? `/uploads/receipts/${file.filename}` : '');
 
 const removeUpload = (url) => {
   if (!url || !url.startsWith('/uploads/')) return;
@@ -106,9 +134,11 @@ module.exports = {
   categoryImage,
   reviewPhotos,
   avatarImage,
+  receiptFile,
   publicPath,
   categoryPublicPath,
   reviewPublicPath,
   avatarPublicPath,
+  receiptPublicPath,
   removeUpload
 };

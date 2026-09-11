@@ -14,5 +14,8 @@ export const adminService = {
   updateProduct: async (id, payload) =>
     (await API.put(`/admin/products/${id}`, payload, payload instanceof FormData ? multipart : undefined)).data,
   setProductApproval: async (id, payload) => (await API.put(`/admin/products/${id}/approval`, payload)).data,
-  hideProduct: async (id) => (await API.delete(`/admin/products/${id}`)).data
+  hideProduct: async (id) => (await API.delete(`/admin/products/${id}`)).data,
+  featured: async (params) => (await API.get('/admin/featured', { params })).data,
+  reviewFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}`, payload)).data,
+  removeFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}/remove`, payload)).data
 };

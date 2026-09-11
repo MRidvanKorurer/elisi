@@ -20,8 +20,7 @@ import CardGiftcardOutlined from '@mui/icons-material/CardGiftcardOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/api';
 import { imgMood1 } from '../assets/media';
-import { mediaUrl } from '../api/lookbookService';
-import { SITE_VIDEO } from '../utils/siteVideos';
+import { SITE_CLIPS } from '../utils/siteVideos';
 import Seo from '../components/Seo';
 
 export default function AuthPage({ onLoginSuccess }) {
@@ -125,7 +124,7 @@ const handleSubmit = async (e) => {
       <Seo title="Giriş Yap veya Üye Ol" path="/auth" noindex />
       <Box
         component="video"
-        src={mediaUrl(SITE_VIDEO.clutch)}
+        src={SITE_CLIPS.clutch}
         poster={imgMood1}
         autoPlay
         muted

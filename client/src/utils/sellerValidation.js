@@ -40,6 +40,12 @@ export const STEP_FIELDS = {
   2: () => ['sehir', 'ilce', 'adres', 'iban', 'sozlesmeOnay']
 };
 
+export const asMagazaTurleri = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+};
+
 export const onlyDigits = (value = '') => String(value).replace(/\D/g, '');
 
 export const formatIban = (value = '') => {
@@ -136,8 +142,9 @@ export function getFieldError(name, form, { loggedIn } = {}) {
       return '';
     }
     case 'magazaTuru': {
-      if (!text) return 'Üretim alanını seçin.';
-      if (!MAGAZA_TURLERI.includes(text)) return 'Geçerli bir üretim alanı seçin.';
+      const list = asMagazaTurleri(value);
+      if (!list.length) return 'En az bir üretim alanı seçin.';
+      if (list.some((item) => !MAGAZA_TURLERI.includes(item))) return 'Geçerli bir üretim alanı seçin.';
       return '';
     }
     case 'aciklama': {

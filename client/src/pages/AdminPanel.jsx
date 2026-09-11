@@ -30,6 +30,7 @@ import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined';
 import MovieFilterOutlined from '@mui/icons-material/MovieFilterOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
@@ -52,6 +53,7 @@ import {
   when
 } from '../utils/panel';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
+import { FEATURED_STATUS, isReceiptPdf } from '../utils/featured';
 import { lineTotalOf, orderChargeRows } from '../utils/price';
 
 const emptyForm = {
@@ -127,17 +129,25 @@ export default function AdminPanel({ user, handleLogout }) {
   const [promos, setPromos] = useState([]);
   const [promoForm, setPromoForm] = useState({ code: '', percent: 5, minSubtotal: 5000, note: '', isActive: true });
   const [savingPromo, setSavingPromo] = useState(false);
+  const [featuredRequests, setFeaturedRequests] = useState([]);
+  const [featuredFilter, setFeaturedFilter] = useState('pending');
+  const [featuredRejecting, setFeaturedRejecting] = useState(null);
+  const [featuredRejectReason, setFeaturedRejectReason] = useState('');
+  const [featuredReceiptView, setFeaturedReceiptView] = useState(null);
+  const [featuredRemoving, setFeaturedRemoving] = useState(null);
+  const [featuredRemoveReason, setFeaturedRemoveReason] = useState('');
 
   const load = async () => {
     try {
-      const [ov, us, se, pr, lb, or, pm] = await Promise.all([
+      const [ov, us, se, pr, lb, or, pm, ft] = await Promise.all([
         adminService.overview(),
         adminService.users(),
         adminService.sellers(),
         adminService.products(),
         lookbookService.list(true),
         adminService.orders(),
-        promoService.list().catch(() => ({ promos: [] }))
+        promoService.list().catch(() => ({ promos: [] })),
+        adminService.featured().catch(() => ({ requests: [] }))
       ]);
       setOverview(ov.overview);
       setUsers(us.users || []);
@@ -146,6 +156,7 @@ export default function AdminPanel({ user, handleLogout }) {
       setLookbook(lb.items || []);
       setOrders(or.orders || []);
       setPromos(pm.promos || []);
+      setFeaturedRequests(ft.requests || []);
       setError('');
     } catch (err) {
       setError(err.response?.data?.mesaj || 'Admin verileri yüklenemedi.');
@@ -275,6 +286,31 @@ export default function AdminPanel({ user, handleLogout }) {
     }
   };
 
+  const reviewFeatured = async (id, status, rejectionReason = '') => {
+    try {
+      await adminService.reviewFeatured(id, { status, rejectionReason });
+      flash(status === 'approved' ? 'Ürün önerilenlere alındı.' : 'Talep reddedildi.');
+      setFeaturedRejecting(null);
+      setFeaturedRejectReason('');
+      await load();
+    } catch (err) {
+      fail(err, 'Talep güncellenemedi.');
+    }
+  };
+
+  const removeFeatured = async () => {
+    if (!featuredRemoving) return;
+    try {
+      await adminService.removeFeatured(featuredRemoving.id, { note: featuredRemoveReason });
+      flash('Ürün önerilenlerden kaldırıldı.');
+      setFeaturedRemoving(null);
+      setFeaturedRemoveReason('');
+      await load();
+    } catch (err) {
+      fail(err, 'Ürün vitrinden alınamadı.');
+    }
+  };
+
   const openProduct = (product) => {
     setEditing(product);
     setForm({
@@ -385,6 +421,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },
+    { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length },
     { id: 'products', label: 'Ürünler', icon: Inventory2Outlined },
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
     { id: 'customers', label: 'Müşteriler', icon: PeopleAltOutlined },
@@ -398,6 +435,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { label: 'Ödeme bekleyen sipariş', value: overview?.pendingPayment || 0, view: 'orders' },
     { label: 'Hazırlanacak sipariş', value: overview?.processing || 0, view: 'orders' },
     { label: 'Onay bekleyen ürün', value: pendingProducts.length, view: 'approvals' },
+    { label: 'Öne çıkan talebi', value: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length, view: 'featured' },
     { label: 'Satıcı başvurusu', value: overview?.pendingSellers || 0, view: 'sellers' },
     { label: 'Kritik stok', value: overview?.lowStock || 0, view: 'products' }
   ];
@@ -584,6 +622,92 @@ export default function AdminPanel({ user, handleLogout }) {
         </Box>
       )}
 
+      {view === 'featured' && (
+        <Box>
+          <SectionTitle
+            overline="VİTRİN"
+            title="Öne çıkan ürün talepleri"
+            subtitle="Dekontu kontrol edip onaylayın. Süre bitmeden de önerilenlerden kaldırabilirsiniz."
+          />
+          <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 2.2 }}>
+            {[['pending', 'Bekleyen'], ['approved', 'Onaylı'], ['removed', 'Vitrinden alınan'], ['rejected', 'Reddedilen'], ['all', 'Tümü']].map(([id, label]) => (
+              <Chip
+                key={id}
+                clickable
+                label={label}
+                onClick={() => setFeaturedFilter(id)}
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: featuredFilter === id ? T.navy : '#fff',
+                  color: featuredFilter === id ? '#fff' : T.navy,
+                  border: `1px solid ${featuredFilter === id ? T.navy : T.line}`
+                }}
+              />
+            ))}
+          </Box>
+          {featuredRequests.filter((item) => featuredFilter === 'all' || item.status === featuredFilter).length === 0 ? (
+            <PanelCard><Typography sx={{ color: T.muted, fontWeight: 700 }}>Bu filtrede talep yok.</Typography></PanelCard>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8 }}>
+              {featuredRequests.filter((item) => featuredFilter === 'all' || item.status === featuredFilter).map((item) => (
+                <PanelCard key={item.id}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box component="img" src={item.product?.image} alt="" sx={{ width: 108, height: 108, objectFit: 'cover', borderRadius: '16px', bgcolor: T.surfaceSoft }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                        <Typography sx={{ fontWeight: 900, color: T.navy }}>{item.product?.title || 'Ürün'}</Typography>
+                        <StatusChip map={FEATURED_STATUS} value={item.status} />
+                      </Box>
+                      <Typography sx={{ color: T.muted, fontSize: '0.84rem', mb: 0.8 }}>
+                        {item.seller?.magazaAdi || item.seller?.adSoyad || 'Satıcı'} · {item.days} gün · {money(item.price)}
+                      </Typography>
+                      {item.note ? <Typography sx={{ color: T.navy, fontSize: 13 }}>{item.note}</Typography> : null}
+                      {item.endsAt ? <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.4 }}>Bitiş: {when(item.endsAt)}</Typography> : null}
+                      {item.rejectionReason ? <Typography sx={{ color: '#96393C', fontSize: 12, mt: 0.4 }}>{item.rejectionReason}</Typography> : null}
+                    </Box>
+                  </Box>
+                  {item.receiptUrl ? (
+                    <Box sx={{ mt: 1.6 }}>
+                      <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: 13, mb: 0.8 }}>Ödeme dekontu</Typography>
+                      {isReceiptPdf(item.receiptUrl) ? (
+                        <Button href={item.receiptUrl} target="_blank" rel="noreferrer" sx={{ fontWeight: 800, color: T.navy, border: `1px solid ${T.line}`, borderRadius: '12px' }}>
+                          {item.receiptName || 'PDF dekontu aç'}
+                        </Button>
+                      ) : (
+                        <Box
+                          component="img"
+                          src={item.receiptUrl}
+                          alt="Dekont"
+                          onClick={() => setFeaturedReceiptView(item)}
+                          sx={{ width: '100%', maxHeight: 220, objectFit: 'contain', borderRadius: '16px', bgcolor: T.surfaceSoft, cursor: 'zoom-in', border: `1px solid ${T.line}` }}
+                        />
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography sx={{ color: '#96393C', fontSize: 13, fontWeight: 700, mt: 1.4 }}>Dekont yüklenmemiş. Onay verilemez.</Typography>
+                  )}
+                  {item.status === 'pending' ? (
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1.8, flexWrap: 'wrap' }}>
+                      <Button disabled={!item.receiptUrl} onClick={() => reviewFeatured(item.id, 'approved')} sx={primaryButton}>Onayla ve yayınla</Button>
+                      <Button color="error" onClick={() => { setFeaturedRejecting(item); setFeaturedRejectReason(''); }} sx={{ fontWeight: 800 }}>Reddet</Button>
+                    </Box>
+                  ) : null}
+                  {item.status === 'approved' && (item.product?.isSponsored || (item.endsAt && new Date(item.endsAt) > Date.now())) ? (
+                    <Button
+                      color="error"
+                      onClick={() => { setFeaturedRemoving(item); setFeaturedRemoveReason(''); }}
+                      sx={{ fontWeight: 800, mt: 1.8 }}
+                    >
+                      Önerilenlerden kaldır
+                    </Button>
+                  ) : null}
+                </PanelCard>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
+
       {view === 'orders' && (
         <Box>
           <SectionTitle
@@ -714,7 +838,7 @@ export default function AdminPanel({ user, handleLogout }) {
                     <Typography sx={{ fontWeight: 900, color: T.navy }}>{seller.magazaAdi}</Typography>
                     <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>{seller.user?.email}</Typography>
                     <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>
-                      {seller.sehir}/{seller.ilce} · {seller.magazaTuru} · {seller.telefon}
+                      {seller.sehir}/{seller.ilce} · {(Array.isArray(seller.magazaTuru) ? seller.magazaTuru : [seller.magazaTuru]).filter(Boolean).map(categoryLabel).join(' · ') || seller.magazaTuru} · {seller.telefon}
                     </Typography>
                   </Box>
                   <StatusChip map={SELLER_STATUS} value={seller.durum} />
@@ -1007,6 +1131,69 @@ export default function AdminPanel({ user, handleLogout }) {
           <Button
             color="error"
             onClick={() => { setApproval(rejecting._id, 'rejected', rejectReason); setRejecting(null); }}
+            sx={{ fontWeight: 800 }}
+          >
+            Reddet
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(featuredReceiptView)} onClose={() => setFeaturedReceiptView(null)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>
+          {featuredReceiptView?.product?.title || 'Dekont'} · {featuredReceiptView ? money(featuredReceiptView.price) : ''}
+        </DialogTitle>
+        <DialogContent>
+          {featuredReceiptView?.receiptUrl ? (
+            <Box component="img" src={featuredReceiptView.receiptUrl} alt="Dekont" sx={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '16px', bgcolor: T.surfaceSoft }} />
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button href={featuredReceiptView?.receiptUrl || '#'} target="_blank" rel="noreferrer" sx={{ fontWeight: 800, color: T.navy }}>Yeni sekmede aç</Button>
+          <Button onClick={() => setFeaturedReceiptView(null)} sx={{ fontWeight: 800, color: T.muted }}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(featuredRemoving)} onClose={() => setFeaturedRemoving(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '22px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Önerilenlerden kaldır</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: T.muted, mb: 2 }}>
+            <b>{featuredRemoving?.product?.title}</b> süresi bitmeden ana sayfadaki önerilenlerden çıkarılacak.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Not (isteğe bağlı)"
+            value={featuredRemoveReason}
+            onChange={(e) => setFeaturedRemoveReason(e.target.value)}
+            multiline
+            minRows={3}
+            sx={fieldSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setFeaturedRemoving(null)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button color="error" onClick={removeFeatured} sx={{ fontWeight: 800 }}>Kaldır</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(featuredRejecting)} onClose={() => setFeaturedRejecting(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '22px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Talebi reddet</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: T.muted, mb: 2 }}>{featuredRejecting?.product?.title}</Typography>
+          <TextField
+            fullWidth
+            label="Ret nedeni (isteğe bağlı)"
+            value={featuredRejectReason}
+            onChange={(e) => setFeaturedRejectReason(e.target.value)}
+            multiline
+            minRows={3}
+            sx={fieldSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setFeaturedRejecting(null)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button
+            color="error"
+            onClick={() => reviewFeatured(featuredRejecting.id, 'rejected', featuredRejectReason)}
             sx={{ fontWeight: 800 }}
           >
             Reddet

@@ -6,6 +6,8 @@ const Category = require('../models/Category');
 const { isSuperAdmin } = require('../utils/roles');
 const { publicPath, categoryPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
+const FeaturedRequest = require('../models/FeaturedRequest');
+const { endLiveFeaturedForProduct } = require('./featuredController');
 
 const serializeUser = (user) => ({
   id: user._id,
@@ -45,7 +47,8 @@ const getOverview = async (req, res) => {
       salesByDay,
       paymentMix,
       recentOrders,
-      topProducts
+      topProducts,
+      pendingFeatured
     ] = await Promise.all([
       User.countDocuments({ rol: { $ne: 'superadmin' } }),
       Seller.countDocuments(),
@@ -100,7 +103,8 @@ const getOverview = async (req, res) => {
         },
         { $sort: { qty: -1 } },
         { $limit: 6 }
-      ])
+      ]),
+      FeaturedRequest.countDocuments({ status: 'pending' })
     ]);
 
     const days = [];
@@ -138,7 +142,8 @@ const getOverview = async (req, res) => {
         salesByDay: days,
         paymentMix,
         recentOrders,
-        topProducts
+        topProducts,
+        pendingFeatured
       }
     });
   } catch (error) {
@@ -263,6 +268,7 @@ const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
+    const wasSponsored = Boolean(product.isSponsored);
 
     TEXT_FIELDS.forEach((field) => {
       if (req.body[field] === undefined) return;
@@ -304,6 +310,9 @@ const updateProduct = async (req, res) => {
     }
 
     await product.save();
+    if (wasSponsored && !product.isSponsored) {
+      await endLiveFeaturedForProduct(product._id, req.user?._id, 'Süper admin ürünü önerilenlerden aldı.');
+    }
     return res.json({ success: true, mesaj: 'Ürün güncellendi.', product });
   } catch (error) {
     return res.status(500).json({ mesaj: 'Ürün güncellenemedi.', hata: error.message });

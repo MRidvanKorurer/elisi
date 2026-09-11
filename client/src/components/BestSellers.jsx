@@ -5,7 +5,7 @@ import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutl
 import ProductCard, { productCardGridSx } from './ProductCard';
 import { productService } from '../api/productService';
 
-export default function BestSellers({ products = [] }) {
+export default function BestSellers() {
   const [fetchedProducts, setFetchedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -21,27 +21,20 @@ export default function BestSellers({ products = [] }) {
   }, [fetchedProducts]);
 
   useEffect(() => {
-    if (products.length > 0) {
-      setFetchedProducts(products);
-      setLoading(false);
-      return;
-    }
-
-    const fetchBestSellers = async () => {
-      try {
-        setLoading(true);
-        const data = await productService.getBestSellers();
-        setFetchedProducts(data);
-      } catch (err) {
-        console.error('En çok satanlar çekilemedi:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBestSellers();
-  }, [products]);
+    let cancelled = false;
+    productService.getBestSellers()
+      .then((data) => {
+        if (cancelled) return;
+        setFetchedProducts(Array.isArray(data) ? data : data?.products || []);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const currentProducts = ranked.slice(0, visibleCount);
   const hasMore = visibleCount < ranked.length;

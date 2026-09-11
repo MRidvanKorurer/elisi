@@ -2,6 +2,7 @@
 
 
 import API from './api';
+import { cachedGet } from './cache';
 
 export const productService = {
   // 1. GENEL KULLANIM: Ana sayfa, kategoriler, genel listelemeler
@@ -23,10 +24,10 @@ export const productService = {
   },
 
   // 4. ÇOK SATANLAR (Best Sellers)
-  getBestSellers: async () => {
+  getBestSellers: async () => cachedGet('products:bestsellers', async () => {
     const response = await API.get('/products/bestsellers');
     return response.data;
-  },
+  }, 90_000),
 
   // 5. SPONSORLU ÜRÜNLER
   getSponsoredProducts: async () => {
@@ -39,20 +40,20 @@ export const productService = {
     }
   },
   // YENİ EKLENEN KATEGORİ FONKSİYONU:
-  getCategories: async () => {
+  getCategories: async () => cachedGet('products:categories', async () => {
     const response = await API.get('/products/categories');
     return response.data;
-  },
+  }, 5 * 60_000),
 
   getLookbook: async () => {
     const response = await API.get('/products/lookbook');
     return response.data;
   },
 
-  getFilterOptions: async () => {
+  getFilterOptions: async () => cachedGet('products:filter-options', async () => {
     const response = await API.get('/products/filter-options');
     return response.data;
-  },
+  }, 5 * 60_000),
 };
 
 export default productService;

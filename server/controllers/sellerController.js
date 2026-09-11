@@ -4,6 +4,7 @@ const Seller = require('../models/Seller');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const ProductQuestion = require('../models/ProductQuestion');
+const FeaturedRequest = require('../models/FeaturedRequest');
 const { isSuperAdmin } = require('../utils/roles');
 const {
     ORDER_STATUSES,
@@ -21,7 +22,7 @@ const COOKIE_OPTIONS = {
 
 const { CATEGORY_LABELS } = require('../constants/categories');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
-const MAGAZA_ETIKET = CATEGORY_LABELS;
+const { magazaTuruEtiket, normalizeMagazaTurleri } = require('../utils/sellerCategories');
 
 const isLocalUpload = (src = '') => String(src).startsWith('/uploads/') || String(src).includes('/uploads/');
 
@@ -89,8 +90,8 @@ const serializeSeller = (seller, user) => ({
     magazaAdi: seller.magazaAdi,
     slug: seller.slug,
     hesapTipi: seller.hesapTipi,
-    magazaTuru: seller.magazaTuru,
-    magazaTuruEtiket: MAGAZA_ETIKET[seller.magazaTuru] || seller.magazaTuru,
+    magazaTuru: normalizeMagazaTurleri(seller.magazaTuru),
+    magazaTuruEtiket: magazaTuruEtiket(seller.magazaTuru),
     aciklama: seller.aciklama,
     telefon: seller.telefon,
     sehir: seller.sehir,
@@ -157,8 +158,9 @@ const registerSeller = async (req, res) => {
             return res.status(400).json({ mesaj: 'Mağaza adı en fazla 60 karakter olabilir.' });
         }
 
-        if (!magazaTuru) {
-            return res.status(400).json({ mesaj: 'Lütfen mağaza türünü seçin.' });
+        const turleri = normalizeMagazaTurleri(magazaTuru);
+        if (!turleri.length) {
+            return res.status(400).json({ mesaj: 'Lütfen en az bir üretim alanı seçin.' });
         }
 
         if (!telefon || !isValidPhone(telefon)) {
@@ -244,7 +246,7 @@ const registerSeller = async (req, res) => {
                 user: user._id,
                 magazaAdi: magazaAdiTrim,
                 hesapTipi: tip,
-                magazaTuru: String(magazaTuru).toLowerCase(),
+                magazaTuru: turleri,
                 aciklama: String(aciklama).trim(),
                 telefon: String(telefon).trim(),
                 sehir: String(sehir).trim(),
@@ -330,8 +332,9 @@ const updateMySeller = async (req, res) => {
         if (!magazaAdi || String(magazaAdi).trim().length < 3) {
             return res.status(400).json({ mesaj: 'Mağaza adı en az 3 karakter olmalıdır.' });
         }
-        if (!magazaTuru) {
-            return res.status(400).json({ mesaj: 'Lütfen mağaza türünü seçin.' });
+        const turleri = normalizeMagazaTurleri(magazaTuru);
+        if (!turleri.length) {
+            return res.status(400).json({ mesaj: 'Lütfen en az bir üretim alanı seçin.' });
         }
         if (!telefon || !isValidPhone(telefon)) {
             return res.status(400).json({ mesaj: 'Geçerli bir telefon numarası girin.' });
@@ -355,7 +358,7 @@ const updateMySeller = async (req, res) => {
         }
 
         seller.magazaAdi = magazaAdiTrim;
-        seller.magazaTuru = String(magazaTuru).toLowerCase();
+        seller.magazaTuru = turleri;
         seller.aciklama = String(aciklama).trim();
         seller.telefon = String(telefon).trim();
         seller.sehir = String(sehir).trim();
@@ -499,6 +502,7 @@ const getMyOverview = async (req, res) => {
                 $or: [{ answer: { $exists: false } }, { answer: '' }, { answer: null }]
             })
             : 0;
+        const pendingFeatured = await FeaturedRequest.countDocuments({ seller: req.user._id, status: 'pending' });
 
         return res.json({
             success: true,
@@ -511,6 +515,7 @@ const getMyOverview = async (req, res) => {
                 orders: sellerOrders.length,
                 openOrders: sellerOrders.filter((order) => order.orderStatus === 'processing').length,
                 unansweredQuestions,
+                pendingFeatured,
                 revenue,
                 recentOrders: sellerOrders.slice(0, 6)
             }
@@ -600,7 +605,7 @@ const getPublicSeller = async (req, res) => {
             .filter((row) => row._id)
             .map((row) => ({
                 id: row._id,
-                label: MAGAZA_ETIKET[row._id] || row._id,
+                label: CATEGORY_LABELS[row._id] || row._id,
                 count: row.count
             }));
 
@@ -637,6 +642,5 @@ module.exports = {
     getMyOrders,
     updateMyOrder,
     getMyOverview,
-    getPublicSeller,
-    MAGAZA_ETIKET
+    getPublicSeller
 };

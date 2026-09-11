@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Container, Typography } from '@mui/material';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
-import { imgBanner2 } from '../assets/media';
+import { SITE_CLIPS } from '../utils/siteVideos';
 
 export default function HomepageFilm({ embedded = false }) {
   const wrapRef = useRef(null);
   const videoRef = useRef(null);
   const [clip, setClip] = useState({
-    src: mediaUrl('/uploads/videos/canta1.mp4'),
+    src: SITE_CLIPS.canta1,
     label: 'Atölye filmi',
-    poster: imgBanner2
+    poster: ''
   });
   const [activated, setActivated] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -21,9 +21,9 @@ export default function HomepageFilm({ embedded = false }) {
         const item = (data.items || [])[0];
         if (cancelled || !item?.videoUrl) return;
         setClip({
-          src: mediaUrl(item.videoUrl),
+          src: SITE_CLIPS.canta1,
           label: item.label || item.title || 'Atölye filmi',
-          poster: mediaUrl(item.posterUrl) || imgBanner2
+          poster: mediaUrl(item.posterUrl)
         });
       })
       .catch(() => {});
@@ -70,13 +70,13 @@ export default function HomepageFilm({ embedded = false }) {
         <Box
           component="video"
           ref={videoRef}
-          src={activated ? clip.src : undefined}
-          poster={clip.poster}
+          src={clip.src}
+          poster={clip.poster || undefined}
           muted
           loop
           playsInline
           disablePictureInPicture
-          preload="none"
+          preload="metadata"
           sx={{
             position: 'absolute',
             inset: 0,
