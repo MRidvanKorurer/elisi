@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "kicker": "Limited collection",
+    "tagline": "Handmade bags and a design atelier",
+    "guestLead": "Traditional craft with a modern line. Sign up and use your 10% first-order code right away.",
+    "memberLead": "See the newest pieces from the atelier.",
+    "featured": "Featured",
+    "register": "Sign up",
+    "explore": "Explore",
+    "alt": "Nik Bag collection"
+  },
+  "categories": {
+    "eyebrow": "ATELIER ROOMS",
+    "title": "Browse by category",
+    "subtitle": "Pick a room; its pieces open just below.",
+    "selected": "SELECTED",
+    "discover": "EXPLORE",
+    "room": "ROOM",
+    "showProducts": "Show {{name}} pieces",
+    "allName": "Full collection",
+    "allDescription": "Every live atelier, in one view.",
+    "allCount": "All pieces",
+    "pieceCount": "{{count}} pieces",
+    "soon": "Soon",
+    "collection": "Collection",
+    "inRoom": "{{count}} pieces in this room",
+    "seeCollection": "See collection",
+    "loadError": "We couldn’t load these products.",
+    "emptyTitle": "Nothing in this room yet",
+    "emptyText": "Try another category, or open the full collection."
+  },
+  "weekly": {
+    "eyebrow": "THIS WEEK",
+    "title": "Ateliers of the week",
+    "subtitle": "Shops in the spotlight. Open a card to see the full vitrine.",
+    "badge": "Atelier of the week",
+    "slots": "{{current}}/3 in the vitrine",
+    "seeShop": "See shop",
+    "products": "{{count}} products",
+    "vitrine": "Vitrine"
+  },
+  "arrivals": {
+    "eyebrow": "FRESH FROM THE ATELIER",
+    "title": "New arrivals",
+    "region": "New arrivals",
+    "prev": "Previous products",
+    "next": "Next products"
+  },
+  "bestsellers": {
+    "eyebrow": "THIS WEEK’S FAVORITES",
+    "title": "Best sellers"
+  },
+  "lookbook": {
+    "eyebrow": "ATELIER",
+    "title": "Bags in motion",
+    "subtitle": "Knit detail, wooden handles, studio light. Three frames from the collection.",
+    "knit": "Knit detail",
+    "wood": "Wooden handle"
+  },
+  "film": {
+    "eyebrow": "ATELIER FILM",
+    "title": "Bag, light, and craft",
+    "subtitle": "The collection, shot in the studio.",
+    "label": "Atelier film"
+  },
+  "how": {
+    "eyebrow": "THE RHYTHM",
+    "title": "How it works",
+    "subtitle": "Many pieces are made to order. Delivery follows the maker’s pace, not a warehouse clock.",
+    "s1Title": "Explore",
+    "s1Text": "Browse categories and ateliers, then pick the piece that fits.",
+    "s2Title": "Order",
+    "s2Text": "Check out securely. Made-to-order notes live on the product page.",
+    "s3Title": "At your door",
+    "s3Text": "The maker prepares and ships. You’ll see timing on the order summary."
+  },
+  "sellerCta": {
+    "eyebrow": "FOR MAKERS",
+    "sellerTitle": "Your shop is waiting.",
+    "guestTitle": "Bring your atelier to the vitrine.",
+    "sellerText": "Check your application and get ready to add your work to Nik Bag.",
+    "guestText": "Reach thousands of curious buyers. We review your application, then your shop goes live.",
+    "sellerButton": "Go to my shop",
+    "guestButton": "Sell on Nik Bag"
+  },
+  "trust": {
+    "handmadeTitle": "Made by hand",
+    "handmadeText": "Each piece is prepared in the atelier, at a human pace.",
+    "localTitle": "Independent makers",
+    "localText": "We work with independent craftspeople across Turkey.",
+    "payTitle": "Secure checkout",
+    "payText": "Card details are protected by Iyzico.",
+    "shipTitle": "Shipping & returns",
+    "shipText": "Made-to-order timing is listed on each product."
+  }
+}

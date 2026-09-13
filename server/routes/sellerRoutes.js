@@ -27,6 +27,11 @@ const {
   createFeatured,
   cancelFeatured
 } = require('../controllers/featuredController');
+const {
+  listMyWeek,
+  createWeek,
+  cancelWeek
+} = require('../controllers/atelierWeekController');
 const { protect, optionalProtect, approvedSeller } = require('../middleware/authMiddleware');
 const { productImages, receiptFile } = require('../middleware/uploadMiddleware');
 
@@ -49,5 +54,8 @@ router.delete('/me/promos/:id', protect, approvedSeller, deleteMyPromo);
 router.get('/me/featured', protect, approvedSeller, listMyFeatured);
 router.post('/me/featured', protect, approvedSeller, receiptFile, createFeatured);
 router.delete('/me/featured/:id', protect, approvedSeller, cancelFeatured);
+router.get('/me/atelier-week', protect, approvedSeller, listMyWeek);
+router.post('/me/atelier-week', protect, approvedSeller, receiptFile, createWeek);
+router.delete('/me/atelier-week/:id', protect, approvedSeller, cancelWeek);
 
 module.exports = router;

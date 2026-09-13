@@ -13,6 +13,7 @@ import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
 import ImageUploader from './ImageUploader';
 import { PanelCard, SectionTitle, fieldSx, primaryButton, panelButton } from './PanelShell';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
+import ProductMarginCalculator from './ProductMarginCalculator';
 import { T, money } from '../utils/panel';
 
 const PRODUCTION_TIMES = ['24 saat', '1-3 İş Günü', '3-5 İş Günü', '1 hafta', '2 hafta'];
@@ -22,6 +23,9 @@ export const emptyProductForm = {
   description: '',
   category: 'canta',
   price: '',
+  costPrice: '',
+  shippingCost: '',
+  extraCost: '',
   stock: 1,
   discountPercentage: 0,
   colors: [],
@@ -45,6 +49,9 @@ export const formFromProduct = (product) => ({
   description: product.description || '',
   category: product.category || 'canta',
   price: product.price ?? '',
+  costPrice: product.costPrice || '',
+  shippingCost: product.shippingCostCover || '',
+  extraCost: product.extraCost || '',
   stock: product.stock ?? 1,
   discountPercentage: product.discountPercentage || 0,
   colors: product.colors || [],
@@ -122,7 +129,8 @@ export default function SellerProductEditor({
   setRemovedImages,
   saving,
   onCancel,
-  onSave
+  onSave,
+  commissionPercent = 10
 }) {
   const cover = mainImage?.preview || editing?.image || '';
   const galleryPreview = (editing?.additionalImages || []).filter((url) => !removedImages.includes(url));
@@ -180,15 +188,20 @@ export default function SellerProductEditor({
           </PanelCard>
 
           <PanelCard>
-            <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Fiyat ve stok</Typography>
-            <Typography sx={{ color: T.muted, fontSize: '0.82rem', mb: 2 }}>İndirim girerseniz vitrinde çizili fiyat görünür.</Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 1.6 }}>
-              <TextField label="Fiyat (₺)" type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} required sx={fieldSx} />
+            <ProductMarginCalculator
+              commissionPercent={commissionPercent}
+              costPrice={form.costPrice}
+              shippingCost={form.shippingCost}
+              extraCost={form.extraCost}
+              price={form.price}
+              onChange={setForm}
+            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.6, mt: 2 }}>
               <TextField label="Stok" type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))} required sx={fieldSx} />
-              <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} sx={fieldSx} />
+              <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} helperText="Vitrinde çizili fiyat görünür" sx={fieldSx} />
             </Box>
             <Typography sx={{ mt: 1.6, fontWeight: 800, color: T.navy }}>
-              Satış fiyatı {money(sale)}
+              Vitrin fiyatı {money(sale)}
               {discount > 0 ? `  ·  ${discount}% indirim` : ''}
             </Typography>
           </PanelCard>

@@ -69,7 +69,26 @@ const sellerSchema = new mongoose.Schema(
             enum: ['pending', 'approved', 'rejected', 'suspended'],
             default: 'pending'
         },
-        reddetmeNedeni: { type: String, default: '' }
+        reddetmeNedeni: { type: String, default: '' },
+        komisyonOrani: {
+            type: Number,
+            default: 10,
+            min: 0,
+            max: 80
+        },
+        komisyonManuel: {
+            type: Boolean,
+            default: false
+        },
+        isWeeklyAtelier: {
+            type: Boolean,
+            default: false,
+            index: true
+        },
+        weeklyUntil: {
+            type: Date,
+            default: null
+        }
     },
     { timestamps: true }
 );

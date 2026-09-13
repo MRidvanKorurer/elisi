@@ -1,0 +1,62 @@
+{
+  "language": {
+    "tr": "TR",
+    "en": "EN",
+    "switchTo": "Dili değiştir"
+  },
+  "nav": {
+    "search": "Ara",
+    "cart": "Sepet",
+    "admin": "Admin",
+    "adminPanel": "Admin paneli",
+    "myShop": "Mağazam",
+    "becomeSeller": "Satıcı Ol",
+    "account": "Hesabım",
+    "profile": "Profilim",
+    "logout": "Çıkış Yap",
+    "login": "Giriş",
+    "register": "Kayıt Ol"
+  },
+  "footer": {
+    "homeAria": "Nik Bag anasayfa",
+    "blurb": "Evinize ve ruhunuza dokunan, tamamen el yapımı tasarım ürünleri. Geleneksel yöntemleri modern bir dille yeniden yorumluyoruz.",
+    "etsy": "Etsy Mağazamız",
+    "explore": "Keşfet",
+    "home": "Anasayfa",
+    "allProducts": "Tüm Ürünler",
+    "becomeSeller": "Satıcı Ol",
+    "loginRegister": "Giriş / Kayıt",
+    "help": "Yardım",
+    "contact": "İletişim",
+    "shipping": "Kargo ve teslimat",
+    "returns": "İade ve değişim",
+    "privacy": "Gizlilik",
+    "reachUs": "Bize ulaşın",
+    "newsletter": "Bülten",
+    "emailPlaceholder": "E-posta adresiniz",
+    "subscribeAria": "Bültene abone ol",
+    "categories": "Kategoriler",
+    "rights": "© {{year}} NikBag. Tüm hakları saklıdır.",
+    "invalidEmail": "Geçerli bir e-posta girin.",
+    "subscribed": "Bültene kaydınız alındı."
+  },
+  "actions": {
+    "close": "Kapat",
+    "back": "Geri",
+    "continue": "Devam",
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "loading": "Yükleniyor...",
+    "showMore": "Daha fazla göster",
+    "showMoreCount": "Daha fazla göster ({{count}})",
+    "showMoreRemaining": "Daha fazla göster ({{count}} ürün kaldı)",
+    "clearAll": "Tümünü temizle",
+    "home": "Ana sayfa",
+    "seeAllProducts": "Tüm ürünleri gör",
+    "goToProducts": "Ürünlere git",
+    "keepShopping": "Alışverişe devam",
+    "startShopping": "Alışverişe başla",
+    "tryAgain": "Tekrar dene",
+    "myOrders": "Siparişlerim"
+  }
+}

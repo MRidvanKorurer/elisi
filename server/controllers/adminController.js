@@ -4,9 +4,18 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const Category = require('../models/Category');
 const { isSuperAdmin } = require('../utils/roles');
+const { applyPaidStock, restorePaidStock } = require('../utils/orderStock');
 const { publicPath, categoryPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 const FeaturedRequest = require('../models/FeaturedRequest');
+const WeeklyAtelier = require('../models/WeeklyAtelier');
+const {
+  clampCommissionPercent,
+  trailingSellerGmv,
+  effectiveCommissionPercent,
+  volumeMeta,
+  ratesForSellers
+} = require('../utils/commission');
 const { endLiveFeaturedForProduct } = require('./featuredController');
 
 const serializeUser = (user) => ({
@@ -48,7 +57,11 @@ const getOverview = async (req, res) => {
       paymentMix,
       recentOrders,
       topProducts,
-      pendingFeatured
+      pendingFeatured,
+      pendingAtelierWeek,
+      feeAgg,
+      todayFeeAgg,
+      pendingFeeAgg
     ] = await Promise.all([
       User.countDocuments({ rol: { $ne: 'superadmin' } }),
       Seller.countDocuments(),
@@ -104,7 +117,95 @@ const getOverview = async (req, res) => {
         { $sort: { qty: -1 } },
         { $limit: 6 }
       ]),
-      FeaturedRequest.countDocuments({ status: 'pending' })
+      FeaturedRequest.countDocuments({ status: 'pending' }),
+      WeeklyAtelier.countDocuments({ status: 'pending' }),
+      Order.aggregate([
+        { $match: { paymentStatus: 'completed', orderStatus: { $ne: 'cancelled' } } },
+        {
+          $addFields: {
+            computedFee: {
+              $ifNull: [
+                '$platformFee',
+                {
+                  $round: [{
+                    $multiply: [
+                      {
+                        $sum: {
+                          $map: {
+                            input: { $ifNull: ['$orderItems', []] },
+                            as: 'item',
+                            in: { $multiply: [{ $ifNull: ['$$item.price', 0] }, { $ifNull: ['$$item.quantity', 0] }] }
+                          }
+                        }
+                      },
+                      0.1
+                    ]
+                  }, 2]
+                }
+              ]
+            }
+          }
+        },
+        { $group: { _id: null, fee: { $sum: '$computedFee' } } }
+      ]),
+      Order.aggregate([
+        { $match: { createdAt: { $gte: today }, paymentStatus: 'completed', orderStatus: { $ne: 'cancelled' } } },
+        {
+          $addFields: {
+            computedFee: {
+              $ifNull: [
+                '$platformFee',
+                {
+                  $round: [{
+                    $multiply: [
+                      {
+                        $sum: {
+                          $map: {
+                            input: { $ifNull: ['$orderItems', []] },
+                            as: 'item',
+                            in: { $multiply: [{ $ifNull: ['$$item.price', 0] }, { $ifNull: ['$$item.quantity', 0] }] }
+                          }
+                        }
+                      },
+                      0.1
+                    ]
+                  }, 2]
+                }
+              ]
+            }
+          }
+        },
+        { $group: { _id: null, fee: { $sum: '$computedFee' } } }
+      ]),
+      Order.aggregate([
+        { $match: { paymentStatus: 'pending', orderStatus: { $ne: 'cancelled' } } },
+        {
+          $addFields: {
+            computedFee: {
+              $ifNull: [
+                '$platformFee',
+                {
+                  $round: [{
+                    $multiply: [
+                      {
+                        $sum: {
+                          $map: {
+                            input: { $ifNull: ['$orderItems', []] },
+                            as: 'item',
+                            in: { $multiply: [{ $ifNull: ['$$item.price', 0] }, { $ifNull: ['$$item.quantity', 0] }] }
+                          }
+                        }
+                      },
+                      0.1
+                    ]
+                  }, 2]
+                }
+              ]
+            }
+          }
+        },
+        { $group: { _id: null, fee: { $sum: '$computedFee' } } }
+      ])
     ]);
 
     const days = [];
@@ -139,11 +240,15 @@ const getOverview = async (req, res) => {
         paidOrders: revenueAgg[0]?.count || 0,
         todayOrders: todayAgg[0]?.orders || 0,
         todayRevenue: todayAgg[0]?.revenue || 0,
+        platformFee: feeAgg[0]?.fee || 0,
+        todayPlatformFee: todayFeeAgg[0]?.fee || 0,
+        pendingPlatformFee: pendingFeeAgg[0]?.fee || 0,
         salesByDay: days,
         paymentMix,
         recentOrders,
         topProducts,
-        pendingFeatured
+        pendingFeatured,
+        pendingAtelierWeek
       }
     });
   } catch (error) {
@@ -179,10 +284,23 @@ const updateUserRole = async (req, res) => {
   }
 };
 
+const decorateSellerCommission = async (sellers = []) => {
+  const { rates, volumes } = await ratesForSellers(sellers);
+  return sellers.map((seller) => {
+    const obj = seller.toObject ? seller.toObject() : { ...seller };
+    const sid = String(seller.user?._id || seller.user || '');
+    obj.komisyonKayit = seller.komisyonOrani != null ? seller.komisyonOrani : 10;
+    obj.komisyonOrani = rates[sid] ?? 10;
+    obj.komisyonManuel = Boolean(seller.komisyonManuel);
+    obj.komisyonHacim = volumeMeta(volumes.get(sid) || 0);
+    return obj;
+  });
+};
+
 const listSellers = async (req, res) => {
   try {
     const sellers = await Seller.find().populate('user', 'adSoyad email rol telefon').sort({ createdAt: -1 });
-    return res.json({ success: true, sellers });
+    return res.json({ success: true, sellers: await decorateSellerCommission(sellers) });
   } catch (error) {
     return res.status(500).json({ mesaj: 'Mağazalar alınamadı.', hata: error.message });
   }
@@ -210,6 +328,41 @@ const updateSellerStatus = async (req, res) => {
     return res.json({ success: true, mesaj: 'Mağaza durumu güncellendi.', seller });
   } catch (error) {
     return res.status(500).json({ mesaj: 'Mağaza güncellenemedi.', hata: error.message });
+  }
+};
+
+const updateSellerCommission = async (req, res) => {
+  try {
+    const seller = await Seller.findById(req.params.id);
+    if (!seller) return res.status(404).json({ mesaj: 'Mağaza bulunamadı.' });
+
+    const auto = req.body.manuel === false || req.body.otomatik === true;
+    if (auto) {
+      seller.komisyonManuel = false;
+      await seller.save();
+      const gmv = await trailingSellerGmv(seller.user);
+      const percent = effectiveCommissionPercent(seller, gmv);
+      return res.json({
+        success: true,
+        mesaj: `${seller.magazaAdi} komisyonu otomatik hacim kuralına alındı (şu an %${percent}).`,
+        seller: (await decorateSellerCommission([seller]))[0]
+      });
+    }
+
+    if (req.body.komisyonOrani == null && req.body.percent == null) {
+      return res.status(400).json({ mesaj: 'Komisyon oranı yaz.' });
+    }
+    const percent = clampCommissionPercent(req.body.komisyonOrani ?? req.body.percent);
+    seller.komisyonOrani = percent;
+    seller.komisyonManuel = true;
+    await seller.save();
+    return res.json({
+      success: true,
+      mesaj: `${seller.magazaAdi} komisyonu %${percent} olarak kilitlendi. Yeni satışlara uygulanır.`,
+      seller: (await decorateSellerCommission([seller]))[0]
+    });
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Komisyon güncellenemedi.', hata: error.message });
   }
 };
 
@@ -252,7 +405,7 @@ const setProductApproval = async (req, res) => {
 
 const TEXT_FIELDS = ['title', 'description', 'category', 'careInstructions', 'customProductionTime', 'measureNote', 'video'];
 const NUMBER_FIELDS = ['price', 'stock', 'discountPercentage'];
-const BOOL_FIELDS = ['isActive', 'isSponsored', 'isNewProduct', 'immediateDelivery'];
+const BOOL_FIELDS = ['isActive', 'isNewProduct', 'immediateDelivery'];
 const LIST_FIELDS = ['colors', 'sizes', 'features'];
 
 const asBool = (value) => value === true || value === 'true' || value === '1';
@@ -310,8 +463,8 @@ const updateProduct = async (req, res) => {
     }
 
     await product.save();
-    if (wasSponsored && !product.isSponsored) {
-      await endLiveFeaturedForProduct(product._id, req.user?._id, 'Süper admin ürünü önerilenlerden aldı.');
+    if (req.body.isSponsored !== undefined && !asBool(req.body.isSponsored) && wasSponsored) {
+      await endLiveFeaturedForProduct(product._id, req.user?._id, 'Süper admin ürünü vitrinden aldı.');
     }
     return res.json({ success: true, mesaj: 'Ürün güncellendi.', product });
   } catch (error) {
@@ -353,7 +506,14 @@ const updateOrder = async (req, res) => {
       if (!['pending', 'completed', 'failed'].includes(paymentStatus)) {
         return res.status(400).json({ mesaj: 'Geçersiz ödeme durumu.' });
       }
+      const previous = order.paymentStatus;
       order.paymentStatus = paymentStatus;
+      if (paymentStatus === 'completed' && previous !== 'completed') {
+        await applyPaidStock(order);
+      }
+      if (previous === 'completed' && paymentStatus !== 'completed') {
+        await restorePaidStock(order);
+      }
     }
     await order.save();
     return res.json({ success: true, mesaj: 'Sipariş güncellendi.', order });
@@ -405,6 +565,7 @@ module.exports = {
   updateUserRole,
   listSellers,
   updateSellerStatus,
+  updateSellerCommission,
   listProducts,
   updateProduct,
   deleteProduct,

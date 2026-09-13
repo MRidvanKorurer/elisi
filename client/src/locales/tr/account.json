@@ -1,0 +1,26 @@
+{
+  "seoTitle": "Hesabım",
+  "tabs": {
+    "profile": "Profil",
+    "addresses": "Adresler",
+    "cards": "Kartlar",
+    "orders": "Siparişler",
+    "favorites": "Favoriler"
+  },
+  "status": {
+    "delivered": "Teslim edildi",
+    "shipped": "Kargoda",
+    "pending": "Ödeme bekleniyor",
+    "failed": "Ödeme başarısız",
+    "preparing": "Hazırlanıyor"
+  },
+  "emptyOrders": "Henüz siparişiniz yok.",
+  "emptyFavorites": "Favori listeniz boş.",
+  "goShop": "Alışverişe başla",
+  "goProducts": "Ürünlere git",
+  "name": "Ad soyad",
+  "email": "E-posta",
+  "phone": "Telefon",
+  "welcomeUsed": "Hoş geldin indirimin kullanıldı",
+  "welcomeReady": "İlk siparişine %10 indirim"
+}

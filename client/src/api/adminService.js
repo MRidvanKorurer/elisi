@@ -10,6 +10,7 @@ export const adminService = {
   setUserRole: async (id, rol) => (await API.put(`/admin/users/${id}/role`, { rol })).data,
   sellers: async () => (await API.get('/admin/sellers')).data,
   setSellerStatus: async (id, payload) => (await API.put(`/admin/sellers/${id}/status`, payload)).data,
+  setSellerCommission: async (id, payload) => (await API.put(`/admin/sellers/${id}/commission`, payload)).data,
   products: async () => (await API.get('/admin/products')).data,
   updateProduct: async (id, payload) =>
     (await API.put(`/admin/products/${id}`, payload, payload instanceof FormData ? multipart : undefined)).data,
@@ -18,6 +19,12 @@ export const adminService = {
   featured: async (params) => (await API.get('/admin/featured', { params })).data,
   reviewFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}`, payload)).data,
   removeFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}/remove`, payload)).data,
+  giftFeatured: async (payload) => (await API.post('/admin/featured/gift', payload)).data,
+  saveFeaturedSettings: async (payload) => (await API.put('/admin/featured/settings', payload)).data,
+  atelierWeek: async (params) => (await API.get('/admin/atelier-week', { params })).data,
+  reviewAtelierWeek: async (id, payload) => (await API.put(`/admin/atelier-week/${id}`, payload)).data,
+  removeAtelierWeek: async (id, payload) => (await API.put(`/admin/atelier-week/${id}/remove`, payload)).data,
+  giftAtelierWeek: async (payload) => (await API.post('/admin/atelier-week/gift', payload)).data,
   reports: async () => (await API.get('/admin/reports')).data,
   reportsSeller: async (sellerId) => (await API.get(`/admin/reports/sellers/${sellerId}`)).data
 };

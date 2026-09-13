@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "kicker": "Özel Koleksiyon",
+    "tagline": "El yapımı çanta ve tasarım atölyesi",
+    "guestLead": "Geleneksel el işçiliğiyle modern çizgilerin buluştuğu eşsiz tasarımlar. Kayıt ol, ilk siparişine özel %10 indirim kodunu anında kullan.",
+    "memberLead": "Atölyemizin en yeni ve seçkin tasarımlarını hemen inceleyin.",
+    "featured": "Öne çıkanlar",
+    "register": "Kayıt Ol",
+    "explore": "Keşfet",
+    "alt": "Nik Bag Koleksiyon"
+  },
+  "categories": {
+    "eyebrow": "ATÖLYE ODALARI",
+    "title": "Kategorilere Göre Keşfet",
+    "subtitle": "Bir oda seç; o kategoriye ait ürünler hemen aşağıda açılır.",
+    "selected": "SEÇİLİ",
+    "discover": "KEŞFET",
+    "room": "ODA",
+    "showProducts": "{{name}} ürünlerini göster",
+    "allName": "Tüm koleksiyon",
+    "allDescription": "Atölyelerin güncel vitrini, tek bakışta.",
+    "allCount": "Tüm vitrin",
+    "pieceCount": "{{count}} parça",
+    "soon": "Yakında",
+    "collection": "Koleksiyon",
+    "inRoom": "{{count}} parça bu odada",
+    "seeCollection": "Koleksiyonu gör",
+    "loadError": "Ürünler yüklenirken bir sorun oluştu.",
+    "emptyTitle": "Bu odada henüz vitrin ürünü yok",
+    "emptyText": "Başka bir kategori seçebilir veya tüm koleksiyona geçebilirsiniz."
+  },
+  "weekly": {
+    "eyebrow": "HAFTANIN SEÇİMİ",
+    "title": "Haftanın atölyeleri",
+    "subtitle": "Bu hafta öne çıkan mağazalar. Kartına bas, tüm vitrini aç.",
+    "badge": "Haftanın atölyesi",
+    "slots": "{{current}}/3 vitrinde",
+    "seeShop": "Mağazayı gör",
+    "products": "{{count}} ürün",
+    "vitrine": "Vitrin"
+  },
+  "arrivals": {
+    "eyebrow": "ATÖLYEDEN TAZE",
+    "title": "Yeni Gelenler",
+    "region": "Yeni gelen ürünler",
+    "prev": "Önceki ürünler",
+    "next": "Sonraki ürünler"
+  },
+  "bestsellers": {
+    "eyebrow": "HAFTANIN FAVORİLERİ",
+    "title": "En Çok Satan Ürünler"
+  },
+  "lookbook": {
+    "eyebrow": "ATÖLYE",
+    "title": "Çantalar hareket halinde",
+    "subtitle": "El örgüsü detay, ahşap sap ve stüdyo ışığı. Koleksiyonun üç karesi.",
+    "knit": "El örgüsü detay",
+    "wood": "Ahşap sap detay"
+  },
+  "film": {
+    "eyebrow": "ATÖLYE FİLMİ",
+    "title": "Çanta, ışık ve el emeği",
+    "subtitle": "Koleksiyonun stüdyoda çekilmiş tam karesi.",
+    "label": "Atölye filmi"
+  },
+  "how": {
+    "eyebrow": "SÜREÇ",
+    "title": "Nasıl çalışır?",
+    "subtitle": "Birçok ürün sipariş üzerine üretilir. Teslimat, stoklu mağazadan biraz daha kişisel bir ritimdedir.",
+    "s1Title": "Keşfet",
+    "s1Text": "Kategori ve atölyelere göz at, sana uyan el emeğini seç.",
+    "s2Title": "Sipariş ver",
+    "s2Text": "Güvenli ödeme ile sepetini tamamla; kişiye özel üretim notu üründe yazar.",
+    "s3Title": "Kapına gelsin",
+    "s3Text": "Üretici hazırlar, kargoya verir. Teslimat süresini sipariş özetinde görürsün."
+  },
+  "sellerCta": {
+    "eyebrow": "ÜRETİCİLER İÇİN",
+    "sellerTitle": "Mağazan seni bekliyor.",
+    "guestTitle": "Atölyeni vitrine taşı.",
+    "sellerText": "Başvuru durumunu gör, el emeğini Nik Bag koleksiyonuna eklemeye hazırlan.",
+    "guestText": "El yapımı ürünlerini binlerce meraklıya ulaştır. Başvurun incelenir, onay sonrası mağazan yayına alınır.",
+    "sellerButton": "Mağazama git",
+    "guestButton": "Satıcı Ol"
+  },
+  "trust": {
+    "handmadeTitle": "El emeği üretim",
+    "handmadeText": "Her parça atölyelerde, kişiye özel tempo ile hazırlanır.",
+    "localTitle": "Yerel üretici",
+    "localText": "Türkiye’deki bağımsız zanaatkârlarla çalışıyoruz.",
+    "payTitle": "Güvenli ödeme",
+    "payText": "Kart bilgilerin Iyzico altyapısıyla korunur.",
+    "shipTitle": "Kargo ve iade",
+    "shipText": "Sipariş üzerine üretim süreleri üründe yazılır."
+  }
+}

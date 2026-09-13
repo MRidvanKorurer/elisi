@@ -11,7 +11,9 @@ import {
   Skeleton,
   Typography
 } from '@mui/material';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InstagramIcon from '@mui/icons-material/Instagram';
@@ -154,8 +156,9 @@ const chipSx = (active) => ({
 });
 
 export default function AtelierPage() {
+  const { t } = useTranslation('catalog');
   const { slug } = useParams();
-  const navigate = useNavigate();
+  const navigate = useLocaleNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const category = searchParams.get('kategori') || '';
   const sort = SORTS.some((item) => item.id === searchParams.get('sira'))
@@ -260,8 +263,8 @@ export default function AtelierPage() {
   if (error || !atelier) {
     return (
       <Box sx={{ pt: PAGE_PT, pb: 10, textAlign: 'center', overflowX: 'hidden' }}>
-        <Seo title="Atölye bulunamadı" path={`/atolye/${slug || ''}`} noindex />
-        <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '1.4rem', mb: 1 }}>Atölye bulunamadı</Typography>
+        <Seo title={t('atelier.notFoundTitle')} path={`/atolye/${slug || ''}`} noindex />
+        <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '1.4rem', mb: 1 }}>{t('atelier.notFoundTitle')}</Typography>
         <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 3 }}>{error || 'Bu vitrin yayında değil.'}</Typography>
         <Button
           onClick={() => navigate('/products')}
@@ -299,7 +302,7 @@ export default function AtelierPage() {
             '& .MuiBreadcrumbs-ol': { flexWrap: 'wrap', rowGap: 0.4 }
           }}
         >
-          <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>Anasayfa</Link>
+          <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>{t('atelier.home')}</Link>
           <Link underline="hover" color="inherit" onClick={() => navigate('/products')} sx={{ cursor: 'pointer' }}>Ürünler</Link>
           <Typography sx={{ color: '#2E3B55', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 180, sm: 320 } }}>
             {atelier.magazaAdi}
@@ -342,9 +345,12 @@ export default function AtelierPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mb: 1.2 }}>
               <Chip
                 icon={<VerifiedOutlined sx={{ fontSize: '16px !important', color: '#FFFFFF !important' }} />}
-                label="Onaylı atölye"
+                label={t('atelier.verified')}
                 sx={{ bgcolor: '#946D6D', color: '#FFFFFF', fontWeight: 800, height: 28, '& .MuiChip-icon': { ml: 0.6 } }}
               />
+              {atelier.isWeeklyAtelier ? (
+                <Chip label={t('atelier.weekBadge')} sx={{ bgcolor: '#2E3B55', color: '#FFFFFF', fontWeight: 800, height: 28 }} />
+              ) : null}
               {atelier.hesapTipi ? (
                 <Chip label={atelier.hesapTipi} sx={{ bgcolor: '#B0CDE6', color: '#2E3B55', fontWeight: 800, height: 28 }} />
               ) : null}

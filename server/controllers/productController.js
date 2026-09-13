@@ -8,6 +8,7 @@ const { CATEGORY_IDS } = require('../constants/categories');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { HOUSE_ATELIER, serializePublicAtelier } = require('../utils/publicAtelier');
 const { expireFeaturedProducts } = require('./featuredController');
+const { expireWeeklyAteliers } = require('./atelierWeekController');
 const { buildFulfillment } = require('../utils/productFulfillment');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 
@@ -57,14 +58,17 @@ const listProjection = {
     seller: 1,
     vendorName: 1,
     createdAt: 1,
+    isSponsored: 1,
+    sponsoredUntil: 1,
     finalPrice: 1
 };
 
 const getAllProducts = async (req, res) => {
     try {
+        await expireFeaturedProducts();
         const products = await Product.find(publicMatch())
             .select(LIST_SELECT)
-            .sort({ createdAt: -1 })
+            .sort({ isSponsored: -1, createdAt: -1 })
             .limit(24)
             .lean();
         res.status(200).json(products);
@@ -75,6 +79,7 @@ const getAllProducts = async (req, res) => {
 
 const getFilteredProducts = async (req, res) => {
     try {
+        await expireFeaturedProducts();
         const {
             search,
             category,
@@ -158,12 +163,13 @@ const getFilteredProducts = async (req, res) => {
             if (!Number.isNaN(n)) priceFilter.$lte = n;
         }
 
-        let sortStage = { createdAt: -1 };
-        if (sort === 'priceAsc') sortStage = { finalPrice: 1 };
-        if (sort === 'priceDesc') sortStage = { finalPrice: -1 };
-        if (sort === 'rating') sortStage = { rating: -1, soldCount: -1 };
-        if (sort === 'popular') sortStage = { soldCount: -1, rating: -1 };
-        if (sort === 'discount') sortStage = { discountPercentage: -1, finalPrice: 1 };
+        let sortStage = { isSponsored: -1, createdAt: -1 };
+        if (sort === 'created') sortStage = { createdAt: -1 };
+        if (sort === 'priceAsc') sortStage = { isSponsored: -1, finalPrice: 1 };
+        if (sort === 'priceDesc') sortStage = { isSponsored: -1, finalPrice: -1 };
+        if (sort === 'rating') sortStage = { isSponsored: -1, rating: -1, soldCount: -1 };
+        if (sort === 'popular') sortStage = { isSponsored: -1, soldCount: -1, rating: -1 };
+        if (sort === 'discount') sortStage = { isSponsored: -1, discountPercentage: -1, finalPrice: 1 };
 
         // Pipeline Çalıştırma
         const pipeline = [
@@ -227,6 +233,7 @@ const getProductById = async (req, res) => {
             ? publicMatch({ $or: [{ _id: id }, { slug: id }] })
             : publicMatch({ slug: id });
 
+        await expireWeeklyAteliers();
         const product = await Product.findOne(query);
 
         if (!product) {
@@ -273,7 +280,7 @@ const getProductById = async (req, res) => {
 // GET /api/products/bestsellers
 const getBestSellers = async (req, res) => {
     try {
-        // Sadece aktif ürünleri getir, çok satandan (soldCount) aza doğru sırala
+        await expireFeaturedProducts();
         const bestSellers = await Product.find(publicMatch())
             .select(LIST_SELECT)
             .sort({ soldCount: -1 })
@@ -315,11 +322,7 @@ const getSponsoredProducts = async (req, res) => {
         const now = new Date();
         const sponsoredProducts = await Product.find(publicMatch({
             isSponsored: true,
-            $or: [
-                { sponsoredUntil: { $gt: now } },
-                { sponsoredUntil: null },
-                { sponsoredUntil: { $exists: false } }
-            ]
+            sponsoredUntil: { $gt: now }
         }))
             .select(LIST_SELECT)
             .sort({ sponsoredUntil: -1, updatedAt: -1 })
@@ -483,6 +486,9 @@ const createMyProduct = async (req, res) => {
             description: String(description).trim(),
             category: String(category).toLowerCase(),
             price: Number(price),
+            costPrice: Math.max(0, Number(req.body.costPrice) || 0),
+            shippingCostCover: Math.max(0, Number(req.body.shippingCostCover) || 0),
+            extraCost: Math.max(0, Number(req.body.extraCost) || 0),
             stock: Number(stock),
             image: publicPath(mainFile),
             additionalImages: galleryFiles.map(publicPath),
@@ -525,6 +531,9 @@ const updateMyProduct = async (req, res) => {
         if (body.description !== undefined) product.description = String(body.description).trim();
         if (body.category !== undefined) product.category = String(body.category).toLowerCase().trim();
         if (body.price !== undefined && body.price !== '') product.price = Number(body.price);
+        if (body.costPrice !== undefined) product.costPrice = Math.max(0, Number(body.costPrice) || 0);
+        if (body.shippingCostCover !== undefined) product.shippingCostCover = Math.max(0, Number(body.shippingCostCover) || 0);
+        if (body.extraCost !== undefined) product.extraCost = Math.max(0, Number(body.extraCost) || 0);
         if (body.stock !== undefined && body.stock !== '') product.stock = Number(body.stock);
         if (body.discountPercentage !== undefined) {
             product.discountPercentage = Math.min(100, Math.max(0, Number(body.discountPercentage) || 0));

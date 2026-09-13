@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Container, Skeleton, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
 import { LOOKBOOK_CLIPS } from '../utils/siteVideos';
 import HomepageFilm from './HomepageFilm';
 import Reveal from './Reveal';
 
 const TOP_CLIPS = [
-  { key: 'orgu-doku', label: 'El örgüsü detay' },
-  { key: 'ahsap-sap', label: 'Ahşap sap detay' }
+  { key: 'orgu-doku', labelKey: 'lookbook.knit' },
+  { key: 'ahsap-sap', labelKey: 'lookbook.wood' }
 ];
 
 const isVideoUrl = (value = '') =>
@@ -114,13 +115,14 @@ function StudioClip({ src, poster, label, onClick }) {
 }
 
 export default function AtelierLookbook() {
-  const navigate = useNavigate();
+  const { t } = useTranslation('home');
+  const navigate = useLocaleNavigate();
   const [clips, setClips] = useState(
     TOP_CLIPS.map((slot) => ({
       id: null,
       src: LOOKBOOK_CLIPS[slot.key],
       poster: '',
-      label: slot.label
+      label: slot.labelKey
     }))
   );
   const [loading, setLoading] = useState(false);
@@ -141,7 +143,7 @@ export default function AtelierLookbook() {
               id: item?.product || null,
               src: LOOKBOOK_CLIPS[slot.key] || mediaUrl(item?.videoUrl),
               poster: mediaUrl(item?.posterUrl),
-              label: slot.label
+              label: slot.labelKey
             };
           }).filter((clip) => clip.src)
         );
@@ -160,13 +162,13 @@ export default function AtelierLookbook() {
     <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
       <Box sx={{ mb: 3 }}>
         <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#A290B7' }}>
-          ATÖLYE
+          {t('lookbook.eyebrow')}
         </Typography>
         <Typography component="h2" variant="h4" fontWeight={800} sx={{ color: '#2E3B55', letterSpacing: '-0.5px', fontSize: { xs: '1.45rem', md: '2.1rem' } }}>
-          Çantalar hareket halinde
+          {t('lookbook.title')}
         </Typography>
         <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.8, maxWidth: 560 }}>
-          El örgüsü detay, ahşap sap ve stüdyo ışığı. Koleksiyonun üç karesi.
+          {t('lookbook.subtitle')}
         </Typography>
       </Box>
 
@@ -187,6 +189,7 @@ export default function AtelierLookbook() {
             <Reveal key={clip.id || clip.label} delay={index * 0.08}>
               <StudioClip
                 {...clip}
+                label={t(clip.label)}
                 onClick={clip.id ? () => navigate(`/product/${clip.id}`) : undefined}
               />
             </Reveal>

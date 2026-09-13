@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography } from '@mui/material';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
 import { SITE_CLIPS } from '../utils/siteVideos';
 
 export default function HomepageFilm({ embedded = false }) {
+  const { t } = useTranslation('home');
   const wrapRef = useRef(null);
   const videoRef = useRef(null);
   const [clip, setClip] = useState({
     src: SITE_CLIPS.canta1,
-    label: 'Atölye filmi',
+    label: '',
     poster: ''
   });
   const [activated, setActivated] = useState(false);
@@ -22,7 +24,7 @@ export default function HomepageFilm({ embedded = false }) {
         if (cancelled || !item?.videoUrl) return;
         setClip({
           src: SITE_CLIPS.canta1,
-          label: item.label || item.title || 'Atölye filmi',
+          label: item.label || item.title || '',
           poster: mediaUrl(item.posterUrl)
         });
       })
@@ -95,13 +97,13 @@ export default function HomepageFilm({ embedded = false }) {
         />
         <Box sx={{ position: 'absolute', left: { xs: 22, md: 36 }, bottom: { xs: 22, md: 32 }, right: 24, zIndex: 1 }}>
           <Typography sx={{ letterSpacing: 2.2, fontWeight: 800, fontSize: 12, color: '#FDF4D2' }}>
-            ATÖLYE FİLMİ
+            {t('film.eyebrow')}
           </Typography>
           <Typography sx={{ fontWeight: 900, fontSize: { xs: '1.45rem', md: '2.15rem' }, color: '#fff', lineHeight: 1.15, mt: 0.6 }}>
-            Çanta, ışık ve el emeği
+            {t('film.title')}
           </Typography>
           <Typography sx={{ color: 'rgba(253,244,210,0.82)', fontWeight: 600, mt: 0.8, maxWidth: 460 }}>
-            Koleksiyonun stüdyoda çekilmiş tam karesi.
+            {t('film.subtitle')}
           </Typography>
         </Box>
       </Box>

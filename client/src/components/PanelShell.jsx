@@ -1,4 +1,4 @@
-import { Avatar, Box, Button, Chip, Drawer, IconButton, InputAdornment, InputBase, Tooltip, Typography } from '@mui/material';
+import { Avatar, Box, Button, Chip, Drawer, IconButton, InputBase, Tooltip, Typography } from '@mui/material';
 import MenuRounded from '@mui/icons-material/MenuRounded';
 import SearchIcon from '@mui/icons-material/Search';
 import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
@@ -9,9 +9,10 @@ import Seo from './Seo';
 
 const SIDEBAR = 262;
 
-export function PanelCard({ children, sx = {} }) {
+export function PanelCard({ children, sx = {}, ...rest }) {
   return (
     <Box
+      {...rest}
       sx={{
         bgcolor: T.surface,
         border: `1px solid ${T.line}`,
@@ -54,6 +55,9 @@ const STATUS_COLORS = {
   completed: { bg: 'rgba(150,190,150,0.24)', color: '#3F6B47' },
   failed: { bg: 'rgba(190,90,90,0.16)', color: '#96393C' },
   approved: { bg: 'rgba(150,190,150,0.24)', color: '#3F6B47' },
+  live: { bg: 'rgba(150,190,150,0.24)', color: '#3F6B47' },
+  ended: { bg: 'rgba(148,109,109,0.12)', color: '#6E5252' },
+  removed: { bg: 'rgba(148,109,109,0.12)', color: '#6E5252' },
   rejected: { bg: 'rgba(190,90,90,0.16)', color: '#96393C' },
   suspended: { bg: 'rgba(240,190,120,0.26)', color: '#8A5A21' }
 };
@@ -240,7 +244,7 @@ export default function PanelShell({
       <Box sx={{ width: SIDEBAR, flexShrink: 0, display: { xs: 'none', md: 'block' }, position: 'sticky', top: 0, height: '100vh' }}>
         {sidebar}
       </Box>
-      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} PaperProps={{ sx: { width: SIDEBAR, border: 'none' } }}>
+      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} slotProps={{ paper: { sx: { width: SIDEBAR, border: 'none' } } }}>
         {sidebar}
       </Drawer>
 
@@ -263,23 +267,29 @@ export default function PanelShell({
           <IconButton onClick={() => setMobileOpen(true)} sx={{ display: { md: 'none' }, color: T.navy }}>
             <MenuRounded />
           </IconButton>
-          <InputBase
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchPlaceholder}
-            startAdornment={<InputAdornment position="start"><SearchIcon sx={{ color: T.rose }} /></InputAdornment>}
+          <Box
             sx={{
               flex: 1,
               maxWidth: 560,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
               bgcolor: '#fff',
               border: `1px solid ${T.line}`,
               borderRadius: '14px',
               px: 1.6,
               py: 0.7,
-              fontWeight: 600,
               boxShadow: '0 8px 20px rgba(46,59,85,0.05)'
             }}
-          />
+          >
+            <SearchIcon sx={{ color: T.rose, fontSize: 20 }} />
+            <InputBase
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              sx={{ flex: 1, fontWeight: 600 }}
+            />
+          </Box>
           <Box sx={{ flex: 1 }} />
           <Tooltip title="Vitrini yeni sekmede aç">
             <Button

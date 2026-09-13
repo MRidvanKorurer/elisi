@@ -1,7 +1,11 @@
 import React, { useState, useEffect, Suspense, lazy, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress } from '@mui/material';
+import { trTR, enUS } from '@mui/material/locale';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import LocaleLayout from './i18n/LocaleLayout';
+import { localeFromPath, withLocale } from './i18n/locale';
 
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
@@ -23,12 +27,13 @@ const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'));
 const AtelierPage = lazy(() => import('./pages/AtelierPage'));
 const OrderResultPage = lazy(() => import('./pages/OrderResultPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const SellerPanel = lazy(() => import('./pages/SellerPanel'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const SupportDock = lazy(() => import('./components/SupportDock'));
 
-const customTheme = createTheme({
+const themeOptions = {
   palette: {
     primary: { main: '#B0CDE6', contrastText: '#2E3B55' },
     secondary: { main: '#946D6D', contrastText: '#FFFFFF' },
@@ -57,7 +62,7 @@ const customTheme = createTheme({
       }
     }
   }
-});
+};
 
 const PageFade = ({ children, reduced }) => {
   if (reduced) return children;
@@ -82,8 +87,14 @@ const RouteFallback = () => (
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { i18n } = useTranslation();
   const reduced = useReducedMotion();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const locale = localeFromPath(location.pathname);
+  const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const theme = useMemo(
+    () => createTheme(themeOptions, i18n.language === 'en' ? enUS : trTR),
+    [i18n.language]
+  );
 
   useSmoothScroll(!isAdminRoute);
 
@@ -131,7 +142,7 @@ export default function App() {
     } finally {
       setUser(null);
       clearSession();
-      navigate('/'); // Çıkış yapınca Anasayfaya gönder
+      navigate(withLocale('/', locale));
     }
   };
 
@@ -139,68 +150,66 @@ export default function App() {
     setUser(userData);
     persistSession(userData);
     if (options.redirect !== false) {
-      navigate('/');
+      navigate(withLocale('/', locale));
     }
   };
 
-  // UYUM SAĞLAYICI: Diğer componentlerdeki (Navbar, Footer vs.) setPage('home') komutlarını URL yönlendirmesine çevirir
   const handleSetPage = (pageName) => {
-    if (pageName === 'home') navigate('/');
-    else navigate(`/${pageName}`);
+    if (pageName === 'home') navigate(withLocale('/', locale));
+    else if (pageName === 'admin') navigate('/admin');
+    else navigate(withLocale(`/${pageName}`, locale));
   };
+
+  const storefrontRoutes = () => (
+    <>
+      <Route
+        index
+        element={<HomePage onNavigateAuth={() => navigate(withLocale('/auth', locale))} user={user} />}
+      />
+      <Route path="auth" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
+      <Route path="checkout" element={<CheckoutPage setPage={handleSetPage} user={user} />} />
+      <Route path="product/:id" element={<ProductDetailPage user={user} />} />
+      <Route path="profile" element={<ProfileDashboard />} />
+      <Route path="products" element={<ProductsPage />} />
+      <Route
+        path="satici-ol"
+        element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
+      />
+      <Route path="atolye/:slug" element={<AtelierPage />} />
+      <Route path="siparis-basarili" element={<OrderResultPage success />} />
+      <Route path="odeme-basarisiz" element={<OrderResultPage success={false} />} />
+      <Route path="gizlilik" element={<LegalPage />} />
+      <Route path="kvkk" element={<LegalPage />} />
+      <Route path="mesafeli-satis" element={<LegalPage />} />
+      <Route path="on-bilgilendirme" element={<LegalPage />} />
+      <Route path="iade" element={<LegalPage />} />
+      <Route path="kargo" element={<LegalPage />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </>
+  );
 
   const routes = useMemo(() => (
     <Routes location={location}>
       <Route
-        path="/"
-        element={<HomePage onNavigateAuth={() => navigate('/auth')} user={user} />}
-      />
-
-      <Route
-        path="/auth"
-        element={<AuthPage onLoginSuccess={handleLoginSuccess} />}
-      />
-
-      <Route
-        path="/checkout"
-        element={<CheckoutPage setPage={handleSetPage} user={user} />}
-      />
-
-      {/* Detay Sayfası Rotası */}
-      <Route
-        path="/product/:id"
-        element={<ProductDetailPage user={user} />}
-      />
-
-      <Route
-        path="/profile"
-        element={<ProfileDashboard />}
-      />
-
-      <Route path="/products" element={<ProductsPage />} />
-
-      <Route
-        path="/satici-ol"
-        element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
-      />
-      <Route path="/atolye/:slug" element={<AtelierPage />} />
-      <Route
-        path="/admin"
+        path="admin"
         element={
           isSuperAdmin(user?.rol)
             ? <AdminPanel user={user} handleLogout={handleLogout} />
             : <SellerPanel user={user} handleLogout={handleLogout} />
         }
       />
-      <Route path="/siparis-basarili" element={<OrderResultPage success />} />
-      <Route path="/odeme-basarisiz" element={<OrderResultPage success={false} />} />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="en" element={<LocaleLayout />}>
+        {storefrontRoutes()}
+      </Route>
+      <Route element={<LocaleLayout />}>
+        {storefrontRoutes()}
+      </Route>
     </Routes>
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [location, user]);
+  ), [location, user, locale]);
 
   return (
-    <ThemeProvider theme={customTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'clip', backgroundColor: 'background.default' }}>
 

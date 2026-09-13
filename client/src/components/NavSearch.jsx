@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
   Box,
   ButtonBase,
@@ -90,11 +92,11 @@ function Highlight({ text, term }) {
   );
 }
 
-function SectionLabel({ children, action }) {
+function SectionLabel({ children, action, localeTag = 'tr-TR' }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: 1.6, pb: 0.6 }}>
       <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: 1.2, color: '#A290B7' }}>
-        {String(children).toLocaleUpperCase('tr-TR')}
+        {String(children).toLocaleUpperCase(localeTag)}
       </Typography>
       {action}
     </Box>
@@ -118,7 +120,9 @@ const rowSx = (active) => ({
 });
 
 export default function NavSearch({ solid = true, variant = 'desktop', onNavigate }) {
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const navigate = useLocaleNavigate();
+  const localeTag = i18n.language === 'en' ? 'en-US' : 'tr-TR';
   const location = useLocation();
   const reduced = useReducedMotion();
   const inputRef = useRef(null);
@@ -196,7 +200,10 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
     if (!term) return [];
     const needle = normalize(term);
     return categories
-      .filter((value) => normalize(categoryLabel(value)).includes(needle) || normalize(value).includes(needle))
+      .filter((value) => {
+        const hay = `${categoryLabel(value)} ${categoryLabel(value, t)} ${value}`;
+        return normalize(hay).includes(needle);
+      })
       .slice(0, 3);
   }, [categories, term]);
 
@@ -204,15 +211,15 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
     const list = [];
 
     if (!term) {
-      recent.forEach((value) => list.push({ kind: 'recent', section: 'Son aramalar', value }));
+      recent.forEach((value) => list.push({ kind: 'recent', section: t('search.recent', { ns: 'catalog' }), value }));
       sortCategories(categories)
         .slice(0, 6)
-        .forEach((value) => list.push({ kind: 'category', section: 'Kategoriye göz at', value }));
+        .forEach((value) => list.push({ kind: 'category', section: t('search.browseCategory', { ns: 'catalog' }), value }));
       return list;
     }
 
-    matchedCategories.forEach((value) => list.push({ kind: 'category', section: 'Kategoriler', value }));
-    results.forEach((product) => list.push({ kind: 'product', section: 'Ürünler', product }));
+    matchedCategories.forEach((value) => list.push({ kind: 'category', section: t('search.categories', { ns: 'catalog' }), value }));
+    results.forEach((product) => list.push({ kind: 'product', section: t('search.products', { ns: 'catalog' }), product }));
     if (term.length >= 2) list.push({ kind: 'all', section: null });
     return list;
   }, [term, recent, categories, matchedCategories, results]);
@@ -377,7 +384,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       <InputBase
         inputRef={inputRef}
         value={query}
-        placeholder="Ürün, kategori veya renk ara"
+        placeholder={t('search.placeholder', { ns: 'catalog' })}
         onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
@@ -396,7 +403,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       {query ? (
         <IconButton
           size="small"
-          aria-label="Aramayı temizle"
+          aria-label={t('search.clear', { ns: 'catalog' })}
           onClick={(event) => { event.stopPropagation(); setQuery(''); inputRef.current?.focus(); }}
           sx={{ color: '#946D6D', flexShrink: 0 }}
         >
@@ -454,6 +461,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
           <React.Fragment key={`${option.kind}-${option.value || option.product?._id || index}`}>
             {showSection && (
               <SectionLabel
+                localeTag={localeTag}
                 action={
                   option.kind === 'recent' ? (
                     <ButtonBase
@@ -461,7 +469,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
                       onClick={clearRecent}
                       sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#6E5252', borderRadius: '8px', px: 0.6, py: 0.2 }}
                     >
-                      Temizle
+                      {t('actions.clearAll')}
                     </ButtonBase>
                   ) : null
                 }
@@ -483,7 +491,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
                 </Typography>
                 <IconButton
                   size="small"
-                  aria-label="Aramayı sil"
+                  aria-label={t('search.remove', { ns: 'catalog' })}
                   onClick={(event) => { event.stopPropagation(); removeRecent(option.value); }}
                   sx={{ color: '#A290B7', flexShrink: 0 }}
                 >
@@ -515,7 +523,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
                 </Box>
                 <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography noWrap sx={{ fontSize: '0.88rem', fontWeight: 800, color: '#2E3B55' }}>
-                    <Highlight text={categoryLabel(option.value)} term={term} />
+                    <Highlight text={categoryLabel(option.value, t)} term={term} />
                   </Typography>
                   <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6E5252' }}>
                     Koleksiyonu görüntüle
@@ -552,10 +560,10 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mt: 0.2 }}>
                       <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#6E5252' }}>
-                        {categoryLabel(product.category)}
+                        {categoryLabel(product.category, t)}
                       </Typography>
                       {product.stock === 0 && (
-                        <Chip label="Tükendi" size="small" sx={{ height: 17, fontSize: '0.62rem', fontWeight: 800, bgcolor: 'rgba(46,59,85,0.08)', color: '#6E5252' }} />
+                        <Chip label={t('search.soldOut', { ns: 'catalog' })} size="small" sx={{ height: 17, fontSize: '0.62rem', fontWeight: 800, bgcolor: 'rgba(46,59,85,0.08)', color: '#6E5252' }} />
                       )}
                     </Box>
                   </Box>

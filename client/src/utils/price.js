@@ -1,7 +1,10 @@
+import i18n from '../i18n';
+import { dateLocale } from '../i18n/locale';
+
 export const roundMoney = (value) => Number(Number(value || 0).toFixed(2));
 
 export const formatTRY = (value) =>
-  roundMoney(value).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  roundMoney(value).toLocaleString(dateLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const salePriceOf = (product) => {
   const list = Number(product?.price ?? product?.fiyat ?? 0);
@@ -58,4 +61,21 @@ export const orderChargeRows = (order) => {
   });
   rows.push({ label: 'Toplam', value: total, total: true });
   return rows;
+};
+
+export const platformShareOf = (order) => {
+  const items = order?.orderItems || [];
+  const gross = roundMoney(items.reduce((sum, item) => sum + lineTotalOf(item), 0));
+  const stored = (order?.sellerSettlements || []).reduce((sum, row) => sum + Number(row.fee || 0), 0);
+  const fee = roundMoney(
+    order?.platformFee != null && order.platformFee !== ''
+      ? order.platformFee
+      : stored || gross * 0.1
+  );
+  return {
+    percent: Number(order?.platformFeePercent) || 10,
+    gross,
+    fee,
+    net: roundMoney(gross - fee)
+  };
 };

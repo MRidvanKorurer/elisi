@@ -26,7 +26,7 @@ const featuredRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'cancelled', 'removed'],
+      enum: ['pending', 'approved', 'live', 'ended', 'rejected', 'cancelled', 'removed'],
       default: 'pending',
       index: true
     },

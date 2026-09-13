@@ -13,6 +13,13 @@ export const authService = {
     return response.data;
   },
 
+  // Google ile giriş / kayıt (ID token veya access token)
+  google: async (payload) => {
+    const body = typeof payload === 'string' ? { credential: payload } : payload;
+    const response = await API.post('/auth/google', body);
+    return response.data;
+  },
+
   // Kullanıcı Profili Getir
   getProfile: async () => {
     const response = await API.get('/auth/me');

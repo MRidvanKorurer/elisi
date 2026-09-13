@@ -1,0 +1,40 @@
+{
+  "seoTitle": "Sell on Nik Bag — list your handmade work",
+  "seoDescription": "Bring handmade pieces to the Nik Bag vitrine. The platform share is clear: 10% of product sales (card fees included), 8% after 50,000 ₺ in 90 days. Shipping is separate. Applying is free.",
+  "home": "Home",
+  "crumb": "Sell on Nik Bag",
+  "backHome": "Back to home",
+  "login": "log in",
+  "steps": {
+    "account": "Account",
+    "accountHint": "Identity and contact",
+    "atelier": "Atelier",
+    "atelierHint": "Shop identity",
+    "pay": "Payout",
+    "payHint": "Address and IBAN"
+  },
+  "status": {
+    "pendingTitle": "Your application is under review",
+    "pendingText": "You can upload products after approval. This usually doesn’t take long.",
+    "approvedTitle": "Your shop is live",
+    "approvedText": "Your seller account is approved. Bring your work to the vitrine.",
+    "rejectedTitle": "Application declined",
+    "rejectedText": "Check your details and reach the support team.",
+    "suspendedTitle": "Shop paused",
+    "suspendedText": "Your account is temporarily paused. Contact support."
+  },
+  "perks": {
+    "safeTitle": "A protected account",
+    "safeText": "Your session and application stay private.",
+    "feeTitle": "One clear share",
+    "feeText": "10% of product sales (Iyzico included). 8% after 50,000 ₺ in 90 days. Shipping is outside the fee.",
+    "paceTitle": "Your own pace",
+    "paceText": "You set making and shipping time."
+  },
+  "type": {
+    "individual": "Individual",
+    "individualText": "Your atelier, your name.",
+    "company": "Business",
+    "companyText": "Company or cooperative."
+  }
+}

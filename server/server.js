@@ -1,38 +1,76 @@
 
 const dns = require('dns');
-// DNS çözümleme sırasını ve sunucularını ayarla (MongoDB Atlas SRV engelleri için)
-dns.setDefaultResultOrder('ipv4first');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-
 const path = require('path');
 const express = require('express');
 const dotenv = require('dotenv');
-const cors = require('cors'); // SADECE 1 KERE TANIMLANMALI
+const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const connectDB = require('./config/db'); // Veritabanı bağlantı dosyanız
 
-// Çevre değişkenlerini yükle (her zaman server/.env)
 dotenv.config({ path: path.join(__dirname, '.env') });
+
+dns.setDefaultResultOrder('ipv4first');
+if (process.env.DNS_USE_SYSTEM !== '1') {
+  const servers = process.env.DNS_SERVERS
+    ? process.env.DNS_SERVERS.split(',').map((item) => item.trim()).filter(Boolean)
+    : ['8.8.8.8', '8.8.4.4'];
+  if (servers.length) dns.setServers(servers);
+}
+
+const connectDB = require('./config/db');
 
 // Veritabanına bağlan
 connectDB();
 
-const app = express();
+const { corsOrigins, warnProductionConfig } = require('./utils/runtime');
+const { configured: mediaConfigured } = require('./utils/mediaStore');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
-// 1. CORS Ayarı (Credentials & Origin Koruması)
+const app = express();
+app.set('trust proxy', 1);
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+
+const allowedOrigins = corsOrigins();
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Bu origin için CORS izni yok.'));
+  },
   credentials: true
 }));
 
-// 2. Middleware'ler
-app.use(express.json()); // JSON gövdelerini okumak için
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // HttpOnly Cookie'leri okumak için
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(cookieParser());
 
-app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
+const { uploadRoot } = require('./utils/uploadStore');
+// Eski /uploads kayıtları ve site videoları. Yeni yüklemeler Cloudinary'ye gider.
+app.use('/uploads', express.static(uploadRoot(), {
+  maxAge: '7d',
+  fallthrough: true
+}));
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { mesaj: 'Çok fazla deneme. Biraz sonra tekrar deneyin.' }
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/google', authLimiter);
 
 // 3. Rotalar (Routes)
+app.use('/api/site', require('./routes/siteRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
@@ -45,6 +83,8 @@ app.use('/api/ads', require('./routes/adsRoutes'));
 app.use('/api/lookbook', require('./routes/lookbookRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/promos', require('./routes/promoRoutes'));
+app.use('/api/featured', require('./routes/featuredRoutes'));
+app.use('/api/ateliers', require('./routes/atelierWeekRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/questions', require('./routes/questionRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));
@@ -61,9 +101,13 @@ app.use((err, req, res, next) => {
 
 // 5. Sunucuyu Başlat
 const PORT = process.env.PORT || 5000;
+warnProductionConfig();
 app.listen(PORT, () => {
   console.log(`✅ Sunucu ${PORT} portunda güvenli şekilde çalışıyor...`);
   if (process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY) {
     console.log('✅ Destek asistanı LLM anahtarı yüklendi');
+  }
+  if (!mediaConfigured()) {
+    console.warn('⚠️  Görsel deposu yok. Yeni yüklemeler diske yazılmaz; Cloudinary anahtarları gerekli.');
   }
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import HeroBanner from '../components/HeroBanner';
+import WeeklyAteliers from '../components/WeeklyAteliers';
 import BestSellers from '../components/BestSellers';
 import CategoryProductList from '../components/CategoryProductList';
 import NewArrivals from '../components/NewArrivals';
@@ -9,6 +10,7 @@ import HowItWorks from '../components/HowItWorks';
 import SellerCtaBanner from '../components/SellerCtaBanner';
 import TrustStrip from '../components/TrustStrip';
 import Reveal from '../components/Reveal';
+import { useTranslation } from 'react-i18next';
 import Seo from '../components/Seo';
 import { isSuperAdmin } from '../utils/roles';
 
@@ -19,11 +21,12 @@ export default function HomePage({
     onToggleFavorite = (id) => console.log("Favori tıklanan id:", id),
     favorites = []
 }) {
+    const { t } = useTranslation('seo');
     return (
         <Box sx={{ width: '100%', overflowX: 'hidden', pb: { xs: 2, md: 0 } }}>
             <Seo
                 path="/"
-                description="Giyim, çanta, mum, takı, seramik, ahşap ve ev dekorasyonu dahil 19 el yapımı kategoride sınırlı sayıda tasarım. Nik Bag atölyesinden keşfedin: güvenli ödeme, hızlı kargo, 14 gün içinde iade."
+                description={t('homeDescription')}
             />
 
             <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
@@ -33,6 +36,8 @@ export default function HomePage({
                 onToggleFavorite={onToggleFavorite}
                 favorites={favorites}
             />
+
+            <WeeklyAteliers />
 
             <Reveal>
                 <NewArrivals onAddToCart={onAddToCart} />

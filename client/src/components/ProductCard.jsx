@@ -395,12 +395,16 @@
 
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
+import LocaleLink from '../i18n/LocaleLink';
+import { categoryLabel } from '../utils/categories';
 import { 
   Card, CardMedia, CardContent, CardActions, Typography, Button, 
   Chip, Box, Tooltip, Snackbar, Alert, CircularProgress 
 } from '@mui/material';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
+import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import { Favorite, FavoriteBorderOutlined } from '@mui/icons-material';
 
@@ -428,7 +432,8 @@ export const productCardGridSx = {
 };
 
 export default function ProductCard({ product, fullWidth = false }) {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const navigate = useLocaleNavigate();
   
   // State'ler
   const [loading, setLoading] = useState(false);
@@ -439,11 +444,11 @@ export default function ProductCard({ product, fullWidth = false }) {
   const descRef = useRef(null);
 
   const id = product?._id || product?.id;
-  const title = product?.title || product?.baslik || 'Özel Tasarım Ürün';
+  const title = product?.title || product?.baslik || t('card.untitled', { ns: 'catalog' });
   const image = product?.image || product?.resimUrl || (product?.images && product.images[0]) || FALLBACK_IMAGE;
-  const description = product?.description || product?.aciklama || 'Geleneksel el işçiliği tasarımı.';
+  const description = product?.description || product?.aciklama || t('card.defaultDescription', { ns: 'catalog' });
   const price = product?.price || product?.fiyat || 0;
-  const category = product?.category || product?.kategori || 'Atölye';
+  const category = categoryLabel(product?.category || product?.kategori, t) || t('card.atelier', { ns: 'catalog' });
   const finalPrice = salePriceOf(product);
 
   useEffect(() => {
@@ -482,14 +487,14 @@ export default function ProductCard({ product, fullWidth = false }) {
       const response = await cartService.addToCart(payload);
       
       if (response.success) {
-        setToast({ open: true, message: 'Ürün sepete eklendi!', severity: 'success' });
+        setToast({ open: true, message: t('card.added', { ns: 'catalog' }), severity: 'success' });
         window.dispatchEvent(new Event('cartUpdated'));
       }
     } catch (error) {
       if (error.mesaj === 'Yetkisiz erişim, token bulunamadı.' || error.status === 401) {
-        setToast({ open: true, message: 'Sepete eklemek için giriş yapmalısınız.', severity: 'warning' });
+        setToast({ open: true, message: t('card.loginToCart', { ns: 'catalog' }), severity: 'warning' });
       } else {
-        setToast({ open: true, message: 'Ürün eklenemedi.', severity: 'error' });
+        setToast({ open: true, message: t('card.addFailed', { ns: 'catalog' }), severity: 'error' });
       }
     } finally {
       setLoading(false);
@@ -506,7 +511,7 @@ export default function ProductCard({ product, fullWidth = false }) {
       if (isFavorite) {
         await userService.removeFavorite(id);
         setProductFavorite(id, false);
-        setToast({ open: true, message: 'Ürün favorilerden çıkarıldı.', severity: 'info' });
+        setToast({ open: true, message: t('card.favRemoved', { ns: 'catalog' }), severity: 'info' });
       } else {
         try {
           await userService.addFavorite(id);
@@ -514,13 +519,13 @@ export default function ProductCard({ product, fullWidth = false }) {
           if (addError?.response?.status !== 400) throw addError;
         }
         setProductFavorite(id, true);
-        setToast({ open: true, message: 'Ürün favorilere eklendi!', severity: 'success' });
+        setToast({ open: true, message: t('card.favAdded', { ns: 'catalog' }), severity: 'success' });
       }
     } catch (error) {
       if (error.response?.status === 401 || error.message?.includes('token') || error.message?.includes('Giriş')) {
-        setToast({ open: true, message: 'Favorilere eklemek için giriş yapmalısınız.', severity: 'warning' });
+        setToast({ open: true, message: t('card.loginToFav', { ns: 'catalog' }), severity: 'warning' });
       } else {
-        setToast({ open: true, message: error.response?.data?.message || 'İşlem başarısız.', severity: 'error' });
+        setToast({ open: true, message: error.response?.data?.message || t('card.failed', { ns: 'catalog' }), severity: 'error' });
       }
     } finally {
       setFavLoading(false);
@@ -601,7 +606,23 @@ export default function ProductCard({ product, fullWidth = false }) {
               '.MuiCard-root:hover &': { transform: 'scale(1.06)' }
             }}
           />
-          <Box sx={{ position: 'absolute', top: 10, left: 10, maxWidth: 'calc(100% - 52px)' }}>
+          <Box sx={{ position: 'absolute', top: 10, left: 10, maxWidth: 'calc(100% - 52px)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.6 }}>
+            {product?.isSponsored ? (
+              <Chip
+                icon={<AutoAwesomeOutlined sx={{ fontSize: '14px !important', color: '#fff !important' }} />}
+                label={t('card.featured', { ns: 'catalog' })}
+                size="small"
+                sx={{
+                  backgroundColor: '#2E3B55',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: '0.68rem',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(46,59,85,0.28)',
+                  '& .MuiChip-label': { px: 0.8 }
+                }}
+              />
+            ) : null}
             <Tooltip title={category} arrow placement="top" enterDelay={200}>
               <Chip
                 label={category}
@@ -659,7 +680,7 @@ export default function ProductCard({ product, fullWidth = false }) {
             <Box component="h3" sx={{ m: 0 }}>
               <Tooltip title={title} arrow placement="top" enterDelay={200}>
                 <Box
-                  component={RouterLink}
+                  component={LocaleLink}
                   to={id ? `/product/${id}` : '/products'}
                   onClick={(e) => e.stopPropagation()}
                   sx={{
@@ -712,7 +733,7 @@ export default function ProductCard({ product, fullWidth = false }) {
                   <Box
                     component="button"
                     type="button"
-                    aria-label="Açıklamanın devamını gör"
+                    aria-label={t('card.moreDescription', { ns: 'catalog' })}
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                     sx={{
@@ -741,7 +762,7 @@ export default function ProductCard({ product, fullWidth = false }) {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1, minWidth: 0 }}>
-            <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem', whiteSpace: 'nowrap' }}>ÖZEL FİYAT</Typography>
+            <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem', whiteSpace: 'nowrap' }}>{t('card.specialPrice', { ns: 'catalog' })}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0 }}>
               {product?.discountPercentage > 0 && (
                 <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap' }}>₺{formatTRY(price)}</Typography>
@@ -759,7 +780,7 @@ export default function ProductCard({ product, fullWidth = false }) {
             onClick={handleAddToCart} 
             sx={{ borderRadius: '12px', py: 1, backgroundColor: '#A290B7', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', boxShadow: 'none', '&:hover': { backgroundColor: '#946D6D' } }}
           >
-            {loading ? 'Ekleniyor...' : 'Sepete Ekle'}
+            {loading ? t('card.adding', { ns: 'catalog' }) : t('card.addToCart', { ns: 'catalog' })}
           </Button>
         </CardActions>
       </Card>

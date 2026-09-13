@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Box,
@@ -39,6 +39,7 @@ import useDebounce from '../hooks/useDebounce';
 import { imgMood4 } from '../assets/media';
 import Seo from '../components/Seo';
 import { breadcrumbSchema, itemListSchema } from '../utils/schema';
+import { useTranslation } from 'react-i18next';
 import { categoryLabel, mergeCatalogCategories } from '../utils/categories';
 
 const ITEMS_PER_PAGE = 8;
@@ -137,6 +138,7 @@ function colorTone(value) {
 const COLOR_PREVIEW_LIMIT = 12;
 
 function ColorFilter({ colors, selectedColors, onToggleColor }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const needle = query.trim().toLocaleLowerCase('tr-TR');
 
@@ -199,7 +201,7 @@ function ColorFilter({ colors, selectedColors, onToggleColor }) {
                 size="small"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Renk adı yaz"
+                placeholder={t('list.colorPlaceholder', { ns: 'catalog' })}
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">
@@ -363,6 +365,7 @@ function FilterPanel({
     onClear,
     resultCount = 0
 }) {
+    const { t } = useTranslation();
     const flagState = { inStock, onSale, isNew, immediateDelivery, minRating: minRating >= 4 };
     const activeCount = [
         searchTerm.trim(),
@@ -395,7 +398,7 @@ function FilterPanel({
             <TextField
                 fullWidth
                 size="small"
-                placeholder="Parça, renk veya malzeme"
+                placeholder={t('list.searchPlaceholder', { ns: 'catalog' })}
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 InputProps={{
@@ -425,7 +428,7 @@ function FilterPanel({
                             <FilterRow key={item.key} selected={selected} onClick={() => onToggleFlag(item.key)}>
                                 <Icon sx={{ fontSize: 15, color: selected ? '#946D6D' : '#A290B7' }} />
                                 <Typography sx={{ fontWeight: 700, fontSize: '0.76rem', color: '#2E3B55' }}>
-                                    {item.label}
+                                    {t(`list.quick.${item.key}`, { ns: 'catalog' })}
                                 </Typography>
                             </FilterRow>
                         );
@@ -455,7 +458,7 @@ function FilterPanel({
                                 onClick={() => onToggleCategory(cat)}
                             >
                                 <Typography sx={{ fontWeight: selectedCategories.includes(cat) ? 800 : 600, fontSize: '0.82rem' }}>
-                                    {categoryLabel(cat)}
+                                    {categoryLabel(cat, t)}
                                 </Typography>
                             </FilterRow>
                         ))}
@@ -535,85 +538,81 @@ function FilterPanel({
 }
 
 function FilterAside({ children }) {
-    const slotRef = useRef(null);
-    const [left, setLeft] = useState(null);
-
-    useLayoutEffect(() => {
-        const slot = slotRef.current;
-        if (!slot) return undefined;
-
-        const sync = () => {
-            setLeft(Math.round(slot.getBoundingClientRect().left));
-        };
-
-        sync();
-        const observer = new ResizeObserver(sync);
-        observer.observe(slot);
-        window.addEventListener('resize', sync);
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('resize', sync);
-        };
-    }, []);
-
     return (
-        <Box ref={slotRef} sx={{ width: 300, flexShrink: 0 }}>
-        <Paper
-            elevation={0}
-            data-lenis-prevent
+        <Box
             sx={{
-                position: 'fixed',
-                top: 96,
-                left: left ?? 0,
-                width: 300,
-                visibility: left == null ? 'hidden' : 'visible',
-                maxHeight: 'calc(100vh - 120px)',
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                overscrollBehavior: 'contain',
-                p: 2.3,
-                borderRadius: '28px',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,249,236,0.94) 100%)',
-                border: '1px solid rgba(148,109,109,0.12)',
-                boxShadow: '0 22px 44px -30px rgba(46,59,85,0.5)',
-                backdropFilter: 'blur(18px)',
-                zIndex: 1,
-                '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 22,
-                    right: 22,
-                    height: 3,
-                    borderRadius: '0 0 8px 8px',
-                    background: 'linear-gradient(90deg, #B0CDE6, #A290B7 50%, #946D6D)',
-                    pointerEvents: 'none'
-                },
-                '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    width: 140,
-                    height: 140,
-                    right: -48,
-                    top: -56,
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(176,205,230,0.35) 0%, transparent 70%)',
-                    pointerEvents: 'none'
-                },
-                '&::-webkit-scrollbar': { width: 6 },
-                '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'rgba(162,144,183,0.45)',
-                    borderRadius: 99
-                }
+                width: { md: 292, lg: 308 },
+                flexShrink: 0,
+                alignSelf: 'flex-start',
+                position: 'sticky',
+                // Fixed navbar (76) + nefes — scroll’da sabit kalsın, fixed hack yok
+                top: { md: 92 },
+                zIndex: 2,
+                maxHeight: 'calc(100dvh - 108px)'
             }}
         >
-            {children}
-        </Paper>
+            <Paper
+                elevation={0}
+                data-lenis-prevent
+                sx={{
+                    position: 'relative',
+                    height: '100%',
+                    maxHeight: 'calc(100dvh - 108px)',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    overscrollBehavior: 'contain',
+                    p: { md: 2.2, lg: 2.4 },
+                    borderRadius: '26px',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(255,249,236,0.95) 100%)',
+                    border: '1px solid rgba(148,109,109,0.12)',
+                    boxShadow: '0 18px 40px -28px rgba(46,59,85,0.48)',
+                    backdropFilter: 'blur(18px)',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarGutter: 'stable',
+                    '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 20,
+                        right: 20,
+                        height: 3,
+                        borderRadius: '0 0 8px 8px',
+                        background: 'linear-gradient(90deg, #B0CDE6, #A290B7 50%, #946D6D)',
+                        pointerEvents: 'none',
+                        zIndex: 2
+                    },
+                    '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        width: 140,
+                        height: 140,
+                        right: -48,
+                        top: -56,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(176,205,230,0.32) 0%, transparent 70%)',
+                        pointerEvents: 'none',
+                        zIndex: 0
+                    },
+                    '&::-webkit-scrollbar': { width: 5 },
+                    '&::-webkit-scrollbar-track': { background: 'transparent', marginBlock: 12 },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'rgba(162,144,183,0.4)',
+                        borderRadius: 99
+                    },
+                    '&:hover::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'rgba(148,109,109,0.45)'
+                    }
+                }}
+            >
+                {children}
+            </Paper>
         </Box>
     );
 }
 
 export default function ProductsPage() {
+    const { t, i18n } = useTranslation();
+    const locale = i18n.language === 'en' ? 'en' : 'tr';
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
     const [searchParams, setSearchParams] = useSearchParams();
@@ -869,7 +868,7 @@ export default function ProductsPage() {
     const activeChips = useMemo(() => {
         const chips = [];
         if (debouncedSearchTerm.trim()) chips.push({ key: 'q', label: `Arama: ${debouncedSearchTerm.trim()}` });
-        selectedCategories.forEach((cat) => chips.push({ key: `cat-${cat}`, label: categoryLabel(cat), onDelete: () => handleToggle(selectedCategories, cat, setSelectedCategories) }));
+        selectedCategories.forEach((cat) => chips.push({ key: `cat-${cat}`, label: categoryLabel(cat, t), onDelete: () => handleToggle(selectedCategories, cat, setSelectedCategories) }));
         selectedColors.forEach((color) => chips.push({ key: `color-${color}`, label: `Renk: ${color}`, onDelete: () => handleToggle(selectedColors, color, setSelectedColors) }));
         if (inStock) chips.push({ key: 'stock', label: 'Stokta var', onDelete: () => setInStock(false) });
         if (onSale) chips.push({ key: 'sale', label: 'İndirimli', onDelete: () => setOnSale(false) });
@@ -929,13 +928,13 @@ export default function ProductsPage() {
     // Filtrelenmiş listeler arama motorlarında kopya içerik sayılmasın diye tek bir kanonik adrese işaret eder
     const activeCategory = selectedCategories.length === 1 ? selectedCategories[0] : null;
     const seoTitle = searchTerm
-        ? `"${searchTerm}" arama sonuçları`
+        ? `"${searchTerm}"`
         : activeCategory
-            ? `${categoryLabel(activeCategory)} Modelleri ve Fiyatları`
-            : 'El Yapımı Tasarım Koleksiyonu';
+            ? t('list.categoryModels', { ns: 'catalog', name: categoryLabel(activeCategory, t) })
+            : t('list.title', { ns: 'catalog' });
     const seoDescription = activeCategory
-        ? `El yapımı ${categoryLabel(activeCategory)} koleksiyonu: güncel modeller, fiyatlar ve stok durumu. Nik Bag atölyesinden sınırlı sayıda üretilen tasarımlar, güvenli ödeme ve hızlı kargo ile.`
-        : 'Nik Bag koleksiyonundaki giyim, çanta, mum, takı, seramik, ahşap ve diğer el yapımı tasarımları fiyat, renk ve kategoriye göre filtreleyerek keşfedin.';
+        ? t('list.seoCategory', { ns: 'catalog', name: categoryLabel(activeCategory, t) })
+        : t('list.seoAll', { ns: 'catalog' });
     const isFilteredView = Boolean(searchTerm) || selectedCategories.length > 0 || selectedColors.length > 0;
 
     return (
@@ -948,21 +947,21 @@ export default function ProductsPage() {
                 type="website"
                 jsonLd={[
                     breadcrumbSchema([
-                        { name: 'Ana Sayfa', path: '/' },
-                        { name: 'Ürünler', path: '/products' }
-                    ]),
-                    products.length > 0 && !isFilteredView ? itemListSchema(products, { path: '/products' }) : null
+                        { name: t('list.home', { ns: 'catalog' }), path: '/' },
+                        { name: t('list.products', { ns: 'catalog' }), path: '/products' }
+                    ], locale),
+                    products.length > 0 && !isFilteredView ? itemListSchema(products, { path: '/products', locale }) : null
                 ]}
             />
             <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 4 } }}>
-                <Box sx={{ display: 'flex', gap: { md: 3 }, alignItems: 'flex-start' }}>
+                <Box sx={{ display: 'flex', gap: { md: 3, lg: 3.5 }, alignItems: 'flex-start', position: 'relative' }}>
                     {isDesktop && (
                         <FilterAside>
                             <FilterPanel {...filterPanelProps} />
                         </FilterAside>
                     )}
 
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: 0, position: 'relative' }}>
                 <Paper
                     elevation={0}
                     sx={{
@@ -1006,7 +1005,7 @@ export default function ProductsPage() {
                     >
                         <Box>
                             <Typography component="h1" variant="h4" fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.55rem', md: '2rem' } }}>
-                                {activeCategory ? `${categoryLabel(activeCategory)} modelleri` : 'Tüm ürünler'}
+                                {activeCategory ? t('list.categoryModels', { ns: 'catalog', name: categoryLabel(activeCategory, t) }) : t('list.allProducts', { ns: 'catalog' })}
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#6E5252', mt: 0.4 }}>
                                 {pagination.totalProducts || 0} üründen {products.length} tanesi gösteriliyor
@@ -1045,7 +1044,7 @@ export default function ProductsPage() {
                                     }}
                                 >
                                     {SORT_OPTIONS.map((option) => (
-                                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                                        <MenuItem key={option.value} value={option.value}>{t(`list.sort.${option.value}`, { ns: 'catalog' })}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
@@ -1063,7 +1062,7 @@ export default function ProductsPage() {
                                 />
                             ))}
                             <Chip
-                                label="Tümünü temizle"
+                                label={t('actions.clearAll')}
                                 onClick={clearFilters}
                                 sx={{ backgroundColor: '#2E3B55', color: '#fff', fontWeight: 700 }}
                             />
@@ -1152,7 +1151,7 @@ export default function ProductsPage() {
                                                 '&:hover': { backgroundColor: '#946D6D' }
                                             }}
                                         >
-                                            {loading ? 'Yükleniyor...' : `Daha fazla göster (${remaining} ürün kaldı)`}
+                                            {loading ? t('actions.loading') : t('actions.showMoreRemaining', { count: remaining })}
                                         </Button>
                                     </Box>
                                 )}

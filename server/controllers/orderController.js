@@ -8,9 +8,10 @@ const User = require('../models/User');
 const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts } = require('../utils/welcomeCoupon');
 const { evaluatePromo } = require('../utils/promoCode');
 const PromoCode = require('../models/PromoCode');
-
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
+const Seller = require('../models/Seller');
+const { settlementsFromItems, ratesForSellers } = require('../utils/commission');
+const { clientUrl, serverUrl, isProd } = require('../utils/runtime');
+const { applyPaidStock } = require('../utils/orderStock');
 const FREE_SHIPPING_LIMIT = 500;
 const SHIPPING_FEE = 49.9;
 
@@ -112,6 +113,24 @@ exports.createOrder = async (req, res) => {
         if (!allowedMethods.includes(paymentMethod)) {
             return res.status(400).json({ success: false, message: 'Geçersiz ödeme yöntemi.' });
         }
+        if (savedCardId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Kayıtlı kart ödemesi kapalı. Kartla ödemede İyzico sayfasına yönlendirilirsiniz.'
+            });
+        }
+        if (paymentMethod === 'credit_card') {
+            const identity = String(customerInfo?.identityNumber || '').replace(/\D/g, '');
+            if (identity.length !== 11) {
+                return res.status(400).json({ success: false, message: 'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli.' });
+            }
+            if (isProd() && (!process.env.IYZICO_API_KEY || !process.env.SERVER_URL)) {
+                return res.status(503).json({ success: false, message: 'Kart ödemesi henüz yapılandırılmamış.' });
+            }
+        }
+        if (paymentMethod === 'transfer' && isProd() && !(process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN)) {
+            return res.status(503).json({ success: false, message: 'Havale hesabı henüz tanımlanmamış.' });
+        }
 
         if (!customerInfo?.firstName || !customerInfo?.lastName || !customerInfo?.email || !customerInfo?.phone) {
             return res.status(400).json({ success: false, message: 'İletişim bilgileri eksik.' });
@@ -181,6 +200,7 @@ exports.createOrder = async (req, res) => {
         let promoDiscount = 0;
         let appliedPromo = '';
         let appliedPromoPercent = 0;
+        let promoSellerId = null;
         const requestedPromo = normalizeCode(promoCode);
         if (requestedPromo) {
             const promoResult = await evaluatePromo(requestedPromo, { subtotal, items: normalizedItems });
@@ -190,10 +210,24 @@ exports.createOrder = async (req, res) => {
             promoDiscount = promoResult.indirim;
             appliedPromo = promoResult.kod;
             appliedPromoPercent = promoResult.indirimOrani;
+            promoSellerId = promoResult.sellerId || null;
         }
 
         const shippingCost = subtotal >= FREE_SHIPPING_LIMIT ? 0 : SHIPPING_FEE;
         const totalPrice = money(Math.max(0, subtotal - couponDiscount - promoDiscount) + shippingCost);
+        const sellerIds = [...new Set(normalizedItems.map((item) => String(item.seller || '')).filter(Boolean))];
+        const shops = sellerIds.length
+            ? await Seller.find({ user: { $in: sellerIds } }).select('user komisyonOrani komisyonManuel')
+            : [];
+        const { rates: rateMap } = await ratesForSellers(shops);
+        const discounts = {};
+        if (promoSellerId && promoDiscount) discounts[promoSellerId] = promoDiscount;
+        const sellerSettlements = settlementsFromItems(normalizedItems, rateMap, discounts);
+        const platformFee = money(sellerSettlements.reduce((sum, row) => sum + row.fee, 0));
+        const settlementGross = sellerSettlements.reduce((sum, row) => sum + row.gross, 0);
+        const platformFeePercent = settlementGross > 0
+            ? money((platformFee / settlementGross) * 100)
+            : 10;
 
         const order = new Order({
             user: req.user ? req.user._id : null,
@@ -201,7 +235,8 @@ exports.createOrder = async (req, res) => {
                 firstName: customerInfo.firstName.trim(),
                 lastName: customerInfo.lastName.trim(),
                 email: customerInfo.email.trim().toLowerCase(),
-                phone: customerInfo.phone.trim()
+                phone: customerInfo.phone.trim(),
+                identityNumber: String(customerInfo.identityNumber || '').replace(/\D/g, '')
             },
             shippingAddress: {
                 address: shippingAddress.address.trim(),
@@ -216,8 +251,12 @@ exports.createOrder = async (req, res) => {
             promoCode: appliedPromo,
             promoPercent: appliedPromoPercent,
             promoDiscount,
+            promoSeller: promoSellerId,
             shippingCost,
             totalPrice,
+            platformFeePercent,
+            platformFee,
+            sellerSettlements,
             paymentMethod,
             paymentStatus: 'pending',
             sellerFulfillments: [...new Set(
@@ -268,7 +307,7 @@ exports.createOrder = async (req, res) => {
                 currency: Iyzipay.CURRENCY.TRY,
                 basketId: savedOrder._id.toString(),
                 paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
-                callbackUrl: `${SERVER_URL}/api/orders/payment/callback`,
+                callbackUrl: `${serverUrl()}/api/orders/payment/callback`,
                 enabledInstallments: [1, 2, 3, 6, 9],
                 buyer: {
                     id: req.user ? req.user._id.toString() : `GUEST_${savedOrder._id.toString().slice(-8)}`,
@@ -276,9 +315,9 @@ exports.createOrder = async (req, res) => {
                     surname: savedOrder.customerInfo.lastName,
                     gsmNumber: formatGsm(savedOrder.customerInfo.phone),
                     email: savedOrder.customerInfo.email,
-                    identityNumber: '11111111111',
+                    identityNumber: String(savedOrder.customerInfo.identityNumber || '').replace(/\D/g, ''),
                     registrationAddress: savedOrder.shippingAddress.address,
-                    ip: req.ip || '85.34.78.112',
+                    ip: req.ip || req.socket?.remoteAddress || '127.0.0.1',
                     city: savedOrder.shippingAddress.city,
                     country: 'Turkey'
                 },
@@ -343,7 +382,7 @@ exports.createOrder = async (req, res) => {
 const finishPaymentCallback = async (req, res) => {
     try {
         const token = req.body.token || req.query.token;
-        if (!token) return res.redirect(`${CLIENT_URL}/odeme-basarisiz?reason=${encodeURIComponent('Ödeme bilgisi alınamadı.')}`);
+        if (!token) return res.redirect(`${clientUrl()}/odeme-basarisiz?reason=${encodeURIComponent('Ödeme bilgisi alınamadı.')}`);
 
         const paymentResult = await retrievePayment(token);
         const orderId = paymentResult.conversationId;
@@ -358,12 +397,11 @@ const finishPaymentCallback = async (req, res) => {
                     await Cart.findOneAndUpdate({ user: order.user }, { items: [] });
                 }
 
-                for (const item of order.orderItems) {
-                    await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity, soldCount: item.quantity } });
-                }
+                await applyPaidStock(order);
+                await order.save();
             }
 
-            return res.redirect(`${CLIENT_URL}/siparis-basarili?orderId=${orderId}`);
+            return res.redirect(`${clientUrl()}/siparis-basarili?orderId=${orderId}`);
         }
 
         if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
@@ -377,10 +415,10 @@ const finishPaymentCallback = async (req, res) => {
         }
 
         const reason = paymentResult.errorMessage || 'Ödeme tamamlanamadı.';
-        return res.redirect(`${CLIENT_URL}/odeme-basarisiz?reason=${encodeURIComponent(reason)}`);
+        return res.redirect(`${clientUrl()}/odeme-basarisiz?reason=${encodeURIComponent(reason)}`);
     } catch (error) {
         console.error('Callback hatası:', error);
-        return res.redirect(`${CLIENT_URL}/odeme-basarisiz?reason=${encodeURIComponent('Sunucu hatası')}`);
+        return res.redirect(`${clientUrl()}/odeme-basarisiz?reason=${encodeURIComponent('Sunucu hatası')}`);
     }
 };
 
@@ -410,7 +448,9 @@ exports.getOrderById = async (req, res) => {
         }
 
         const userId = req.user._id || req.user.id;
-        if (order.user && order.user.toString() !== userId.toString()) {
+        const isOwner = order.user && order.user.toString() === userId.toString();
+        const isAdmin = req.user.rol === 'superadmin';
+        if (!isOwner && !isAdmin) {
             return res.status(403).json({ success: false, message: 'Bu siparişi görüntüleme yetkiniz yok.' });
         }
 

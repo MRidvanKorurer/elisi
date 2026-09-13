@@ -24,7 +24,8 @@ const orderSchema = new mongoose.Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     email: { type: String, required: true },
-    phone: { type: String, required: true }
+    phone: { type: String, required: true },
+    identityNumber: { type: String, default: '' }
   },
   // Teslimat Adresi
   shippingAddress: {
@@ -41,8 +42,18 @@ const orderSchema = new mongoose.Schema({
   promoCode: { type: String, default: '' },
   promoPercent: { type: Number, default: 0 },
   promoDiscount: { type: Number, default: 0 },
+  promoSeller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   shippingCost: { type: Number, required: true, default: 0 },
   totalPrice: { type: Number, required: true },
+  platformFeePercent: { type: Number, default: 10, min: 0, max: 100 },
+  platformFee: { type: Number, default: 0, min: 0 },
+  sellerSettlements: [{
+    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    percent: { type: Number, default: 10 },
+    gross: { type: Number, default: 0 },
+    fee: { type: Number, default: 0 },
+    net: { type: Number, default: 0 }
+  }],
   
   // Ödeme ve Durum Yönetimi
   paymentMethod: { 
@@ -55,6 +66,7 @@ const orderSchema = new mongoose.Schema({
     default: 'pending', 
     enum: ['pending', 'completed', 'failed'] 
   },
+  stockAdjusted: { type: Boolean, default: false },
   orderStatus: { 
     type: String, 
     default: 'processing',

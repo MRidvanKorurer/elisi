@@ -1,8 +1,5 @@
-const path = require('path');
-const fs = require('fs');
 const Lookbook = require('../models/Lookbook');
-
-const publicUrl = (filename, folder) => `/uploads/${folder}/${filename}`;
+const { removeUpload } = require('../utils/uploadStore');
 
 const listLookbook = async (req, res) => {
   try {
@@ -31,8 +28,8 @@ const createLookbook = async (req, res) => {
     const item = await Lookbook.create({
       title: String(req.body.title || '').trim(),
       label: String(req.body.label || req.body.title || 'Lookbook').trim(),
-      videoUrl: publicUrl(videoFile.filename, 'lookbook'),
-      posterUrl: posterFile ? publicUrl(posterFile.filename, 'lookbook') : '',
+      videoUrl: videoFile.storedUrl,
+      posterUrl: posterFile?.storedUrl || '',
       product: req.body.productId && String(req.body.productId).trim() ? req.body.productId : null,
       placement: ['lookbook', 'hero', 'homepage'].includes(req.body.placement) ? req.body.placement : 'lookbook',
       order: Number(req.body.order) || 0,
@@ -41,6 +38,8 @@ const createLookbook = async (req, res) => {
 
     return res.status(201).json({ success: true, item, mesaj: 'Video eklendi.' });
   } catch (error) {
+    removeUpload(req.files?.video?.[0]?.storedUrl);
+    removeUpload(req.files?.poster?.[0]?.storedUrl);
     return res.status(500).json({ success: false, mesaj: 'Video eklenemedi.', hata: error.message });
   }
 };
@@ -50,14 +49,8 @@ const deleteLookbook = async (req, res) => {
     const item = await Lookbook.findById(req.params.id);
     if (!item) return res.status(404).json({ mesaj: 'Kayıt bulunamadı.' });
 
-    const unlinkIfLocal = (url) => {
-      if (!url || !url.startsWith('/uploads/')) return;
-      const filePath = path.join(__dirname, '..', url);
-      fs.promises.unlink(filePath).catch(() => {});
-    };
-
-    unlinkIfLocal(item.videoUrl);
-    unlinkIfLocal(item.posterUrl);
+    removeUpload(item.videoUrl);
+    removeUpload(item.posterUrl);
     await item.deleteOne();
     return res.json({ success: true, mesaj: 'Kayıt silindi.' });
   } catch (error) {

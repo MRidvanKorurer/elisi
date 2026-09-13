@@ -1,6 +1,7 @@
 import React from 'react';
-import { Avatar, Box, Button, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Avatar, Box, Button, Chip, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import LocaleLink from '../i18n/LocaleLink';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import PlaceOutlined from '@mui/icons-material/PlaceOutlined';
@@ -11,7 +12,8 @@ import { instagramHref, websiteHref } from '../utils/atelierLinks';
 
 const initialsOf = (name = '') => String(name).trim().charAt(0).toUpperCase() || 'N';
 
-export default function AtelierCard({ atelier, compact = false, showStoreButton = true }) {
+export default function AtelierCard({ atelier, compact = false, showStoreButton = true, onVisit }) {
+  const { t } = useTranslation('catalog');
   if (!atelier) return null;
 
   const storePath = atelier.slug && !atelier.isHouse ? `/atolye/${atelier.slug}` : '/products';
@@ -20,8 +22,8 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
   const site = websiteHref(atelier.website);
   const avatar = mediaUrl(atelier.avatarUrl);
   const countLabel = atelier.productCount > 0
-    ? `${atelier.productCount} parça vitrinde`
-    : 'Atölye vitrini';
+    ? t('weekly.products', { ns: 'home', count: atelier.productCount })
+    : t('atelier.cardBio');
 
   return (
     <Box
@@ -31,7 +33,7 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
         alignItems: { xs: 'stretch', sm: 'center' },
         gap: { xs: 1.4, sm: 1.8 },
         p: compact ? { xs: 1.5, sm: 1.8 } : { xs: 1.7, sm: 2 },
-        mb: 3,
+        mb: compact ? 0 : 3,
         borderRadius: '20px',
         backgroundColor: '#FFFFFF',
         border: '1px solid rgba(148,109,109,0.14)',
@@ -57,12 +59,19 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, flexWrap: 'wrap', mb: 0.35 }}>
           <Typography sx={{ color: '#A290B7', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-            Atölye
+            {t('card.atelier')}
           </Typography>
+          {atelier.isWeeklyAtelier ? (
+            <Chip
+              label={t('atelier.weekBadge')}
+              size="small"
+              sx={{ height: 22, fontWeight: 800, fontSize: '0.64rem', bgcolor: '#2E3B55', color: '#fff' }}
+            />
+          ) : null}
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, color: '#946D6D' }}>
             <VerifiedOutlined sx={{ fontSize: 15 }} />
             <Typography sx={{ fontWeight: 800, fontSize: '0.68rem' }}>
-              {atelier.isHouse ? 'Nik Bag' : 'Onaylı üretici'}
+              {atelier.isHouse ? t('atelier.house') : t('atelier.maker')}
             </Typography>
           </Box>
         </Box>
@@ -120,8 +129,9 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
           </Button>
         ) : null}
         <Button
-          component={RouterLink}
+          component={LocaleLink}
           to={storePath}
+          onClick={() => onVisit?.(atelier)}
           endIcon={<ArrowForwardRounded />}
           sx={{
             display: showStoreButton ? 'inline-flex' : 'none',
@@ -137,7 +147,7 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
             '&:hover': { backgroundColor: '#946D6D' }
           }}
         >
-          {atelier.isHouse ? 'Koleksiyon' : 'Atölyeyi gör'}
+          {atelier.isHouse ? t('atelier.collection') : t('atelier.seeAtelier')}
         </Button>
       </Box>
     </Box>

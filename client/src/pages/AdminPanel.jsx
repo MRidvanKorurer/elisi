@@ -31,7 +31,9 @@ import MovieFilterOutlined from '@mui/icons-material/MovieFilterOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
+import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
+import AccountBalanceOutlined from '@mui/icons-material/AccountBalanceOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
@@ -55,8 +57,10 @@ import {
   when
 } from '../utils/panel';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
-import { FEATURED_STATUS, isReceiptPdf } from '../utils/featured';
-import { lineTotalOf, orderChargeRows } from '../utils/price';
+import { FEATURED_PACKAGES, FEATURED_SLOTS, FEATURED_STATUS, isLiveFeatured, isReceiptPdf } from '../utils/featured';
+import { ATELIER_WEEK_SLOTS, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
+import { lineTotalOf, orderChargeRows, platformShareOf } from '../utils/price';
+import AdminCommission from '../components/AdminCommission';
 
 const emptyForm = {
   title: '',
@@ -68,7 +72,6 @@ const emptyForm = {
   colors: '',
   sizes: '',
   isActive: true,
-  isSponsored: false,
   measureNote: '',
   customProductionTime: '1-3 İş Günü',
   video: ''
@@ -132,17 +135,36 @@ export default function AdminPanel({ user, handleLogout }) {
   const [promoForm, setPromoForm] = useState({ code: '', percent: 5, minSubtotal: 5000, note: '', isActive: true });
   const [savingPromo, setSavingPromo] = useState(false);
   const [featuredRequests, setFeaturedRequests] = useState([]);
+  const [featuredSlots, setFeaturedSlots] = useState({ used: 0, total: FEATURED_SLOTS, free: FEATURED_SLOTS, nextFreeAt: null });
   const [featuredFilter, setFeaturedFilter] = useState('pending');
   const [featuredRejecting, setFeaturedRejecting] = useState(null);
   const [featuredRejectReason, setFeaturedRejectReason] = useState('');
   const [featuredReceiptView, setFeaturedReceiptView] = useState(null);
   const [featuredRemoving, setFeaturedRemoving] = useState(null);
   const [featuredRemoveReason, setFeaturedRemoveReason] = useState('');
+  const [giftProductId, setGiftProductId] = useState('');
+  const [giftDays, setGiftDays] = useState(3);
+  const [giftNote, setGiftNote] = useState('');
+  const [savingGift, setSavingGift] = useState(false);
+  const [bankName, setBankName] = useState('');
+  const [bankIban, setBankIban] = useState('');
+  const [savingBank, setSavingBank] = useState(false);
+  const [weekRequests, setWeekRequests] = useState([]);
+  const [weekSlots, setWeekSlots] = useState({ used: 0, total: ATELIER_WEEK_SLOTS, free: ATELIER_WEEK_SLOTS, nextFreeAt: null });
+  const [weekFilter, setWeekFilter] = useState('pending');
+  const [weekRejecting, setWeekRejecting] = useState(null);
+  const [weekRejectReason, setWeekRejectReason] = useState('');
+  const [weekReceiptView, setWeekReceiptView] = useState(null);
+  const [weekRemoving, setWeekRemoving] = useState(null);
+  const [weekRemoveReason, setWeekRemoveReason] = useState('');
+  const [giftSellerId, setGiftSellerId] = useState('');
+  const [giftWeekNote, setGiftWeekNote] = useState('');
+  const [savingWeekGift, setSavingWeekGift] = useState(false);
   const [report, setReport] = useState(null);
 
   const load = async () => {
     try {
-      const [ov, us, se, pr, lb, or, pm, ft, rp] = await Promise.all([
+      const [ov, us, se, pr, lb, or, pm, ft, wk, rp] = await Promise.all([
         adminService.overview(),
         adminService.users(),
         adminService.sellers(),
@@ -151,6 +173,7 @@ export default function AdminPanel({ user, handleLogout }) {
         adminService.orders(),
         promoService.list().catch(() => ({ promos: [] })),
         adminService.featured().catch(() => ({ requests: [] })),
+        adminService.atelierWeek().catch(() => ({ requests: [] })),
         adminService.reports().catch(() => ({ report: null }))
       ]);
       setOverview(ov.overview);
@@ -161,6 +184,13 @@ export default function AdminPanel({ user, handleLogout }) {
       setOrders(or.orders || []);
       setPromos(pm.promos || []);
       setFeaturedRequests(ft.requests || []);
+      if (ft.slots) setFeaturedSlots(ft.slots);
+      if (ft.bank?.name) {
+        setBankName(ft.bank.name);
+        setBankIban(ft.bank.iban || '');
+      }
+      setWeekRequests(wk.requests || []);
+      if (wk.slots) setWeekSlots(wk.slots);
       setReport(rp.report || null);
       setError('');
     } catch (err) {
@@ -316,6 +346,91 @@ export default function AdminPanel({ user, handleLogout }) {
     }
   };
 
+  const giftFeatured = async () => {
+    if (!giftProductId) return;
+    setSavingGift(true);
+    try {
+      const data = await adminService.giftFeatured({ productId: giftProductId, days: giftDays, note: giftNote });
+      flash(data?.mesaj || 'Ücretsiz vitrin verildi.');
+      setGiftNote('');
+      await load();
+    } catch (err) {
+      fail(err, 'Ücretsiz vitrin verilemedi.');
+    } finally {
+      setSavingGift(false);
+    }
+  };
+
+  const saveFeaturedBank = async () => {
+    setSavingBank(true);
+    try {
+      const data = await adminService.saveFeaturedSettings({ name: bankName, iban: bankIban });
+      flash(data?.mesaj || 'Havale bilgisi kaydedildi.');
+      if (data?.bank) {
+        setBankName(data.bank.name);
+        setBankIban(data.bank.iban);
+      }
+    } catch (err) {
+      fail(err, 'Havale bilgisi kaydedilemedi.');
+    } finally {
+      setSavingBank(false);
+    }
+  };
+
+  const matchesFeaturedFilter = (item) => {
+    if (featuredFilter === 'all') return true;
+    if (featuredFilter === 'live') return isLiveFeatured(item);
+    if (featuredFilter === 'ended') return item.status === 'ended' || item.status === 'removed';
+    return item.status === featuredFilter;
+  };
+
+  const reviewWeek = async (id, status, rejectionReason = '') => {
+    try {
+      await adminService.reviewAtelierWeek(id, { status, rejectionReason });
+      flash(status === 'approved' || status === 'live' ? 'Atölye haftanın vitrine alındı.' : 'Talep reddedildi.');
+      setWeekRejecting(null);
+      setWeekRejectReason('');
+      await load();
+    } catch (err) {
+      fail(err, 'Talep güncellenemedi.');
+    }
+  };
+
+  const removeWeek = async () => {
+    if (!weekRemoving) return;
+    try {
+      await adminService.removeAtelierWeek(weekRemoving.id, { note: weekRemoveReason });
+      flash('Atölye haftanın vitrinden alındı.');
+      setWeekRemoving(null);
+      setWeekRemoveReason('');
+      await load();
+    } catch (err) {
+      fail(err, 'Atölye vitrinden alınamadı.');
+    }
+  };
+
+  const giftWeek = async () => {
+    if (!giftSellerId) return;
+    setSavingWeekGift(true);
+    try {
+      const data = await adminService.giftAtelierWeek({ sellerId: giftSellerId, note: giftWeekNote });
+      flash(data?.mesaj || 'Ücretsiz hafta verildi.');
+      setGiftWeekNote('');
+      await load();
+    } catch (err) {
+      fail(err, 'Ücretsiz hafta verilemedi.');
+    } finally {
+      setSavingWeekGift(false);
+    }
+  };
+
+  const matchesWeekFilter = (item) => {
+    if (weekFilter === 'all') return true;
+    if (weekFilter === 'live') return isLiveWeek(item);
+    if (weekFilter === 'ended') return item.status === 'ended';
+    return item.status === weekFilter;
+  };
+
   const openProduct = (product) => {
     setEditing(product);
     setForm({
@@ -328,7 +443,6 @@ export default function AdminPanel({ user, handleLogout }) {
       colors: (product.colors || []).join(', '),
       sizes: (product.sizes || []).join(', '),
       isActive: Boolean(product.isActive),
-      isSponsored: Boolean(product.isSponsored),
       measureNote: product.measureNote || '',
       customProductionTime: product.customProductionTime || '1-3 İş Günü',
       video: product.video || ''
@@ -361,7 +475,6 @@ export default function AdminPanel({ user, handleLogout }) {
       body.append('customProductionTime', form.customProductionTime);
       body.append('video', form.video);
       body.append('isActive', String(form.isActive));
-      body.append('isSponsored', String(form.isSponsored));
 
       const removed = (editing.additionalImages || []).filter((url) => !keptImages.includes(url));
       if (removed.length) body.append('removeImages', removed.map(toRelativeUpload).join(','));
@@ -427,7 +540,9 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length },
+    { id: 'week', label: 'Haftanın atölyeleri', icon: CelebrationOutlined, badge: overview?.pendingAtelierWeek || weekRequests.filter((item) => item.status === 'pending').length },
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
+    { id: 'commission', label: 'Komisyon', icon: AccountBalanceOutlined },
     { id: 'products', label: 'Ürünler', icon: Inventory2Outlined },
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
     { id: 'customers', label: 'Müşteriler', icon: PeopleAltOutlined },
@@ -442,6 +557,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { label: 'Hazırlanacak sipariş', value: overview?.processing || 0, view: 'orders' },
     { label: 'Onay bekleyen ürün', value: pendingProducts.length, view: 'approvals' },
     { label: 'Öne çıkan talebi', value: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length, view: 'featured' },
+    { label: 'Haftanın atölyesi', value: overview?.pendingAtelierWeek || weekRequests.filter((item) => item.status === 'pending').length, view: 'week' },
     { label: 'Satıcı başvurusu', value: overview?.pendingSellers || 0, view: 'sellers' },
     { label: 'Kritik stok', value: overview?.lowStock || 0, view: 'products' }
   ];
@@ -456,7 +572,7 @@ export default function AdminPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'reports' ? 'Raporlarda ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
+      searchPlaceholder={view === 'week' ? 'Atölye veya satıcı ara' : view === 'reports' || view === 'commission' ? 'Mağaza veya sipariş ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
     >
@@ -471,10 +587,11 @@ export default function AdminPanel({ user, handleLogout }) {
             subtitle="Ödeme onayı, ürün incelemesi ve satıcı başvurularını buradan yönetin. Sipariş kargosunu satıcı ilerletir."
           />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 1.8, mb: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, 1fr)' }, gap: 1.8, mb: 2 }}>
             <StatCard icon={ShoppingBagOutlined} title="Bugünkü sipariş" value={overview.todayOrders} hint="Adet" tone={T.navy} />
             <StatCard icon={PaymentsOutlined} title="Bugünkü ciro" value={money(overview.todayRevenue)} hint="Tahsil edilen" tone={T.rose} />
             <StatCard icon={TrendingUpRounded} title="Toplam ciro" value={money(overview.revenue)} hint={`${overview.paidOrders} ödenen sipariş`} tone={T.lavender} />
+            <StatCard icon={AccountBalanceOutlined} title="Platform payı" value={money(overview.platformFee)} hint={`Bugün ${money(overview.todayPlatformFee)} · bekleyen ${money(overview.pendingPlatformFee)}`} tone={T.rose} />
             <StatCard icon={PendingActionsOutlined} title="Onay bekleyen ürün" value={pendingProducts.length} hint="Satıcı gönderimi" tone="#C08A4A" />
           </Box>
 
@@ -633,10 +750,61 @@ export default function AdminPanel({ user, handleLogout }) {
           <SectionTitle
             overline="VİTRİN"
             title="Öne çıkan ürün talepleri"
-            subtitle="Dekontu kontrol edip onaylayın. Süre bitmeden de önerilenlerden kaldırabilirsiniz."
+            subtitle="Tek yol: dekontu onayla, ücretsiz vitrin ver veya yayındakini kaldır. 12 yer; doluyken yalnızca uzatma onaylanır."
           />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8, mb: 2.2 }}>
+            <PanelCard>
+              <Typography sx={{ fontWeight: 900, color: T.navy }}>Kapasite</Typography>
+              <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
+                {featuredSlots.used}/{featuredSlots.total} ürün vitrinde
+                {featuredSlots.nextFreeAt ? ` · sıradaki boşalma ${when(featuredSlots.nextFreeAt)}` : ''}
+              </Typography>
+              <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
+                <Box sx={{ width: `${Math.min(100, (Number(featuredSlots.used) / Number(featuredSlots.total || FEATURED_SLOTS)) * 100)}%`, height: '100%', bgcolor: featuredSlots.free <= 0 ? T.rose : T.navy }} />
+              </Box>
+            </PanelCard>
+            <PanelCard>
+              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 1.2 }}>Havale hesabı</Typography>
+              <Box sx={{ display: 'grid', gap: 1.2 }}>
+                <TextField label="Banka / alıcı adı" value={bankName} onChange={(e) => setBankName(e.target.value)} sx={fieldSx} />
+                <TextField label="IBAN" value={bankIban} onChange={(e) => setBankIban(e.target.value)} sx={fieldSx} />
+                <Button onClick={saveFeaturedBank} disabled={savingBank || !bankName.trim()} sx={{ ...primaryButton, justifySelf: 'start' }}>
+                  {savingBank ? 'Kaydediliyor...' : 'Havale bilgisini kaydet'}
+                </Button>
+              </Box>
+            </PanelCard>
+          </Box>
+          <PanelCard sx={{ mb: 2.2 }}>
+            <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Ücretsiz vitrin</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>Yayındaki ürüne 3 / 5 / 7 gün hediye. Vitrin doluysa yalnızca zaten vitrindeki ürüne süre ekler.</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 2fr auto' }, gap: 1.2, alignItems: 'start' }}>
+              <TextField
+                select
+                label="Ürün"
+                value={giftProductId}
+                onChange={(e) => setGiftProductId(e.target.value)}
+                sx={fieldSx}
+              >
+                <MenuItem value="">Seçin</MenuItem>
+                {products.filter((product) => product.approvalStatus === 'approved' && product.isActive).map((product) => (
+                  <MenuItem key={product._id} value={product._id}>
+                    {product.title}{product.isSponsored ? ' · vitrinde' : ''}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField select label="Süre" value={giftDays} onChange={(e) => setGiftDays(Number(e.target.value))} sx={fieldSx}>
+                {FEATURED_PACKAGES.map((pack) => (
+                  <MenuItem key={pack.days} value={pack.days}>{pack.label}</MenuItem>
+                ))}
+              </TextField>
+              <TextField label="Not (isteğe bağlı)" value={giftNote} onChange={(e) => setGiftNote(e.target.value)} sx={fieldSx} />
+              <Button onClick={giftFeatured} disabled={savingGift || !giftProductId} sx={primaryButton}>
+                {savingGift ? 'Veriliyor...' : 'Hediye et'}
+              </Button>
+            </Box>
+          </PanelCard>
           <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 2.2 }}>
-            {[['pending', 'Bekleyen'], ['approved', 'Onaylı'], ['removed', 'Vitrinden alınan'], ['rejected', 'Reddedilen'], ['all', 'Tümü']].map(([id, label]) => (
+            {[['pending', 'Sırada'], ['live', 'Vitrinde'], ['ended', 'Biten'], ['rejected', 'Reddedilen'], ['cancelled', 'İptal'], ['all', 'Tümü']].map(([id, label]) => (
               <Chip
                 key={id}
                 clickable
@@ -651,11 +819,11 @@ export default function AdminPanel({ user, handleLogout }) {
               />
             ))}
           </Box>
-          {featuredRequests.filter((item) => featuredFilter === 'all' || item.status === featuredFilter).length === 0 ? (
+          {featuredRequests.filter(matchesFeaturedFilter).length === 0 ? (
             <PanelCard><Typography sx={{ color: T.muted, fontWeight: 700 }}>Bu filtrede talep yok.</Typography></PanelCard>
           ) : (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8 }}>
-              {featuredRequests.filter((item) => featuredFilter === 'all' || item.status === featuredFilter).map((item) => (
+              {featuredRequests.filter(matchesFeaturedFilter).map((item) => (
                 <PanelCard key={item.id}>
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <Box component="img" src={item.product?.image} alt="" sx={{ width: 108, height: 108, objectFit: 'cover', borderRadius: '16px', bgcolor: T.surfaceSoft }} />
@@ -665,10 +833,10 @@ export default function AdminPanel({ user, handleLogout }) {
                         <StatusChip map={FEATURED_STATUS} value={item.status} />
                       </Box>
                       <Typography sx={{ color: T.muted, fontSize: '0.84rem', mb: 0.8 }}>
-                        {item.seller?.magazaAdi || item.seller?.adSoyad || 'Satıcı'} · {item.days} gün · {money(item.price)}
+                        {item.seller?.magazaAdi || item.seller?.adSoyad || 'Satıcı'} · {item.days} gün · {Number(item.price) === 0 ? 'Ücretsiz' : money(item.price)}
                       </Typography>
                       {item.note ? <Typography sx={{ color: T.navy, fontSize: 13 }}>{item.note}</Typography> : null}
-                      {item.endsAt ? <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.4 }}>Bitiş: {when(item.endsAt)}</Typography> : null}
+                      {item.endsAt ? <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.4 }}>Bitiş: {when(item.endsAt)}{item.remainingDays ? ` · ${item.remainingDays} gün` : ''}</Typography> : null}
                       {item.rejectionReason ? <Typography sx={{ color: '#96393C', fontSize: 12, mt: 0.4 }}>{item.rejectionReason}</Typography> : null}
                     </Box>
                   </Box>
@@ -689,22 +857,137 @@ export default function AdminPanel({ user, handleLogout }) {
                         />
                       )}
                     </Box>
-                  ) : (
+                  ) : item.status === 'pending' ? (
                     <Typography sx={{ color: '#96393C', fontSize: 13, fontWeight: 700, mt: 1.4 }}>Dekont yüklenmemiş. Onay verilemez.</Typography>
-                  )}
+                  ) : null}
                   {item.status === 'pending' ? (
                     <Box sx={{ display: 'flex', gap: 1, mt: 1.8, flexWrap: 'wrap' }}>
                       <Button disabled={!item.receiptUrl} onClick={() => reviewFeatured(item.id, 'approved')} sx={primaryButton}>Onayla ve yayınla</Button>
                       <Button color="error" onClick={() => { setFeaturedRejecting(item); setFeaturedRejectReason(''); }} sx={{ fontWeight: 800 }}>Reddet</Button>
                     </Box>
                   ) : null}
-                  {item.status === 'approved' && (item.product?.isSponsored || (item.endsAt && new Date(item.endsAt) > Date.now())) ? (
+                  {isLiveFeatured(item) ? (
                     <Button
                       color="error"
                       onClick={() => { setFeaturedRemoving(item); setFeaturedRemoveReason(''); }}
                       sx={{ fontWeight: 800, mt: 1.8 }}
                     >
-                      Önerilenlerden kaldır
+                      Vitrinden kaldır
+                    </Button>
+                  ) : null}
+                </PanelCard>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {view === 'week' && (
+        <Box>
+          <SectionTitle
+            overline="VİTRİN"
+            title="Haftanın atölyeleri"
+            subtitle="3 mağaza, 7 gün. Dekontu onayla, ücretsiz ver veya yayındakini kaldır. Doluyken yalnızca uzatma onaylanır."
+          />
+          <PanelCard sx={{ mb: 2.2 }}>
+            <Typography sx={{ fontWeight: 900, color: T.navy }}>Kapasite</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
+              {weekSlots.used}/{weekSlots.total} atölye vitrinde
+              {weekSlots.nextFreeAt ? ` · sıradaki boşalma ${when(weekSlots.nextFreeAt)}` : ''}
+            </Typography>
+            <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
+              <Box sx={{ width: `${Math.min(100, (Number(weekSlots.used) / Number(weekSlots.total || ATELIER_WEEK_SLOTS)) * 100)}%`, height: '100%', bgcolor: weekSlots.free <= 0 ? T.rose : T.navy }} />
+            </Box>
+          </PanelCard>
+          <PanelCard sx={{ mb: 2.2 }}>
+            <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Ücretsiz hafta</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>Onaylı atölyeye 7 gün hediye. Vitrin doluysa yalnızca zaten vitrindeki mağazaya süre ekler.</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 2fr auto' }, gap: 1.2, alignItems: 'start' }}>
+              <TextField
+                select
+                label="Atölye"
+                value={giftSellerId}
+                onChange={(e) => setGiftSellerId(e.target.value)}
+                sx={fieldSx}
+              >
+                <MenuItem value="">Seçin</MenuItem>
+                {sellers.filter((shop) => shop.durum === 'approved').map((shop) => (
+                  <MenuItem key={shop._id} value={shop._id}>
+                    {shop.magazaAdi}{shop.isWeeklyAtelier ? ' · vitrinde' : ''}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField label="Not (isteğe bağlı)" value={giftWeekNote} onChange={(e) => setGiftWeekNote(e.target.value)} sx={fieldSx} />
+              <Button onClick={giftWeek} disabled={savingWeekGift || !giftSellerId} sx={primaryButton}>
+                {savingWeekGift ? 'Veriliyor...' : 'Hediye et'}
+              </Button>
+            </Box>
+          </PanelCard>
+          <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 2.2 }}>
+            {[['pending', 'Sırada'], ['live', 'Vitrinde'], ['ended', 'Biten'], ['all', 'Tümü']].map(([id, label]) => (
+              <Chip
+                key={id}
+                clickable
+                label={label}
+                onClick={() => setWeekFilter(id)}
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: weekFilter === id ? T.navy : '#fff',
+                  color: weekFilter === id ? '#fff' : T.navy,
+                  border: `1px solid ${weekFilter === id ? T.navy : T.line}`
+                }}
+              />
+            ))}
+          </Box>
+          {weekRequests.filter((item) => matchesWeekFilter(item) && (!q || `${item.seller?.magazaAdi || ''} ${item.seller?.adSoyad || ''} ${item.seller?.email || ''}`.toLowerCase().includes(q))).length === 0 ? (
+            <PanelCard><Typography sx={{ color: T.muted, fontWeight: 700 }}>Bu filtrede talep yok.</Typography></PanelCard>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8 }}>
+              {weekRequests.filter((item) => matchesWeekFilter(item) && (!q || `${item.seller?.magazaAdi || ''} ${item.seller?.adSoyad || ''} ${item.seller?.email || ''}`.toLowerCase().includes(q))).map((item) => (
+                <PanelCard key={item.id}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography sx={{ fontWeight: 900, color: T.navy }}>{item.seller?.magazaAdi || item.seller?.adSoyad || 'Atölye'}</Typography>
+                    <StatusChip map={ATELIER_WEEK_STATUS} value={item.status} />
+                  </Box>
+                  <Typography sx={{ color: T.muted, fontSize: '0.84rem', mb: 0.8 }}>
+                    {item.seller?.adSoyad || ''}{item.seller?.email ? ` · ${item.seller.email}` : ''} · {item.days} gün · {Number(item.price) === 0 ? 'Ücretsiz' : money(item.price)}
+                  </Typography>
+                  {item.note ? <Typography sx={{ color: T.navy, fontSize: 13 }}>{item.note}</Typography> : null}
+                  {item.endsAt ? <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.4 }}>Bitiş: {when(item.endsAt)}{item.remainingDays ? ` · ${item.remainingDays} gün` : ''}</Typography> : null}
+                  {item.rejectionReason ? <Typography sx={{ color: '#96393C', fontSize: 12, mt: 0.4 }}>{item.rejectionReason}</Typography> : null}
+                  {item.receiptUrl ? (
+                    <Box sx={{ mt: 1.6 }}>
+                      <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: 13, mb: 0.8 }}>Ödeme dekontu</Typography>
+                      {isReceiptPdf(item.receiptUrl) ? (
+                        <Button href={item.receiptUrl} target="_blank" rel="noreferrer" sx={{ fontWeight: 800, color: T.navy, border: `1px solid ${T.line}`, borderRadius: '12px' }}>
+                          {item.receiptName || 'PDF dekontu aç'}
+                        </Button>
+                      ) : (
+                        <Box
+                          component="img"
+                          src={item.receiptUrl}
+                          alt="Dekont"
+                          onClick={() => setWeekReceiptView(item)}
+                          sx={{ width: '100%', maxHeight: 220, objectFit: 'contain', borderRadius: '16px', bgcolor: T.surfaceSoft, cursor: 'zoom-in', border: `1px solid ${T.line}` }}
+                        />
+                      )}
+                    </Box>
+                  ) : item.status === 'pending' ? (
+                    <Typography sx={{ color: '#96393C', fontSize: 13, fontWeight: 700, mt: 1.4 }}>Dekont yüklenmemiş. Onay verilemez.</Typography>
+                  ) : null}
+                  {item.status === 'pending' ? (
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1.8, flexWrap: 'wrap' }}>
+                      <Button disabled={!item.receiptUrl} onClick={() => reviewWeek(item.id, 'approved')} sx={primaryButton}>Onayla ve yayınla</Button>
+                      <Button color="error" onClick={() => { setWeekRejecting(item); setWeekRejectReason(''); }} sx={{ fontWeight: 800 }}>Reddet</Button>
+                    </Box>
+                  ) : null}
+                  {isLiveWeek(item) ? (
+                    <Button
+                      color="error"
+                      onClick={() => { setWeekRemoving(item); setWeekRemoveReason(''); }}
+                      sx={{ fontWeight: 800, mt: 1.8 }}
+                    >
+                      Vitrinden kaldır
                     </Button>
                   ) : null}
                 </PanelCard>
@@ -716,6 +999,21 @@ export default function AdminPanel({ user, handleLogout }) {
 
       {view === 'reports' && (
         <AdminPlatformReport report={report} query={query} />
+      )}
+
+      {view === 'commission' && (
+        <Box>
+          <SectionTitle
+            overline="SÜPER ADMİN HESABI"
+            title="Platform komisyonu"
+            subtitle="Tek pay: ürün satışından %10 (kart ücreti dahil), 90 günde 50.000 ₺ ciroda %8. Kargo ayrıdır. Site ve hoş geldin indirimini platform karşılar. Özel oran Satıcılar’dan kilitlenir."
+          />
+          <AdminCommission
+            data={report?.commission}
+            query={query}
+            onOpenSeller={() => goView('reports')}
+          />
+        </Box>
       )}
 
       {view === 'orders' && (
@@ -839,7 +1137,7 @@ export default function AdminPanel({ user, handleLogout }) {
 
       {view === 'sellers' && (
         <Box>
-          <SectionTitle overline="MAĞAZALAR" title="Satıcılar" subtitle="Başvuruları onaylayın, mağazaları askıya alın." />
+          <SectionTitle overline="MAĞAZALAR" title="Satıcılar" subtitle="Başvuruları onaylayın. Oranı yazınca kilitlenir; boş bırakırsanız 90 günde 50.000 ₺ ciroda %8, altında %10 uygulanır." />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8 }}>
             {filteredSellers.map((seller) => (
               <PanelCard key={seller._id}>
@@ -850,10 +1148,55 @@ export default function AdminPanel({ user, handleLogout }) {
                     <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>
                       {seller.sehir}/{seller.ilce} · {(Array.isArray(seller.magazaTuru) ? seller.magazaTuru : [seller.magazaTuru]).filter(Boolean).map(categoryLabel).join(' · ') || seller.magazaTuru} · {seller.telefon}
                     </Typography>
+                    <Typography sx={{ color: T.muted, fontSize: '0.8rem', mt: 0.6 }}>
+                      {seller.komisyonManuel
+                        ? `Manuel kilit · %${seller.komisyonOrani}`
+                        : seller.komisyonHacim?.qualifies
+                          ? `Otomatik hacim · son ${seller.komisyonHacim.windowDays} günde ${money(seller.komisyonHacim.gmv)} · %${seller.komisyonHacim.volumeRate}`
+                          : `Otomatik %${seller.komisyonHacim?.defaultRate ?? 10} · %${seller.komisyonHacim?.volumeRate ?? 8} için ${money(seller.komisyonHacim?.remaining ?? 50000)} kaldı`}
+                    </Typography>
                   </Box>
                   <StatusChip map={SELLER_STATUS} value={seller.durum} />
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1.8, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', gap: 1, mt: 1.8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Komisyon %"
+                    defaultValue={seller.komisyonOrani != null ? seller.komisyonOrani : 10}
+                    key={`${seller._id}-${seller.komisyonOrani}-${seller.komisyonManuel}`}
+                    inputProps={{ min: 0, max: 80, step: 0.5 }}
+                    sx={{ ...fieldSx, width: 140 }}
+                    onBlur={async (event) => {
+                      if (event.target.value === '') return;
+                      const next = Number(event.target.value);
+                      const current = seller.komisyonOrani != null ? seller.komisyonOrani : 10;
+                      if (!Number.isFinite(next) || next === current) return;
+                      try {
+                        await adminService.setSellerCommission(seller._id, { komisyonOrani: next });
+                        flash(`${seller.magazaAdi} komisyonu %${next} kilitlendi. Yeni satışlara uygulanır.`);
+                        await load();
+                      } catch (err) {
+                        fail(err, 'Komisyon kaydedilemedi.');
+                      }
+                    }}
+                  />
+                  {seller.komisyonManuel ? (
+                    <Button
+                      onClick={async () => {
+                        try {
+                          await adminService.setSellerCommission(seller._id, { otomatik: true });
+                          flash(`${seller.magazaAdi} otomatik hacim kuralına alındı.`);
+                          await load();
+                        } catch (err) {
+                          fail(err, 'Komisyon kaydedilemedi.');
+                        }
+                      }}
+                      sx={{ fontWeight: 800 }}
+                    >
+                      Otomatiğe dön
+                    </Button>
+                  ) : null}
                   {seller.durum !== 'approved' && <Button onClick={() => handleStatus(seller._id, 'approved')} sx={primaryButton}>Onayla</Button>}
                   {seller.durum !== 'rejected' && <Button color="error" onClick={() => handleStatus(seller._id, 'rejected')} sx={{ fontWeight: 800 }}>Reddet</Button>}
                   {seller.durum === 'approved' && <Button color="warning" onClick={() => handleStatus(seller._id, 'suspended')} sx={{ fontWeight: 800 }}>Askıya al</Button>}
@@ -1103,10 +1446,9 @@ export default function AdminPanel({ user, handleLogout }) {
                 <Typography sx={{ fontWeight: 800, color: T.navy }}>Yayında</Typography>
                 <Switch checked={form.isActive} onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))} />
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1 }}>
-                <Typography sx={{ fontWeight: 800, color: T.navy }}>Öne çıkar (sponsor)</Typography>
-                <Switch checked={form.isSponsored} onChange={(e) => setForm((p) => ({ ...p, isSponsored: e.target.checked }))} />
-              </Box>
+              <Typography sx={{ color: T.muted, fontSize: 12, px: 1 }}>
+                Vitrin yalnızca Öne çıkanlar sekmesinden (onay, ücretsiz hediye veya kaldırma) yönetilir.
+              </Typography>
             </Box>
           </Box>
         </DialogContent>
@@ -1211,6 +1553,69 @@ export default function AdminPanel({ user, handleLogout }) {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={Boolean(weekReceiptView)} onClose={() => setWeekReceiptView(null)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>
+          {weekReceiptView?.seller?.magazaAdi || 'Dekont'} · {weekReceiptView ? (Number(weekReceiptView.price) === 0 ? 'Ücretsiz' : money(weekReceiptView.price)) : ''}
+        </DialogTitle>
+        <DialogContent>
+          {weekReceiptView?.receiptUrl ? (
+            <Box component="img" src={weekReceiptView.receiptUrl} alt="Dekont" sx={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '16px', bgcolor: T.surfaceSoft }} />
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button href={weekReceiptView?.receiptUrl || '#'} target="_blank" rel="noreferrer" sx={{ fontWeight: 800, color: T.navy }}>Yeni sekmede aç</Button>
+          <Button onClick={() => setWeekReceiptView(null)} sx={{ fontWeight: 800, color: T.muted }}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(weekRemoving)} onClose={() => setWeekRemoving(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '22px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Haftanın vitrinden kaldır</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: T.muted, mb: 2 }}>
+            <b>{weekRemoving?.seller?.magazaAdi}</b> süresi bitmeden ana sayfa şeridinden çıkarılacak.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Not (isteğe bağlı)"
+            value={weekRemoveReason}
+            onChange={(e) => setWeekRemoveReason(e.target.value)}
+            multiline
+            minRows={3}
+            sx={fieldSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setWeekRemoving(null)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button color="error" onClick={removeWeek} sx={{ fontWeight: 800 }}>Kaldır</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(weekRejecting)} onClose={() => setWeekRejecting(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '22px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Talebi reddet</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: T.muted, mb: 2 }}>{weekRejecting?.seller?.magazaAdi}</Typography>
+          <TextField
+            fullWidth
+            label="Ret nedeni (isteğe bağlı)"
+            value={weekRejectReason}
+            onChange={(e) => setWeekRejectReason(e.target.value)}
+            multiline
+            minRows={3}
+            sx={fieldSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setWeekRejecting(null)} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button
+            color="error"
+            onClick={() => reviewWeek(weekRejecting.id, 'rejected', weekRejectReason)}
+            sx={{ fontWeight: 800 }}
+          >
+            Reddet
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={Boolean(openOrder)} onClose={() => setOpenOrder(null)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
         <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Sipariş detayı</DialogTitle>
         <DialogContent>
@@ -1240,6 +1645,22 @@ export default function AdminPanel({ user, handleLogout }) {
                   </Typography>
                 </Box>
               ))}
+              {(() => {
+                const share = platformShareOf(openOrder);
+                if (!share.fee) return null;
+                return (
+                  <Box sx={{ mt: 1.2, pt: 1.2, borderTop: `1px dashed ${T.line}` }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.4 }}>
+                      <Typography sx={{ color: T.rose, fontWeight: 800 }}>Platform payı (%{share.percent})</Typography>
+                      <Typography sx={{ fontWeight: 900, color: T.rose }}>{money(share.fee)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.4 }}>
+                      <Typography sx={{ color: T.muted, fontWeight: 700 }}>Satıcılara kalan</Typography>
+                      <Typography sx={{ fontWeight: 800, color: T.navy }}>{money(share.net)}</Typography>
+                    </Box>
+                  </Box>
+                );
+              })()}
               <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2, mt: 1.2 }}>
                 Kargo durumunu satıcı yönetir. Buradan yalnızca ödemeyi işaretleyebilirsiniz.
               </Typography>

@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Container, Typography } from '@mui/material';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { imgBagGreen } from '../assets/media';
 import { SITE_CLIPS } from '../utils/siteVideos';
 import { isSellerRole } from '../utils/roles';
 
 export default function SellerCtaBanner({ user }) {
-  const navigate = useNavigate();
+  const { t } = useTranslation('home');
+  const navigate = useLocaleNavigate();
   const isSeller = isSellerRole(user?.rol);
 
   // Arka plan videosu yalnızca banner görünüme girince indirilip oynatılır
@@ -78,15 +80,13 @@ export default function SellerCtaBanner({ user }) {
         />
         <Box sx={{ position: 'relative', maxWidth: 560, zIndex: 1 }}>
           <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#FDF4D2' }}>
-            ÜRETİCİLER İÇİN
+            {t('sellerCta.eyebrow')}
           </Typography>
           <Typography component="h2" variant="h4" fontWeight={800} sx={{ color: '#FFFFFF', letterSpacing: '-0.6px', mb: 1.2, fontSize: { xs: '1.7rem', md: '2.1rem' } }}>
-            {isSeller ? 'Mağazan seni bekliyor.' : 'Atölyeni vitrine taşı.'}
+            {isSeller ? t('sellerCta.sellerTitle') : t('sellerCta.guestTitle')}
           </Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontWeight: 600, lineHeight: 1.75 }}>
-            {isSeller
-              ? 'Başvuru durumunu gör, el emeğini Nik Bag koleksiyonuna eklemeye hazırlan.'
-              : 'El yapımı ürünlerini binlerce meraklıya ulaştır. Başvurun incelenir, onay sonrası mağazan yayına alınır.'}
+            {isSeller ? t('sellerCta.sellerText') : t('sellerCta.guestText')}
           </Typography>
         </Box>
         <Button
@@ -108,7 +108,7 @@ export default function SellerCtaBanner({ user }) {
             '&:hover': { background: '#946D6D', color: '#fff' }
           }}
         >
-          {isSeller ? 'Mağazama git' : 'Satıcı Ol'}
+          {isSeller ? t('sellerCta.sellerButton') : t('sellerCta.guestButton')}
         </Button>
       </Box>
     </Container>

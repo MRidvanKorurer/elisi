@@ -1,0 +1,12 @@
+{
+  "placeholder": "Sorunu yaz…",
+  "aiTitle": "Yapay zeka destek",
+  "aiAria": "Yapay zeka müşteri destek",
+  "waTitle": "WhatsApp hızlı sipariş & destek",
+  "chips": {
+    "shipping": "Kargo",
+    "returns": "İade",
+    "payment": "Ödeme",
+    "order": "Siparişim"
+  }
+}

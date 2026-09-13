@@ -1,0 +1,62 @@
+{
+  "language": {
+    "tr": "TR",
+    "en": "EN",
+    "switchTo": "Change language"
+  },
+  "nav": {
+    "search": "Search",
+    "cart": "Bag",
+    "admin": "Admin",
+    "adminPanel": "Admin panel",
+    "myShop": "My shop",
+    "becomeSeller": "Sell on Nik Bag",
+    "account": "My account",
+    "profile": "My profile",
+    "logout": "Log out",
+    "login": "Log in",
+    "register": "Sign up"
+  },
+  "footer": {
+    "homeAria": "Nik Bag home",
+    "blurb": "Handmade design for your home. We revisit traditional craft in a contemporary voice.",
+    "etsy": "Our Etsy shop",
+    "explore": "Explore",
+    "home": "Home",
+    "allProducts": "All products",
+    "becomeSeller": "Sell on Nik Bag",
+    "loginRegister": "Log in / Sign up",
+    "help": "Help",
+    "contact": "Contact",
+    "shipping": "Shipping & delivery",
+    "returns": "Returns & exchanges",
+    "privacy": "Privacy",
+    "reachUs": "Reach us",
+    "newsletter": "Newsletter",
+    "emailPlaceholder": "Your email address",
+    "subscribeAria": "Subscribe to the newsletter",
+    "categories": "Categories",
+    "rights": "© {{year}} NikBag. All rights reserved.",
+    "invalidEmail": "Enter a valid email address.",
+    "subscribed": "You’re on the list."
+  },
+  "actions": {
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "showMore": "Show more",
+    "showMoreCount": "Show more ({{count}})",
+    "showMoreRemaining": "Show more ({{count}} left)",
+    "clearAll": "Clear all",
+    "home": "Home",
+    "seeAllProducts": "See all products",
+    "goToProducts": "Browse products",
+    "keepShopping": "Keep shopping",
+    "startShopping": "Start shopping",
+    "tryAgain": "Try again",
+    "myOrders": "My orders"
+  }
+}

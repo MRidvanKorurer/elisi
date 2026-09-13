@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const ProductQuestion = require('../models/ProductQuestion');
 const Product = require('../models/Product');
 const { isSuperAdmin } = require('../utils/roles');
+const { RESPONSE_MS, questionTiming, overdueQuery, unansweredQuery } = require('../utils/questionDeadline');
 
 const MIN_QUESTION = 10;
 const MAX_QUESTION = 500;
@@ -35,12 +36,17 @@ const canAnswerProduct = (user, product) => {
   return Boolean(product.seller) && String(product.seller) === String(user._id);
 };
 
-const serializeQuestion = (doc) => ({
+const serializeQuestion = (doc) => {
+  const timing = questionTiming(doc);
+  return {
   id: String(doc._id),
   question: String(doc.question || '').trim(),
   answer: String(doc.answer || '').trim(),
   createdAt: doc.createdAt,
   answeredAt: doc.answeredAt || null,
+  dueAt: timing.dueAt,
+  overdue: timing.overdue,
+  remainingHours: timing.remainingHours,
   product: doc.product
     ? {
         id: String(doc.product._id || doc.product),
@@ -58,8 +64,9 @@ const serializeQuestion = (doc) => ({
         id: String(doc.answeredBy._id || doc.answeredBy),
         adSoyad: doc.answeredBy.adSoyad || 'Satıcı'
       }
-    : null
-});
+      : null
+  };
+};
 
 const getProductQuestions = async (req, res) => {
   try {
@@ -137,7 +144,8 @@ const askQuestion = async (req, res) => {
     const created = await ProductQuestion.create({
       product: product._id,
       user: req.user._id,
-      question
+      question,
+      responseDueAt: new Date(Date.now() + RESPONSE_MS)
     });
 
     const populated = await ProductQuestion.findById(created._id)
@@ -147,7 +155,7 @@ const askQuestion = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      mesaj: 'Sorunuz iletildi. Satıcı yanıtlayınca burada görünür.',
+      mesaj: 'Sorunuz satıcıya iletildi. 3 gün içinde yanıtlanır.',
       question: serializeQuestion(populated)
     });
   } catch (error) {
@@ -163,6 +171,7 @@ const getSellerQuestions = async (req, res) => {
       return res.status(200).json({
         success: true,
         unanswered: 0,
+        overdue: 0,
         questions: []
       });
     }
@@ -172,26 +181,31 @@ const getSellerQuestions = async (req, res) => {
     if (status === 'unanswered') Object.assign(match, unansweredMatch);
     if (status === 'answered') match.answer = { $nin: ['', null] };
 
-    const [questions, unanswered] = await Promise.all([
+    const [questions, unanswered, overdue] = await Promise.all([
       ProductQuestion.find(match)
         .sort({ createdAt: -1 })
         .populate('user', 'adSoyad avatarUrl email')
         .populate('product', 'title image')
         .populate('answeredBy', 'adSoyad')
         .lean(),
-      ProductQuestion.countDocuments({ product: { $in: productIds }, isPublic: true, ...unansweredMatch })
+      ProductQuestion.countDocuments({ product: { $in: productIds }, ...unansweredQuery }),
+      ProductQuestion.countDocuments({ product: { $in: productIds }, ...overdueQuery() })
     ]);
 
     const sorted = questions.sort((a, b) => {
+      const ta = questionTiming(a);
+      const tb = questionTiming(b);
+      if (ta.overdue !== tb.overdue) return ta.overdue ? -1 : 1;
       const aOpen = !String(a.answer || '').trim();
       const bOpen = !String(b.answer || '').trim();
       if (aOpen !== bOpen) return aOpen ? -1 : 1;
-      return new Date(b.createdAt) - new Date(a.createdAt);
+      return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
     return res.status(200).json({
       success: true,
       unanswered,
+      overdue,
       questions: sorted.map(serializeQuestion)
     });
   } catch (error) {

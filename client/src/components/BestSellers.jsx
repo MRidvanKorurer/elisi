@@ -2,10 +2,12 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Typography, Container, Button, CircularProgress } from '@mui/material';
 import LocalFireDepartmentOutlined from '@mui/icons-material/LocalFireDepartmentOutlined';
 import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
+import { useTranslation } from 'react-i18next';
 import ProductCard, { productCardGridSx } from './ProductCard';
 import { productService } from '../api/productService';
 
 export default function BestSellers() {
+  const { t } = useTranslation();
   const [fetchedProducts, setFetchedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -64,10 +66,10 @@ export default function BestSellers() {
           }}
         >
           <LocalFireDepartmentOutlined sx={{ fontSize: '18px', color: '#946D6D' }} />
-          HAFTANIN FAVORİLERİ
+          {t('bestsellers.eyebrow', { ns: 'home' })}
         </Typography>
         <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>
-          En Çok Satan Ürünler
+          {t('bestsellers.title', { ns: 'home' })}
         </Typography>
       </Box>
 
@@ -97,7 +99,7 @@ export default function BestSellers() {
               '&:hover': { borderColor: '#946D6D', backgroundColor: '#946D6D', color: '#FFFFFF' }
             }}
           >
-            Daha fazla göster
+            {t('actions.showMore')}
           </Button>
         </Box>
       )}

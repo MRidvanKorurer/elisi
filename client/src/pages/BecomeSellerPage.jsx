@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link as RouterLink, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LocaleLink from '../i18n/LocaleLink';
 import {
   Alert,
   Box,
@@ -215,6 +217,7 @@ function Stepper({ step }) {
 }
 
 export default function BecomeSellerPage({ user, onLoginSuccess }) {
+  const { t } = useTranslation('seller');
   const loggedIn = Boolean(user);
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -470,7 +473,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                 </Typography>
               </Box>
               <Button
-                component={RouterLink}
+                component={LocaleLink}
                 to="/"
                 variant="contained"
                 sx={{
@@ -484,7 +487,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                   '&:hover': { background: '#946D6D', color: '#fff' }
                 }}
               >
-                Anasayfaya dön
+                {t('backHome')}
               </Button>
             </Box>
           </motion.div>
@@ -496,13 +499,13 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
   return (
     <Box sx={{ minHeight: '100vh', position: 'relative', pt: { xs: 11, md: 13 }, pb: { xs: 8, md: 10 } }}>
       <Seo
-        title="Satıcı Ol - El Emeği Ürünlerini Nik Bag'de Sat"
-        description="El yapımı ürünlerini Nik Bag vitrininde satışa çıkar. Komisyon şeffaf, başvuru ücretsiz; mağazanı dakikalar içinde aç, siparişlerini panelden yönet."
+        title={t('seoTitle')}
+        description={t('seoDescription')}
         path="/satici-ol"
         keywords={['el yapımı ürün satmak', 'online satıcı ol', 'butik satıcı başvurusu', 'Nik Bag satıcı']}
         jsonLd={breadcrumbSchema([
-          { name: 'Ana Sayfa', path: '/' },
-          { name: 'Satıcı Ol', path: '/satici-ol' }
+          { name: t('home'), path: '/' },
+          { name: t('crumb'), path: '/satici-ol' }
         ])}
       />
       <PageBackdrop />
@@ -584,7 +587,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
 
               {[
                 { icon: <VerifiedOutlined />, title: 'Güvenli hesap', text: 'Oturum ve başvuru bilgilerin korunur.' },
-                { icon: <PaymentsOutlined />, title: 'IBAN ile ödeme', text: 'Satış bedeli kayıtlı hesabına geçer.' },
+                { icon: <PaymentsOutlined />, title: 'Tek şeffaf pay', text: 'Ürün satışından %10 (Iyzico dahil). 90 günde 50.000 ₺ ciroda %8. Kargo komisyona girmez.' },
                 { icon: <LocalShippingOutlined />, title: 'Kendi tempo', text: 'Üretim ve kargo takvimini sen kurarsın.' }
               ].map((item) => (
                 <Box key={item.title} sx={{ display: 'flex', gap: 1.8, mb: 2.2 }}>
@@ -915,7 +918,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
               {!loggedIn && (
                 <Typography variant="body2" sx={{ mt: 2.2, textAlign: 'center', color: '#6E5252', fontWeight: 600 }}>
                   Zaten hesabın var mı?{' '}
-                  <Box component={RouterLink} to="/auth" sx={{ color: '#946D6D', fontWeight: 800, textDecoration: 'none' }}>
+                  <Box component={LocaleLink} to="/auth" sx={{ color: '#946D6D', fontWeight: 800, textDecoration: 'none' }}>
                     Giriş yap
                   </Box>
                 </Typography>

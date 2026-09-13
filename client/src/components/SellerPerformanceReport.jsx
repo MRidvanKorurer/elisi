@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { PanelCard, SectionTitle } from './PanelShell';
 import { FEATURED_STATUS } from '../utils/featured';
+import { ATELIER_WEEK_STATUS } from '../utils/atelierWeek';
 import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money } from '../utils/panel';
 
 const CHART_COLORS = ['#2E3B55', '#946D6D', '#A290B7', '#B0CDE6', '#C08A4A', '#3F6B47', '#6E5252', '#5B4B72'];
@@ -31,7 +32,8 @@ const REPORTS = [
   { id: 'customers', n: 7, label: 'Müşteri', title: 'Müşteri ve şehir kırılımı', subtitle: 'İlk sipariş ile tekrar alım, teslimat şehrine göre ciro.' },
   { id: 'promos', n: 8, label: 'Kampanya', title: 'Kampanya kodu performansı', subtitle: 'Kendi kodlarınızın kullanım, ciro ve indirim etkisi.' },
   { id: 'featured', n: 9, label: 'Öne çıkanlar', title: 'Öne çıkan vitrin getirisi', subtitle: 'Paket bedeli ile vitrin süresindeki ürün satışının karşılaştırması.' },
-  { id: 'quality', n: 10, label: 'Puan & soru', title: 'Puan, yorum ve soru yanıtı', subtitle: 'Ürün puan dağılımı, yorum hacmi ve ortalama yanıt süresi.' }
+  { id: 'week', n: 10, label: 'Haftanın atölyesi', title: 'Haftanın atölyesi harcaması', subtitle: '7 günlük mağaza vitrini paket bedeli. Komisyona girmez.' },
+  { id: 'quality', n: 11, label: 'Puan & soru', title: 'Puan, yorum ve soru yanıtı', subtitle: 'Ürün puan dağılımı, yorum hacmi ve ortalama yanıt süresi.' }
 ];
 
 const headCell = {
@@ -565,6 +567,31 @@ function FeaturedView({ data, q }) {
   );
 }
 
+function WeekView({ data, q }) {
+  const items = (data?.items || []).filter((row) => includesQ(q, ATELIER_WEEK_STATUS[row.status], row.status, row.days));
+  const totals = data?.totals || {};
+  return (
+    <Box>
+      <StatCards items={[['Harcama', money(totals.spent)], ['Yayında', totals.live || 0], ['Talep', items.length]]} />
+      {!items.length ? (
+        <EmptyNote text="Haftanın atölyesi onaylanınca 7 günlük paket bedeli burada görünür." />
+      ) : (
+        <ReportTable
+          columns={['Paket', 'Durum', 'Harcama', 'Bitiş']}
+          rows={items.map((row) => (
+            <TableRow key={row.id} hover>
+              <TableCell sx={bodyCell}>{row.days} gün</TableCell>
+              <TableCell sx={bodyCell}>{ATELIER_WEEK_STATUS[row.status] || row.status}</TableCell>
+              <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(row.spent)}</TableCell>
+              <TableCell sx={bodyCell}>{row.endsAt ? new Date(row.endsAt).toLocaleDateString('tr-TR') : '—'}</TableCell>
+            </TableRow>
+          ))}
+        />
+      )}
+    </Box>
+  );
+}
+
 function QualityView({ data, q }) {
   const ratings = data?.ratings || [];
   const questions = data?.questions || {};
@@ -639,6 +666,7 @@ export default function SellerPerformanceReport({ report, query = '' }) {
     customers: <CustomersView data={report?.customers} q={q} />,
     promos: <PromosView data={report?.promos} q={q} />,
     featured: <FeaturedView data={report?.featured} q={q} />,
+    week: <WeekView data={report?.atelierWeek} q={q} />,
     quality: <QualityView data={report?.quality} q={q} />
   };
 

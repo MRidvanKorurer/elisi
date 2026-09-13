@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  DEFAULT_DESCRIPTION,
-  DEFAULT_KEYWORDS,
-  SITE_LOCALE,
   SITE_NAME,
   absoluteUrl,
   buildTitle,
   clampDescription
 } from '../utils/seo';
+import { ogLocale, withLocale } from '../i18n/locale';
 
 /**
  * Sayfa başına arama motoru etiketleri.
@@ -15,31 +14,42 @@ import {
  */
 export default function Seo({
   title,
-  description = DEFAULT_DESCRIPTION,
+  description,
   path = '/',
   image,
-  keywords = DEFAULT_KEYWORDS,
+  keywords,
   type = 'website',
   noindex = false,
   jsonLd = null,
   children
 }) {
-  // index.html'deki varsayılan etiketler JS çalışınca kaldırılır, çift etiket kalmaz
+  const { t, i18n } = useTranslation('seo');
+  const locale = i18n.language === 'en' ? 'en' : 'tr';
+
   useEffect(() => {
     document.head.querySelectorAll('[data-default-seo]').forEach((node) => node.remove());
   }, []);
 
-  const canonical = absoluteUrl(path);
-  const metaDescription = clampDescription(description);
+  const metaDescription = clampDescription(description || t('defaultDescription'));
+  const pageTitle = buildTitle(title, t('tagline'));
+  const canonical = absoluteUrl(withLocale(path, locale));
+  const trUrl = absoluteUrl(withLocale(path, 'tr'));
+  const enUrl = absoluteUrl(withLocale(path, 'en'));
   const ogImage = absoluteUrl(image || '/og-cover.jpg');
+  const keywordList = keywords?.length
+    ? keywords
+    : t('keywords').split(',').map((item) => item.trim()).filter(Boolean);
   const schemas = Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd].filter(Boolean);
 
   return (
     <>
-      <title>{buildTitle(title)}</title>
+      <title>{pageTitle}</title>
       <meta name="description" content={metaDescription} />
-      {keywords?.length > 0 && <meta name="keywords" content={keywords.join(', ')} />}
+      {keywordList.length > 0 && <meta name="keywords" content={keywordList.join(', ')} />}
       <link rel="canonical" href={canonical} />
+      <link rel="alternate" hrefLang="tr" href={trUrl} />
+      <link rel="alternate" hrefLang="en" href={enUrl} />
+      <link rel="alternate" hrefLang="x-default" href={trUrl} />
 
       <meta
         name="robots"
@@ -48,15 +58,16 @@ export default function Seo({
 
       <meta property="og:type" content={type} />
       <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:locale" content={SITE_LOCALE} />
-      <meta property="og:title" content={buildTitle(title)} />
+      <meta property="og:locale" content={ogLocale(locale)} />
+      <meta property="og:locale:alternate" content={ogLocale(locale === 'en' ? 'tr' : 'en')} />
+      <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={metaDescription} />
       <meta property="og:url" content={canonical} />
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:alt" content={title || SITE_NAME} />
 
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={buildTitle(title)} />
+      <meta name="twitter:title" content={pageTitle} />
       <meta name="twitter:description" content={metaDescription} />
       <meta name="twitter:image" content={ogImage} />
 

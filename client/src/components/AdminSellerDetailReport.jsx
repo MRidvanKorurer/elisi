@@ -160,6 +160,8 @@ export default function AdminSellerDetailReport({ sellers = [], sellerId, onSele
         <>
           <StatCards items={[
             ['Ciro', money(kpis.revenue)],
+            ['Platform payı', money(kpis.platformFee)],
+            ['Satıcıya kalan', money(kpis.net != null ? kpis.net : (kpis.revenue || 0) * 0.9)],
             ['Sipariş', kpis.orders || 0],
             ['Ort. kargoya çıkış', daysText(kpis.avgDaysToShip)],
             ['Ort. teslim', daysText(kpis.avgDaysToDeliver)],

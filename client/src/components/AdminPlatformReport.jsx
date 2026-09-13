@@ -18,6 +18,7 @@ import {
 import { PanelCard, SectionTitle } from './PanelShell';
 import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, SELLER_STATUS, T, money } from '../utils/panel';
 import AdminSellerDetailReport from './AdminSellerDetailReport';
+import AdminCommission from './AdminCommission';
 
 const CHART_COLORS = ['#2E3B55', '#946D6D', '#A290B7', '#B0CDE6', '#C08A4A', '#3F6B47', '#6E5252', '#5B4B72'];
 const SURFACE = { featured: 'Önerilen vitrin', product: 'Ürün kartı', atelier: 'Atölye', banner: 'Banner' };
@@ -33,7 +34,8 @@ const REPORTS = [
   { id: 'catalog', n: 8, label: 'Katalog', title: 'Kategori ve ürün', subtitle: 'Kategori cirosu ve en çok kazandıran ürünler.' },
   { id: 'ads', n: 9, label: 'Reklam', title: 'Reklam, vitrin ve tıklama', subtitle: 'Önerilen ürün gösterim, tıklama, CTR ve paket getirisi.' },
   { id: 'promos', n: 10, label: 'Kampanya', title: 'Kampanya kodları', subtitle: 'Platform ve satıcı kodlarının ciro etkisi.' },
-  { id: 'quality', n: 11, label: 'Kalite', title: 'Puan ve soru', subtitle: 'Yorum dağılımı ve yanıtsız ürün soruları.' }
+  { id: 'quality', n: 11, label: 'Kalite', title: 'Puan ve soru', subtitle: 'Yorum dağılımı ve yanıtsız ürün soruları.' },
+  { id: 'commission', n: 12, label: 'Komisyon', title: 'Süper admin payı', subtitle: 'Tek pay: %10, hacimde %8. Özel oran Satıcılar’dan kilitlenir. Kargo ayrıdır.' }
 ];
 
 const headCell = {
@@ -119,7 +121,9 @@ function OverviewView({ data }) {
       ['Satıcı', data?.sellers || 0],
       ['Ürün', data?.products || 0],
       ['Bekleyen satıcı', data?.pendingSellers || 0],
-      ['Onay bekleyen ürün', data?.pendingProducts || 0]
+      ['Onay bekleyen ürün', data?.pendingProducts || 0],
+      ['Platform payı', money(data?.platformFee)],
+      ['Bekleyen pay', money(data?.platformFeePending)]
     ]} />
   );
 }
@@ -314,12 +318,14 @@ function AdsView({ data, q }) {
   const totals = data?.totals || {};
   const products = (data?.products || []).filter((row) => includesQ(q, row.title, row.shop));
   const featured = (data?.featured || []).filter((row) => includesQ(q, row.title, row.shop));
+  const atelierWeek = data?.atelierWeek || {};
+  const weekItems = (atelierWeek.items || []).filter((row) => includesQ(q, row.shop, row.status));
   const daily = data?.daily || [];
   const surfaces = (data?.surfaces || []).map((row) => ({ ...row, label: SURFACE[row.surface] || row.surface }));
   return (
     <Box>
-      <StatCards items={[['Gösterim', totals.impressions || 0], ['Tıklama', totals.clicks || 0], ['CTR', `%${totals.ctr || 0}`], ['Vitrin harcaması', money(totals.spend)], ['Atfedilen satış', money(totals.attributed)], ['Yayında', totals.live || 0]]} />
-      {!totals.impressions && !totals.clicks && !featured.length ? (
+      <StatCards items={[['Gösterim', totals.impressions || 0], ['Tıklama', totals.clicks || 0], ['CTR', `%${totals.ctr || 0}`], ['Vitrin harcaması', money(totals.spend)], ['Atfedilen satış', money(totals.attributed)], ['Yayında', totals.live || 0], ['Haftanın atölyesi', atelierWeek.live || 0], ['Hafta harcaması', money(atelierWeek.spent)]]} />
+      {!totals.impressions && !totals.clicks && !featured.length && !weekItems.length ? (
         <EmptyNote text="Önerilen vitrin açılınca gösterim, ürüne tıklanınca tıklama yazılır." />
       ) : (
         <>
@@ -375,6 +381,22 @@ function AdsView({ data, q }) {
               </TableRow>
             ))}
           />
+          {weekItems.length ? (
+            <Box sx={{ mt: 1.8 }}>
+              <ReportTable
+                columns={['Haftanın atölyesi', 'Paket', 'Durum', 'Harcama', 'Bitiş']}
+                rows={weekItems.map((row) => (
+                  <TableRow key={row.id} hover>
+                    <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{row.shop || 'Atölye'}</TableCell>
+                    <TableCell sx={bodyCell}>{row.days} gün</TableCell>
+                    <TableCell sx={bodyCell}>{row.status}</TableCell>
+                    <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(row.spent)}</TableCell>
+                    <TableCell sx={bodyCell}>{row.endsAt ? new Date(row.endsAt).toLocaleDateString('tr-TR') : '—'}</TableCell>
+                  </TableRow>
+                ))}
+              />
+            </Box>
+          ) : null}
         </>
       )}
     </Box>
@@ -588,7 +610,8 @@ export default function AdminPlatformReport({ report, query = '' }) {
     catalog: <CatalogView data={report?.catalog} q={q} />,
     ads: <AdsView data={report?.ads} q={q} />,
     promos: <PromosView data={report?.promos} q={q} />,
-    quality: <QualityView data={report?.quality} />
+    quality: <QualityView data={report?.quality} />,
+    commission: <AdminCommission data={report?.commission} query={q} onOpenSeller={openSeller} />
   };
 
   return (

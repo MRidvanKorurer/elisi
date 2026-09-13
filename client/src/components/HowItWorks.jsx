@@ -1,35 +1,15 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography } from '@mui/material';
 import TravelExploreOutlined from '@mui/icons-material/TravelExploreOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 
-const STEPS = [
-  {
-    n: '01',
-    Icon: TravelExploreOutlined,
-    title: 'Keşfet',
-    text: 'Kategori ve atölyelere göz at, sana uyan el emeğini seç.',
-    tint: '#D7E7F4',
-    ink: '#2E3B55'
-  },
-  {
-    n: '02',
-    Icon: ShoppingBagOutlined,
-    title: 'Sipariş ver',
-    text: 'Güvenli ödeme ile sepetini tamamla; kişiye özel üretim notu üründe yazar.',
-    tint: '#E4DCF0',
-    ink: '#6B5A82'
-  },
-  {
-    n: '03',
-    Icon: LocalShippingOutlined,
-    title: 'Kapına gelsin',
-    text: 'Üretici hazırlar, kargoya verir. Teslimat süresini sipariş özetinde görürsün.',
-    tint: '#EDD8D4',
-    ink: '#946D6D'
-  }
+const STEP_META = [
+  { n: '01', Icon: TravelExploreOutlined, titleKey: 'how.s1Title', textKey: 'how.s1Text', tint: '#D7E7F4', ink: '#2E3B55' },
+  { n: '02', Icon: ShoppingBagOutlined, titleKey: 'how.s2Title', textKey: 'how.s2Text', tint: '#E4DCF0', ink: '#6B5A82' },
+  { n: '03', Icon: LocalShippingOutlined, titleKey: 'how.s3Title', textKey: 'how.s3Text', tint: '#EDD8D4', ink: '#946D6D' }
 ];
 
 function StepCard({ step }) {
@@ -101,6 +81,8 @@ function StepCard({ step }) {
 }
 
 export default function HowItWorks() {
+  const { t } = useTranslation('home');
+  const steps = STEP_META.map((step) => ({ ...step, title: t(step.titleKey), text: t(step.textKey) }));
   return (
     <Container
       component="section"
@@ -110,7 +92,7 @@ export default function HowItWorks() {
     >
       <Box sx={{ mb: 3 }}>
         <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#A290B7' }}>
-          SÜREÇ
+          {t('how.eyebrow')}
         </Typography>
         <Typography
           id="how-it-works-title"
@@ -119,10 +101,10 @@ export default function HowItWorks() {
           fontWeight={800}
           sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}
         >
-          Nasıl çalışır?
+          {t('how.title')}
         </Typography>
         <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 1, lineHeight: 1.7, maxWidth: 540 }}>
-          Birçok ürün sipariş üzerine üretilir. Teslimat, stoklu mağazadan biraz daha kişisel bir ritimdedir.
+          {t('how.subtitle')}
         </Typography>
       </Box>
 
@@ -134,10 +116,10 @@ export default function HowItWorks() {
           gap: { xs: 1.6, sm: 1.2, md: 1.6 }
         }}
       >
-        {STEPS.map((step, index) => (
+        {steps.map((step, index) => (
           <React.Fragment key={step.n}>
             <StepCard step={step} />
-            {index < STEPS.length - 1 && (
+              {index < steps.length - 1 && (
               <Box
                 aria-hidden
                 sx={{

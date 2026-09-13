@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 // Ürün detay: teslimat / ölçü / iade paneli ProductFulfillment ile gelir.
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
   Alert,
   Box,
@@ -66,8 +68,10 @@ const FALLBACK_IMAGE = asImageSrc(imgBagOrange);
 const formatPrice = (value) => formatTRY(value);
 
 export default function ProductDetailPage({ onAddToCart, user }) {
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
-  const navigate = useNavigate();
+  const navigate = useLocaleNavigate();
+  const locale = i18n.language === 'en' ? 'en' : 'tr';
 
   const [product, setProduct] = useState(null);
   const [faqItems, setFaqItems] = useState([]);
@@ -265,19 +269,19 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   if (error || !product) {
     return (
       <Box sx={{ textAlign: 'center', py: { xs: 12, md: 16 }, px: 3 }}>
-        <Seo title="Ürün bulunamadı" path={`/product/${id || ''}`} noindex />
+        <Seo title={t('product.notFoundTitle', { ns: 'catalog' })} path={`/product/${id || ''}`} noindex />
         <Typography variant="h5" fontWeight={800} sx={{ color: '#2E3B55' }}>
-          {error || 'Ürün bulunamadı.'}
+          {error || t('product.notFound', { ns: 'catalog' })}
         </Typography>
         <Typography sx={{ color: '#6E5252', mt: 1.5, mb: 3 }}>
-          Aradığınız ürün kaldırılmış veya bağlantı hatalı olabilir.
+          {t('product.notFoundText', { ns: 'catalog' })}
         </Typography>
         <Button
           variant="contained"
           onClick={() => navigate('/products')}
           sx={{ bgcolor: '#946D6D', borderRadius: '14px', px: 3, fontWeight: 800, '&:hover': { bgcolor: '#7c5a5a' } }}
         >
-          Ürünlere dön
+          {t('product.backToProducts', { ns: 'catalog' })}
         </Button>
       </Box>
     );
@@ -294,25 +298,26 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   return (
     <Box sx={{ pt: { xs: 11, md: 14 }, pb: { xs: 14, md: 10 }, minHeight: '100vh' }}>
       <Seo
-        title={`${title}${product.category ? ` - El Yapımı ${categoryLabel(product.category)}` : ''}`}
+        title={`${title}${product.category ? ` - ${t('product.handmadeCategory', { ns: 'catalog', name: categoryLabel(product.category, t) })}` : ''}`}
         description={seoDescription}
         path={productPath}
         image={mainImg}
         type="product"
-        keywords={[title, product.category, 'el yapımı', 'Nik Bag'].filter(Boolean)}
+        keywords={[title, product.category, t('product.keywordHandmade', { ns: 'catalog' }), 'Nik Bag'].filter(Boolean)}
         jsonLd={[
           productSchema(product, {
             path: productPath,
             price: discountedPrice,
             images: allImages,
-            description: seoDescription
+            description: seoDescription,
+            locale
           }),
           breadcrumbSchema([
-            { name: 'Ana Sayfa', path: '/' },
-            { name: 'Ürünler', path: '/products' },
-            { name: categoryLabel(product.category), path: `/products?category=${encodeURIComponent(product.category || '')}` },
+            { name: t('product.home', { ns: 'catalog' }), path: '/' },
+            { name: t('list.products', { ns: 'catalog' }), path: '/products' },
+            { name: categoryLabel(product.category, t), path: `/products?category=${encodeURIComponent(product.category || '')}` },
             { name: title, path: productPath }
-          ]),
+          ], locale),
           ...(faqItems.length ? [faqSchema(faqItems)] : [])
         ]}
       />
@@ -322,7 +327,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           sx={{ mb: { xs: 3, md: 4 }, color: '#A290B7', fontWeight: 600, '& .MuiBreadcrumbs-ol': { flexWrap: 'wrap' } }}
         >
           <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-            Anasayfa
+            {t('product.home', { ns: 'catalog' })}
           </Link>
           <Link
             underline="hover"
@@ -330,7 +335,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             onClick={() => navigate(`/products?category=${encodeURIComponent(product.category || '')}`)}
             sx={{ cursor: 'pointer', textTransform: 'capitalize' }}
           >
-            {categoryLabel(product.category)}
+            {categoryLabel(product.category, t)}
           </Link>
           <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>{title}</Typography>
         </Breadcrumbs>
@@ -362,9 +367,9 @@ export default function ProductDetailPage({ onAddToCart, user }) {
               }}
             >
               <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '70%' }}>
-                {product.isNewProduct && <Chip label="Yeni" sx={badgeSx('#2E3B55')} />}
+                {product.isNewProduct && <Chip label={t('product.new', { ns: 'catalog' })} sx={badgeSx('#2E3B55')} />}
                 {discountRate > 0 && <Chip label={`%${discountRate} indirim`} sx={badgeSx('#946D6D')} />}
-                {outOfStock && <Chip label="Tükendi" sx={badgeSx('#6E5252')} />}
+                {outOfStock && <Chip label={t('product.soldOut', { ns: 'catalog' })} sx={badgeSx('#6E5252')} />}
               </Box>
               {mediaView !== 'video' ? (
                 <Box sx={zoomHintSx}>
@@ -440,14 +445,14 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                   textDecoration: mediaView === 'video' ? 'underline' : 'none'
                 }}
               >
-                {mediaView === 'video' ? 'Fotoğraflara dön' : 'Videoyu izle'}
+                {mediaView === 'video' ? t('product.backToPhotos', { ns: 'catalog' }) : t('product.watchVideo', { ns: 'catalog' })}
               </Box>
             ) : null}
           </Box>
 
           <Box sx={{ minWidth: 0 }}>
             <Typography sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.08em', fontSize: '0.75rem', textTransform: 'uppercase', mb: 1 }}>
-              {categoryLabel(product.category)} {product.productCode ? `• ${product.productCode}` : ''}
+              {categoryLabel(product.category, t)} {product.productCode ? `• ${product.productCode}` : ''}
             </Typography>
             <Typography
               component="h1"
@@ -462,7 +467,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
               <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 700 }}>
                 {product.numReviews
                   ? `${Number(product.rating).toFixed(1)} · ${product.numReviews} değerlendirme`
-                  : 'Henüz değerlendirme yok'}
+                  : t('product.noReviews', { ns: 'catalog' })}
               </Typography>
               {product.soldCount > 0 && (
                 <Typography variant="body2" sx={{ color: '#A290B7', fontWeight: 700 }}>
@@ -483,7 +488,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             </Box>
 
             <Typography sx={{ color: '#6E5252', lineHeight: 1.75, mb: 3, maxWidth: 560 }}>
-              {product.description || product.aciklama || 'Bu ürün için henüz detaylı bir açıklama eklenmedi.'}
+              {product.description || product.aciklama || t('product.noDescription', { ns: 'catalog' })}
             </Typography>
 
             {colors.length > 0 && (
@@ -519,7 +524,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             )}
 
             <Typography sx={{ color: outOfStock ? '#946D6D' : '#81B29A', fontWeight: 800, mb: 2, fontSize: '0.92rem' }}>
-              {outOfStock ? 'Stokta yok' : `Stokta ${stock} adet`}
+              {outOfStock ? t('product.outOfStock', { ns: 'catalog' }) : t('product.inStock', { ns: 'catalog', count: stock })}
             </Typography>
 
             <Box
@@ -551,7 +556,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                 startIcon={addingToCart ? <CircularProgress size={18} color="inherit" /> : <ShoppingBagOutlinedIcon />}
                 sx={cartButtonSx}
               >
-                {outOfStock ? 'Tükendi' : addingToCart ? 'Ekleniyor...' : 'Sepete ekle'}
+                {outOfStock ? t('product.soldOut', { ns: 'catalog' }) : addingToCart ? t('product.adding', { ns: 'catalog' }) : t('product.addToCart', { ns: 'catalog' })}
               </Button>
 
               <IconButton onClick={handleToggleFavorite} disabled={favLoading} sx={iconActionSx}>
@@ -584,8 +589,8 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                 <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Ürün özellikleri</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <SpecRow label="Ürün kodu" value={product.productCode || product._id} />
-                <SpecRow label="Kategori" value={categoryLabel(product.category)} />
+                <SpecRow label={t('product.sku', { ns: 'catalog' })} value={product.productCode || product._id} />
+                <SpecRow label={t('product.category', { ns: 'catalog' })} value={categoryLabel(product.category, t)} />
                 {features.length > 0 && (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, pt: 1.5 }}>
                     {features.map((feature) => (
@@ -630,7 +635,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
               Bunlar da ilginizi çekebilir
             </Typography>
             <Typography sx={{ color: '#6E5252', mb: 3.5, mt: 0.5 }}>Aynı kategorideki diğer el işi tasarımlar.</Typography>
-            <ProductSlider products={similarProducts} ariaLabel="Benzer ürünler" />
+            <ProductSlider products={similarProducts} ariaLabel={t('product.similar', { ns: 'catalog' })} />
           </Box>
         )}
       </Container>
@@ -668,7 +673,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           disabled={outOfStock || addingToCart}
           sx={{ ...cartButtonSx, height: 52 }}
         >
-          {outOfStock ? 'Tükendi' : `${formatPrice(discountedPrice)} ₺`}
+          {outOfStock ? t('product.soldOut', { ns: 'catalog' }) : `${formatPrice(discountedPrice)} ₺`}
         </Button>
         <IconButton onClick={handleToggleFavorite} sx={{ ...iconActionSx, width: 52, height: 52 }}>
           {isFavorite ? <FavoriteIcon sx={{ color: '#946D6D' }} /> : <FavoriteBorderOutlinedIcon sx={{ color: '#946D6D' }} />}

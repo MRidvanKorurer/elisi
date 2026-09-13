@@ -1,0 +1,55 @@
+{
+  "disclaimer": "These texts are filled with the shop operator’s contact details. Have them reviewed before you go live.",
+  "gizlilik": {
+    "title": "Privacy policy",
+    "lead": "{{company}} explains how order, account and support data is used.",
+    "sections": [
+      { "h": "Data we collect", "p": "Name, email, phone, delivery address, order contents and payment result. Card numbers are not stored here. Google sign-in shares the verified email and name." },
+      { "h": "Why", "p": "To fulfill the order, ship it, provide support, meet legal retention duties and, if you opt in, send a newsletter." },
+      { "h": "Sharing", "p": "The payment provider, carrier and host see only what the transaction requires. We do not sell personal data." },
+      { "h": "Retention and cookies", "p": "Order records are kept for the period required by tax and consumer law. Account requests: {{email}}. The session cookie is HttpOnly." }
+    ]
+  },
+  "kvkk": {
+    "title": "Privacy notice (KVKK)",
+    "lead": "Controller: {{company}}. Contact: {{email}} {{phone}} {{address}}",
+    "sections": [
+      { "h": "Purposes", "p": "Contract performance, payment, delivery, support, fraud prevention and legal duties." },
+      { "h": "Legal basis", "p": "Contract, legal obligation and legitimate interest. The newsletter needs a separate opt-in." },
+      { "h": "Your rights", "p": "You may request access, correction or deletion by emailing {{email}}. You may also apply to the Turkish data protection authority." }
+    ]
+  },
+  "mesafeli-satis": {
+    "title": "Distance sales contract",
+    "lead": "This contract applies to sales made on this site with {{company}}.",
+    "sections": [
+      { "h": "Scope", "p": "Sale and delivery of handmade goods. Small differences in handmade pieces are not defects." },
+      { "h": "Price and payment", "p": "The total is shown in the order summary. Cards are charged by the payment provider. Bank transfer is final only after the payment is confirmed. Unpaid orders are not shipped." },
+      { "h": "Withdrawal", "p": "Ready-made goods may be withdrawn within 14 days of delivery. Made-to-order or hygiene-sensitive goods may be excluded when stated on the product page." }
+    ]
+  },
+  "on-bilgilendirme": {
+    "title": "Pre-contract information",
+    "lead": "By placing an order you confirm you have read the seller, price and withdrawal terms.",
+    "sections": [
+      { "h": "Seller", "p": "{{company}}\n{{address}}\n{{email}} {{phone}}" },
+      { "h": "Price and delivery", "p": "Name, quantity, discounts, shipping and total are in the checkout summary. Cards are entered on the payment page. The delivery address is the one you enter." }
+    ]
+  },
+  "iade": {
+    "title": "Returns",
+    "lead": "Ready-stock items can be returned within 14 days of delivery.",
+    "sections": [
+      { "h": "How", "p": "Email {{email}} with the order code and reason. Send the item unused after we confirm." },
+      { "h": "Refund", "p": "After inspection, the amount is returned via the original payment method." }
+    ]
+  },
+  "kargo": {
+    "title": "Shipping",
+    "lead": "Shipping fee and the free-shipping threshold are calculated at checkout.",
+    "sections": [
+      { "h": "Timing", "p": "In-stock items are prepared after payment is confirmed. Made-to-order times are on the product page." },
+      { "h": "Damage", "p": "Check the parcel on delivery and email photos to {{email}} if it is damaged." }
+    ]
+  }
+}

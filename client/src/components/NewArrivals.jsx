@@ -4,6 +4,7 @@ import { useReducedMotion } from 'framer-motion';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
 import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
+import { useTranslation } from 'react-i18next';
 import ProductCard, { PRODUCT_CARD_WIDTH } from './ProductCard';
 import { productService } from '../api/productService';
 
@@ -24,6 +25,7 @@ const arrowSx = (disabled) => ({
 });
 
 export default function NewArrivals({ onAddToCart }) {
+  const { t } = useTranslation('home');
   const trackRef = useRef(null);
   const progressRef = useRef(null);
   const reduced = useReducedMotion();
@@ -32,7 +34,7 @@ export default function NewArrivals({ onAddToCart }) {
 
   useEffect(() => {
     let cancelled = false;
-    productService.getFilteredProducts({ sort: 'newest', limit: VISIBLE_LIMIT, page: 1 })
+    productService.getFilteredProducts({ sort: 'created', limit: VISIBLE_LIMIT, page: 1 })
       .then((data) => {
         if (cancelled) return;
         const list = data?.products || (Array.isArray(data) ? data : []);
@@ -111,10 +113,10 @@ export default function NewArrivals({ onAddToCart }) {
           }}
         >
           <AutoAwesomeOutlined sx={{ fontSize: '18px' }} />
-          ATÖLYEDEN TAZE
+          {t('arrivals.eyebrow')}
         </Typography>
         <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>
-          Yeni Gelenler
+          {t('arrivals.title')}
         </Typography>
       </Box>
 
@@ -122,7 +124,7 @@ export default function NewArrivals({ onAddToCart }) {
         <Box
           ref={trackRef}
           role="region"
-          aria-label="Çok satan ürünler"
+          aria-label={t('arrivals.region')}
           tabIndex={0}
           onKeyDown={(event) => {
             if (event.key === 'ArrowLeft') { event.preventDefault(); scrollByPage(-1); }
@@ -162,7 +164,7 @@ export default function NewArrivals({ onAddToCart }) {
         {scrollable && (
           <>
             <IconButton
-              aria-label="Önceki ürünler"
+              aria-label={t('arrivals.prev')}
               disabled={edges.start}
               onClick={() => scrollByPage(-1)}
               sx={{ ...arrowSx(edges.start), position: 'absolute', top: '38%', left: { xs: -6, md: -18 }, zIndex: 2 }}
@@ -170,7 +172,7 @@ export default function NewArrivals({ onAddToCart }) {
               <ArrowBackIosNewRounded sx={{ fontSize: 16, ml: 0.4 }} />
             </IconButton>
             <IconButton
-              aria-label="Sonraki ürünler"
+              aria-label={t('arrivals.next')}
               disabled={edges.end}
               onClick={() => scrollByPage(1)}
               sx={{ ...arrowSx(edges.end), position: 'absolute', top: '38%', right: { xs: -6, md: -18 }, zIndex: 2 }}

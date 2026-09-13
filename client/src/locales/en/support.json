@@ -1,0 +1,12 @@
+{
+  "placeholder": "Write your question…",
+  "aiTitle": "AI support",
+  "aiAria": "AI customer support",
+  "waTitle": "WhatsApp order & support",
+  "chips": {
+    "shipping": "Shipping",
+    "returns": "Returns",
+    "payment": "Payment",
+    "order": "My order"
+  }
+}

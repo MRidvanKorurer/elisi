@@ -1,34 +1,21 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography } from '@mui/material';
 import HandshakeOutlined from '@mui/icons-material/HandshakeOutlined';
 import VolunteerActivismOutlined from '@mui/icons-material/VolunteerActivismOutlined';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
 
-const ITEMS = [
-  {
-    icon: <HandshakeOutlined />,
-    title: 'El emeği üretim',
-    text: 'Her parça atölyelerde, kişiye özel tempo ile hazırlanır.'
-  },
-  {
-    icon: <VolunteerActivismOutlined />,
-    title: 'Yerel üretici',
-    text: 'Türkiye’deki bağımsız zanaatkârlarla çalışıyoruz.'
-  },
-  {
-    icon: <PaymentsOutlined />,
-    title: 'Güvenli ödeme',
-    text: 'Kart bilgilerin Iyzico altyapısıyla korunur.'
-  },
-  {
-    icon: <LocalShippingOutlined />,
-    title: 'Kargo ve iade',
-    text: 'Sipariş üzerine üretim süreleri üründe yazılır.'
-  }
+const ITEM_META = [
+  { icon: <HandshakeOutlined />, titleKey: 'trust.handmadeTitle', textKey: 'trust.handmadeText' },
+  { icon: <VolunteerActivismOutlined />, titleKey: 'trust.localTitle', textKey: 'trust.localText' },
+  { icon: <PaymentsOutlined />, titleKey: 'trust.payTitle', textKey: 'trust.payText' },
+  { icon: <LocalShippingOutlined />, titleKey: 'trust.shipTitle', textKey: 'trust.shipText' }
 ];
 
 export default function TrustStrip() {
+  const { t } = useTranslation('home');
+  const items = ITEM_META.map((item) => ({ ...item, title: t(item.titleKey), text: t(item.textKey) }));
   return (
     <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
       <Box
@@ -38,7 +25,7 @@ export default function TrustStrip() {
           gap: { xs: 1.5, md: 2.5 }
         }}
       >
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <Box
             key={item.title}
             sx={{

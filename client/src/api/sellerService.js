@@ -109,6 +109,26 @@ export const sellerService = {
     return response.data;
   },
 
+  getMyAtelierWeek: async () => {
+    const response = await API.get('/sellers/me/atelier-week');
+    return response.data;
+  },
+
+  createAtelierWeek: async (payload) => {
+    const isForm = typeof FormData !== 'undefined' && payload instanceof FormData;
+    const response = await API.post(
+      '/sellers/me/atelier-week',
+      payload,
+      isForm ? { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 } : undefined
+    );
+    return response.data;
+  },
+
+  cancelAtelierWeek: async (id) => {
+    const response = await API.delete(`/sellers/me/atelier-week/${id}`);
+    return response.data;
+  },
+
   getPublic: async (slug, params = {}) => {
     const response = await API.get(`/sellers/public/${encodeURIComponent(slug)}`, { params });
     return response.data;

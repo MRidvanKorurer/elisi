@@ -23,7 +23,7 @@ export const DEFAULT_KEYWORDS = [
 export const ORGANIZATION = {
   legalName: 'Nik Bag Tasarım Atölyesi',
   email: 'info@nikbag.com',
-  phone: '+90 555 000 00 00',
+  phone: import.meta.env.VITE_CONTACT_PHONE || '',
   city: 'İstanbul',
   country: 'TR',
   social: [
@@ -44,8 +44,8 @@ export const absoluteUrl = (path = '/') => {
 };
 
 /** Sayfa başlığını marka adıyla birleştirir, 60 karakteri aşmamaya çalışır. */
-export const buildTitle = (title) =>
-  !title || title === SITE_NAME ? `${SITE_NAME} | ${SITE_TAGLINE}` : `${title} | ${SITE_NAME}`;
+export const buildTitle = (title, tagline = SITE_TAGLINE) =>
+  !title || title === SITE_NAME ? `${SITE_NAME} | ${tagline}` : `${title} | ${SITE_NAME}`;
 
 /** Açıklamaları arama sonuçlarında kesilmeyecek uzunluğa indirir. */
 export const clampDescription = (text = '', limit = 158) => {

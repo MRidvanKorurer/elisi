@@ -19,11 +19,13 @@ const asEvent = (item) => {
   if (!item) return null;
   const product = item.product || item.productId;
   if (product && !/^[a-f0-9]{24}$/i.test(String(product))) return null;
+  const rawSeller = (item.seller && item.seller._id) || item.seller || item.userId || null;
+  const seller = rawSeller && /^[a-f0-9]{24}$/i.test(String(rawSeller)) ? rawSeller : null;
   return {
     type: item.type === 'impression' ? 'impression' : 'click',
     surface: item.surface || 'product',
     product: product || null,
-    seller: (item.seller && item.seller._id) || item.seller || null,
+    seller,
     session: sessionId(),
     path: typeof window !== 'undefined' ? window.location.pathname : ''
   };

@@ -77,8 +77,13 @@ export const CATEGORY_ICON_NAMES = {
   diger: 'CategoryOutlined'
 };
 
-export const categoryLabel = (value) =>
-  CATEGORY_LABELS[String(value || '').toLowerCase()] || value || 'Diğer';
+export const categoryLabel = (value, t) => {
+  const key = String(value || '').toLowerCase();
+  if (typeof t === 'function') {
+    return t(key, { ns: 'categories', defaultValue: CATEGORY_LABELS[key] || value || t('diger', { ns: 'categories' }) });
+  }
+  return CATEGORY_LABELS[key] || value || 'Diğer';
+};
 
 export const mergeCatalogCategories = (values = []) => {
   const extras = values

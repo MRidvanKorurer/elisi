@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
   Box,
   CircularProgress,
@@ -15,10 +17,9 @@ import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supportService } from '../api/supportService';
+import { getSitePublic } from '../api/siteService';
 
-const WHATSAPP_NUMBER = '905551234567';
-const WHATSAPP_TEXT = encodeURIComponent('Merhaba NikBag, destek almak istiyorum.');
-const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_TEXT}`;
+const WHATSAPP_TEXT = encodeURIComponent('Merhaba Nik Bag, destek almak istiyorum.');
 
 const QUICK = [
   { label: 'Kargo', text: 'Kargo ücreti ve teslimat süresi nedir?' },
@@ -61,7 +62,8 @@ function Bubble({ role, text }) {
 
 export default function SupportDock() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { t } = useTranslation('support');
+  const navigate = useLocaleNavigate();
   const lift = location.pathname.startsWith('/product/') || location.pathname.startsWith('/checkout');
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -73,6 +75,13 @@ export default function SupportDock() {
     }
   ]);
   const scroller = useRef(null);
+  const [whatsappHref, setWhatsappHref] = useState('');
+
+  useEffect(() => {
+    getSitePublic().then((site) => {
+      if (site?.whatsapp) setWhatsappHref(`https://wa.me/${site.whatsapp}?text=${WHATSAPP_TEXT}`);
+    });
+  }, []);
 
   useEffect(() => {
     const node = scroller.current;
@@ -141,9 +150,10 @@ export default function SupportDock() {
                   <Typography fontWeight={800} sx={{ fontSize: 14, lineHeight: 1.2 }}>Nik Bag asistan</Typography>
                   <Typography sx={{ fontSize: 11, opacity: 0.78 }}>Kargo · iade · sipariş</Typography>
                 </Box>
+                {whatsappHref && (
                 <IconButton
                   component="a"
-                  href={WHATSAPP_HREF}
+                  href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="WhatsApp"
@@ -151,6 +161,7 @@ export default function SupportDock() {
                 >
                   <WhatsAppIcon fontSize="small" />
                 </IconButton>
+                )}
                 <IconButton aria-label="Kapat" onClick={() => setOpen(false)} sx={{ color: '#FDF4D2' }}>
                   <CloseRoundedIcon fontSize="small" />
                 </IconButton>
@@ -202,7 +213,7 @@ export default function SupportDock() {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Sorunu yaz…"
+                  placeholder={t('placeholder')}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
@@ -240,9 +251,9 @@ export default function SupportDock() {
       </AnimatePresence>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1, alignItems: 'flex-end' }}>
-        <Tooltip title="Yapay zeka destek" placement="left" disableHoverListener={open} disableFocusListener={open}>
+        <Tooltip title={t('aiTitle')} placement="left" disableHoverListener={open} disableFocusListener={open}>
           <Fab
-            aria-label="Yapay zeka müşteri destek"
+            aria-label={t('aiAria')}
             onClick={() => setOpen((prev) => !prev)}
             sx={{
               ...fabBase,
@@ -254,10 +265,11 @@ export default function SupportDock() {
             {open ? <CloseRoundedIcon /> : <AutoAwesomeOutlinedIcon />}
           </Fab>
         </Tooltip>
-        <Tooltip title="WhatsApp hızlı sipariş & destek" placement="left">
+        {whatsappHref && (
+        <Tooltip title={t('waTitle')} placement="left">
           <Fab
             component="a"
-            href={WHATSAPP_HREF}
+            href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="WhatsApp"
@@ -271,6 +283,7 @@ export default function SupportDock() {
             <WhatsAppIcon sx={{ fontSize: 28 }} />
           </Fab>
         </Tooltip>
+        )}
       </Box>
     </Box>
   );

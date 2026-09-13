@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Container, Skeleton, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LocaleLink from '../i18n/LocaleLink';
+import { categoryLabel } from '../utils/categories';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
@@ -24,7 +26,7 @@ function tileLayout(index) {
   return { gridColumn: 'span 1', gridRow: 'span 1' };
 }
 
-function CategoryTile({ item, index, selected, reduced, onSelect }) {
+function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
   const featured = index === 0;
   const wide = index <= 1;
 
@@ -34,7 +36,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect }) {
       type="button"
       onClick={() => onSelect(item.categoryId)}
       aria-pressed={selected}
-      aria-label={`${item.name} ürünlerini göster`}
+      aria-label={t('categories.showProducts', { name: item.name })}
       sx={{
         ...tileLayout(index),
         position: 'relative',
@@ -113,7 +115,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect }) {
             letterSpacing: 1.3
           }}
         >
-          {selected ? 'SEÇİLİ' : featured ? 'KEŞFET' : 'ODA'}
+          {selected ? t('categories.selected') : featured ? t('categories.discover') : t('categories.room')}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1 }}>
@@ -148,6 +150,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect }) {
 }
 
 export default function CategoryProductList({ onAddToCart, onToggleFavorite, favorites = [] }) {
+  const { t } = useTranslation();
   const reduced = useReducedMotion();
   const productsAnchor = useRef(null);
 
@@ -188,7 +191,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
       category: selected === 'all' ? undefined : selected,
       page: 1,
       limit: visibleCount,
-      sort: 'newest'
+      sort: 'created'
     })
       .then((response) => {
         if (cancelled) return;
@@ -199,7 +202,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
       .catch(() => {
         if (!cancelled) {
           setProducts([]);
-          setError('Ürünler yüklenirken bir sorun oluştu.');
+          setError(t('categories.loadError', { ns: 'home' }));
         }
       })
       .finally(() => {
@@ -213,22 +216,34 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
     .filter((cat) => (cat.productCount || 0) > 0)
     .sort((a, b) => (b.productCount || 0) - (a.productCount || 0));
   const active = selected === 'all'
-    ? { categoryId: 'all', name: 'Tüm koleksiyon', description: 'Atölyelerin güncel vitrini, tek bakışta.', image: allCover }
-    : sortedCats.find((item) => item.categoryId === selected);
+    ? {
+        categoryId: 'all',
+        name: t('categories.allName', { ns: 'home' }),
+        description: t('categories.allDescription', { ns: 'home' }),
+        image: allCover
+      }
+    : {
+        ...sortedCats.find((item) => item.categoryId === selected),
+        name: categoryLabel(selected, t)
+      };
 
   const tiles = [
     {
       categoryId: 'all',
-      name: 'Tüm koleksiyon',
+      name: t('categories.allName', { ns: 'home' }),
       image: allCover,
-      countLabel: totalProducts ? `${totalProducts} parça` : 'Tüm vitrin',
+      countLabel: totalProducts
+        ? t('categories.pieceCount', { ns: 'home', count: totalProducts })
+        : t('categories.allCount', { ns: 'home' }),
       bgGradient: 'linear-gradient(135deg, #946D6D 0%, #2E3B55 100%)'
     },
     ...sortedCats.map((cat) => ({
       categoryId: cat.categoryId,
-      name: cat.name,
+      name: categoryLabel(cat.categoryId, t),
       image: cat.image,
-      countLabel: cat.productCount ? `${cat.productCount} parça` : 'Yakında',
+      countLabel: cat.productCount
+        ? t('categories.pieceCount', { ns: 'home', count: cat.productCount })
+        : t('categories.soon', { ns: 'home' }),
       bgGradient: cat.bgGradient
     }))
   ];
@@ -281,7 +296,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
               sx={{ letterSpacing: 2, color: '#A290B7', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
             >
               <CategoryOutlined sx={{ fontSize: 18 }} />
-              ATÖLYE ODALARI
+              {t('categories.eyebrow', { ns: 'home' })}
             </Typography>
             <Typography
               component="h2"
@@ -293,15 +308,15 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
                 fontSize: { xs: '1.5rem', sm: '1.85rem', md: '2.2rem' }
               }}
             >
-              Kategorilere Göre Keşfet
+              {t('categories.title', { ns: 'home' })}
             </Typography>
             <Typography sx={{ mt: 0.8, color: '#6E5252', fontWeight: 600, maxWidth: 540, fontSize: { xs: '0.88rem', md: '0.95rem' } }}>
-              Bir oda seç; o kategoriye ait ürünler hemen aşağıda açılır.
+              {t('categories.subtitle', { ns: 'home' })}
             </Typography>
           </Box>
 
           <Box
-            component={RouterLink}
+            component={LocaleLink}
             to={collectionPath}
             sx={{
               display: { xs: 'none', sm: 'inline-flex' },
@@ -320,7 +335,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
               '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' }
             }}
           >
-            Tüm vitrin
+            {t('categories.allCount', { ns: 'home' })}
             <ArrowForwardRounded sx={{ fontSize: 18 }} />
           </Box>
         </Box>
@@ -356,6 +371,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
                 selected={selected === item.categoryId}
                 reduced={reduced}
                 onSelect={selectCategory}
+                t={(key, opts) => t(key, { ns: 'home', ...opts })}
               />
             ))}
           </Box>
@@ -393,17 +409,17 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 <Typography sx={{ color: '#2E3B55', fontWeight: 800, fontSize: { xs: '1.05rem', md: '1.22rem' }, letterSpacing: '-0.3px' }}>
-                  {active?.name || 'Koleksiyon'}
+                  {active?.name || t('categories.collection', { ns: 'home' })}
                 </Typography>
                 <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.82rem' }}>
-                  {totalInCategory} parça bu odada
+                  {t('categories.inRoom', { ns: 'home', count: totalInCategory })}
                   {active?.description ? ` · ${active.description}` : ''}
                 </Typography>
               </Box>
             </Box>
 
             <Button
-              component={RouterLink}
+              component={LocaleLink}
               to={collectionPath}
               endIcon={<ArrowForwardRounded />}
               sx={{
@@ -418,7 +434,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
                 '&:hover': { backgroundColor: '#2E3B55', color: '#FFFFFF' }
               }}
             >
-              Koleksiyonu gör
+              {t('categories.seeCollection', { ns: 'home' })}
             </Button>
           </Box>
 
@@ -463,8 +479,8 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
             </AnimatePresence>
           ) : !error ? (
             <Box sx={{ textAlign: 'center', py: 8, px: 2, borderRadius: '24px', backgroundColor: 'rgba(255,255,255,0.7)', border: '1px dashed rgba(148,109,109,0.22)' }}>
-              <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>Bu odada henüz vitrin ürünü yok</Typography>
-              <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.6 }}>Başka bir kategori seçebilir veya tüm koleksiyona geçebilirsiniz.</Typography>
+              <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>{t('categories.emptyTitle', { ns: 'home' })}</Typography>
+              <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.6 }}>{t('categories.emptyText', { ns: 'home' })}</Typography>
             </Box>
           ) : null}
 
@@ -484,7 +500,7 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
                   '&:hover': { borderColor: '#946D6D', backgroundColor: '#946D6D', color: '#FFFFFF' }
                 }}
               >
-                Daha fazla göster ({remaining})
+                {t('actions.showMoreCount', { count: remaining })}
               </Button>
             </Box>
           )}

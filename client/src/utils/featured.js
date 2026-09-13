@@ -4,17 +4,24 @@ export const FEATURED_PACKAGES = [
   { days: 7, price: 5000, label: '7 gün', hint: 'Tam vitrin' }
 ];
 
+export const FEATURED_SLOTS = 12;
+
 export const FEATURED_BANK = {
-  name: 'NikBag El Sanatları',
-  iban: 'TR00 0000 0000 0000 0000 0000 00'
+  name: '',
+  iban: ''
 };
 
 export const isReceiptPdf = (value = '') => /\.pdf(\?|$)/i.test(String(value));
 
 export const FEATURED_STATUS = {
-  pending: 'Onay bekliyor',
-  approved: 'Yayında',
+  pending: 'Sırada',
+  live: 'Vitrinde',
+  approved: 'Vitrinde',
+  ended: 'Bitti',
   rejected: 'Reddedildi',
   cancelled: 'İptal',
-  removed: 'Vitrinden alındı'
+  removed: 'Bitti'
 };
+
+export const isLiveFeatured = (item) =>
+  item?.status === 'live' || item?.status === 'approved';

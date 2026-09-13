@@ -1,40 +1,49 @@
-import { useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { Box, Button, Container, Paper, Typography } from '@mui/material';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import Seo from '../components/Seo';
+import { getSitePublic } from '../api/siteService';
 
 export default function OrderResultPage({ success }) {
-  const navigate = useNavigate();
+  const { t } = useTranslation('checkout');
+  const navigate = useLocaleNavigate();
   const [params] = useSearchParams();
   const orderId = params.get('orderId');
   const method = params.get('method');
   const reason = params.get('reason');
   const isTransfer = method === 'transfer';
+  const [site, setSite] = useState(null);
+
+  useEffect(() => {
+    if (isTransfer) getSitePublic().then(setSite);
+  }, [isTransfer]);
 
   const copy = useMemo(() => {
     if (!success) {
       return {
-        title: 'Ödeme tamamlanamadı',
-        text: reason || 'Kart işlemi onaylanmadı. Sepetiniz duruyor; tekrar deneyebilirsiniz.',
+        title: t('resultFailTitle'),
+        text: reason || t('resultFailText'),
         icon: <ErrorOutlineRoundedIcon sx={{ fontSize: 64, color: '#C62828' }} />
       };
     }
     if (isTransfer) {
       return {
-        title: 'Siparişiniz alındı',
-        text: 'Havale/EFT sonrası siparişiniz onaylanır. Açıklamaya sipariş kodunu yazın.',
+        title: t('resultTransferTitle'),
+        text: t('resultTransferText'),
         icon: <AccountBalanceOutlinedIcon sx={{ fontSize: 64, color: '#946D6D' }} />
       };
     }
     return {
-      title: 'Teşekkürler',
-      text: 'Siparişiniz alındı. Üretim ve kargo sürecini hesabınızdan takip edebilirsiniz.',
+      title: t('resultOkTitle'),
+      text: t('resultOkText'),
       icon: <CheckCircleRoundedIcon sx={{ fontSize: 64, color: '#2E7D32' }} />
     };
-  }, [success, isTransfer, reason]);
+  }, [success, isTransfer, reason, t]);
 
   return (
     <Box sx={{ minHeight: '70vh', pt: { xs: 12, md: 16 }, pb: 8, px: 2, background: 'linear-gradient(180deg, #FDF4D2 0%, #F7EBC0 100%)' }}>
@@ -52,29 +61,35 @@ export default function OrderResultPage({ success }) {
           <Typography sx={{ color: '#6E5252', mt: 1.5, lineHeight: 1.7 }}>{copy.text}</Typography>
           {orderId && (
             <Box sx={{ mt: 2.5, p: 1.5, borderRadius: '14px', backgroundColor: '#FDF4D2', fontWeight: 800, color: '#2E3B55', wordBreak: 'break-all' }}>
-              Sipariş kodu: {orderId}
+              {t('orderCode', { id: orderId })}
             </Box>
           )}
           {success && isTransfer && (
             <Box sx={{ mt: 2, textAlign: 'left', p: 2, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)' }}>
-              <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1 }}>Banka bilgisi</Typography>
-              <Typography variant="body2" sx={{ color: '#6E5252' }}>NikBag El Sanatları</Typography>
-              <Typography variant="body2" sx={{ color: '#6E5252' }}>TR00 0000 0000 0000 0000 0000 00</Typography>
-              <Typography variant="caption" sx={{ color: '#946D6D', fontWeight: 700 }}>Açıklama: {orderId}</Typography>
+              <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1 }}>{t('bankTitle')}</Typography>
+              {site?.bank?.iban ? (
+                <>
+                  <Typography variant="body2" sx={{ color: '#6E5252' }}>{site.bank.name}</Typography>
+                  <Typography variant="body2" sx={{ color: '#6E5252' }}>{site.bank.iban}</Typography>
+                </>
+              ) : (
+                <Typography variant="body2" sx={{ color: '#946D6D' }}>Havale hesabı henüz tanımlanmamış.</Typography>
+              )}
+              <Typography variant="caption" sx={{ color: '#946D6D', fontWeight: 700 }}>{t('bankNote', { id: orderId })}</Typography>
             </Box>
           )}
           <Box sx={{ display: 'flex', gap: 1, mt: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
             <Button fullWidth variant="contained" onClick={() => navigate('/products')} sx={{ backgroundColor: '#2E3B55', color: '#FFFFFF', fontWeight: 800, py: 1.2, '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' } }}>
-              Alışverişe devam
+              {t('actions.keepShopping', { ns: 'common' })}
             </Button>
             {success && (
               <Button fullWidth variant="outlined" onClick={() => navigate('/profile')} sx={{ borderColor: '#946D6D', color: '#946D6D', fontWeight: 800, backgroundColor: '#fff' }}>
-                Siparişlerim
+                {t('actions.myOrders', { ns: 'common' })}
               </Button>
             )}
             {!success && (
               <Button fullWidth variant="outlined" onClick={() => navigate('/checkout')} sx={{ borderColor: '#946D6D', color: '#946D6D', fontWeight: 800, backgroundColor: '#fff' }}>
-                Tekrar dene
+                {t('actions.tryAgain', { ns: 'common' })}
               </Button>
             )}
           </Box>

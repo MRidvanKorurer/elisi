@@ -12,7 +12,13 @@ const publicMatch = { isActive: true, approvalStatus: { $nin: ['pending', 'rejec
 const STATIC_ROUTES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/products', changefreq: 'daily', priority: '0.9' },
-  { path: '/satici-ol', changefreq: 'monthly', priority: '0.6' }
+  { path: '/satici-ol', changefreq: 'monthly', priority: '0.6' },
+  { path: '/gizlilik', changefreq: 'yearly', priority: '0.3' },
+  { path: '/kvkk', changefreq: 'yearly', priority: '0.3' },
+  { path: '/mesafeli-satis', changefreq: 'yearly', priority: '0.3' },
+  { path: '/on-bilgilendirme', changefreq: 'yearly', priority: '0.3' },
+  { path: '/iade', changefreq: 'yearly', priority: '0.3' },
+  { path: '/kargo', changefreq: 'yearly', priority: '0.3' }
 ];
 
 const escapeXml = (value = '') =>

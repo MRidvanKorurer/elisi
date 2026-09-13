@@ -5,9 +5,12 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const ProductQuestion = require('../models/ProductQuestion');
 const FeaturedRequest = require('../models/FeaturedRequest');
+const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Review = require('../models/Review');
 const PromoCode = require('../models/PromoCode');
 const { isSuperAdmin } = require('../utils/roles');
+const { expireFeaturedProducts } = require('./featuredController');
+const { expireWeeklyAteliers } = require('./atelierWeekController');
 const {
     ORDER_STATUSES,
     deriveOrderStatus,
@@ -15,17 +18,21 @@ const {
     sellerStatusOf
 } = require('../utils/orderFulfillment');
 const { stampFulfillment, timingOf } = require('../utils/fulfillmentTiming');
+const {
+    sellerSettlementOf,
+    sellerDiscountOf,
+    trailingSellerGmv,
+    effectiveCommissionPercent,
+    volumeMeta
+} = require('../utils/commission');
 
-const COOKIE_OPTIONS = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000
-};
+const { cookieOptions } = require('../utils/runtime');
+const COOKIE_OPTIONS = cookieOptions();
 
 const { CATEGORY_LABELS } = require('../constants/categories');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { magazaTuruEtiket, normalizeMagazaTurleri } = require('../utils/sellerCategories');
+const { unansweredQuery, overdueQuery } = require('../utils/questionDeadline');
 
 const isLocalUpload = (src = '') => String(src).startsWith('/uploads/') || String(src).includes('/uploads/');
 
@@ -88,7 +95,7 @@ const isValidTckn = (value = '') => {
     return d.slice(0, 10).reduce((sum, n) => sum + n, 0) % 10 === d[10];
 };
 
-const serializeSeller = (seller, user) => ({
+const serializeSeller = (seller, user, extra = {}) => ({
     id: seller._id,
     magazaAdi: seller.magazaAdi,
     slug: seller.slug,
@@ -107,6 +114,9 @@ const serializeSeller = (seller, user) => ({
     website: seller.website,
     durum: seller.durum,
     reddetmeNedeni: seller.reddetmeNedeni,
+    komisyonOrani: extra.komisyonOrani ?? (seller.komisyonOrani != null ? seller.komisyonOrani : 10),
+    komisyonManuel: extra.komisyonManuel ?? Boolean(seller.komisyonManuel),
+    komisyonHacim: extra.komisyonHacim || null,
     createdAt: seller.createdAt,
     kullanici: user
         ? {
@@ -118,6 +128,15 @@ const serializeSeller = (seller, user) => ({
         }
         : undefined
 });
+
+const serializeSellerWithCommission = async (seller, user) => {
+    const gmv = await trailingSellerGmv(seller.user);
+    return serializeSeller(seller, user, {
+        komisyonOrani: effectiveCommissionPercent(seller, gmv),
+        komisyonManuel: Boolean(seller.komisyonManuel),
+        komisyonHacim: volumeMeta(gmv)
+    });
+};
 
 const serializeUser = (user) => ({
     id: user._id,
@@ -201,7 +220,7 @@ const registerSeller = async (req, res) => {
             if (existingSeller) {
                 return res.status(400).json({
                     mesaj: 'Bu hesap zaten bir satıcı mağazasına bağlı.',
-                    satici: serializeSeller(existingSeller, user)
+                    satici: await serializeSellerWithCommission(existingSeller, user)
                 });
             }
         } else {
@@ -280,7 +299,7 @@ const registerSeller = async (req, res) => {
             return res.status(201).json({
                 mesaj: 'Satıcı başvurunuz alındı. İnceleme sonrası mağazanız yayına alınır.',
                 kullanici: serializeUser(user),
-                satici: serializeSeller(seller, user)
+                satici: await serializeSellerWithCommission(seller, user)
             });
         } catch (createError) {
             if (createdUser) await User.findByIdAndDelete(user._id);
@@ -302,7 +321,7 @@ const getMySeller = async (req, res) => {
         }
 
         return res.json({
-            satici: serializeSeller(seller, req.user)
+            satici: await serializeSellerWithCommission(seller, req.user)
         });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Satıcı bilgisi alınamadı.', hata: error.message });
@@ -379,25 +398,59 @@ const updateMySeller = async (req, res) => {
 
         return res.json({
             mesaj: 'Mağaza bilgileri güncellendi.',
-            satici: serializeSeller(seller, req.user)
+            satici: await serializeSellerWithCommission(seller, req.user)
         });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Mağaza güncellenemedi.', hata: error.message });
     }
 };
 
+const shortOrderCode = (id) => String(id || '').slice(-6).toUpperCase();
+const money2 = (value) => Math.round(Number(value || 0) * 100) / 100;
+
+const catalogMapOf = (products = []) =>
+    new Map((products || []).map((product) => [String(product._id), product]));
+
 // Satıcı yalnızca kendi ürünlerinin geçtiği siparişleri ve kendi tutarını görür
-const buildSellerOrders = (orders, productIds, sellerId) => {
+const buildSellerOrders = (orders, productIds, sellerId, productById = new Map()) => {
     const owned = new Set(productIds.map(String));
+    const sid = String(sellerId || '');
     return orders
         .map((order) => {
-            const items = (order.orderItems || []).filter((item) => owned.has(String(item.product)));
+            const items = (order.orderItems || [])
+                .filter((item) => owned.has(String(item.product)))
+                .map((item) => {
+                    const product = productById.get(String(item.product));
+                    return {
+                        product: item.product,
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.price,
+                        image: item.image,
+                        color: item.color || '',
+                        size: item.size || '',
+                        immediateDelivery: product?.immediateDelivery,
+                        customProductionTime: product?.customProductionTime || ''
+                    };
+                });
             if (!items.length) return null;
-            const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-            const sellerStatus = sellerStatusOf(order, sellerId);
+            const listTotal = money2(items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0));
+            const share = sellerSettlementOf(order, sid);
+            const sellerStatus = sellerStatusOf(order, sid);
+            const timing = timingOf(order, sid);
+            const mine = (order.sellerFulfillments || []).find((row) => String(row.seller) === sid);
+            const sellerPromoDiscount = sellerDiscountOf(order, sid);
+            const couponDiscount = money2(order.couponDiscount);
+            const promoDiscount = money2(order.promoDiscount);
+            const mixedCart = (order.orderItems || []).some((item) => {
+                const itemSeller = item.seller ? String(item.seller) : '';
+                return itemSeller && itemSeller !== sid;
+            });
             return {
                 _id: order._id,
+                code: shortOrderCode(order._id),
                 createdAt: order.createdAt,
+                updatedAt: order.updatedAt,
                 orderStatus: sellerStatus,
                 overallStatus: order.orderStatus,
                 paymentStatus: order.paymentStatus,
@@ -414,7 +467,32 @@ const buildSellerOrders = (orders, productIds, sellerId) => {
                     district: order.shippingAddress?.district
                 },
                 orderItems: items,
-                sellerTotal: total
+                itemCount: items.length,
+                qty: items.reduce((sum, item) => sum + Number(item.quantity || 1), 0),
+                sellerTotal: listTotal,
+                sellerGross: share.gross,
+                platformFee: share.fee,
+                sellerNet: share.net,
+                commissionPercent: share.percent,
+                sellerPromoDiscount,
+                couponCode: order.couponCode || '',
+                couponDiscount,
+                promoCode: order.promoCode || '',
+                promoPercent: order.promoPercent || 0,
+                promoDiscount,
+                platformPromoDiscount: money2(couponDiscount + Math.max(0, promoDiscount - sellerPromoDiscount)),
+                shippingCost: money2(order.shippingCost),
+                mixedCart,
+                timing: {
+                    processingAt: mine?.processingAt || order.createdAt || null,
+                    shippedAt: timing.shippedAt,
+                    deliveredAt: timing.deliveredAt,
+                    cancelledAt: timing.cancelledAt,
+                    daysWaiting: timing.daysWaiting,
+                    daysToShip: timing.daysToShip,
+                    daysToDeliver: timing.daysToDeliver,
+                    late: Boolean(timing.late)
+                }
             };
         })
         .filter(Boolean);
@@ -422,7 +500,8 @@ const buildSellerOrders = (orders, productIds, sellerId) => {
 
 const getMyOrders = async (req, res) => {
     try {
-        const productIds = await Product.find({ seller: req.user._id }).distinct('_id');
+        const products = await Product.find({ seller: req.user._id }).select('_id immediateDelivery customProductionTime').lean();
+        const productIds = products.map((product) => product._id);
         if (!productIds.length) return res.json({ success: true, orders: [] });
 
         const orders = await Order.find({ 'orderItems.product': { $in: productIds } })
@@ -430,7 +509,10 @@ const getMyOrders = async (req, res) => {
             .limit(200)
             .lean();
 
-        return res.json({ success: true, orders: buildSellerOrders(orders, productIds, req.user._id) });
+        return res.json({
+            success: true,
+            orders: buildSellerOrders(orders, productIds, req.user._id, catalogMapOf(products))
+        });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Siparişler alınamadı.', hata: error.message });
     }
@@ -443,7 +525,8 @@ const updateMyOrder = async (req, res) => {
             return res.status(400).json({ mesaj: 'Geçersiz sipariş durumu.' });
         }
 
-        const productIds = await Product.find({ seller: req.user._id }).distinct('_id');
+        const products = await Product.find({ seller: req.user._id }).select('_id immediateDelivery customProductionTime').lean();
+        const productIds = products.map((product) => product._id);
         const order = await Order.findOne({
             _id: req.params.id,
             'orderItems.product': { $in: productIds }
@@ -452,8 +535,8 @@ const updateMyOrder = async (req, res) => {
             return res.status(404).json({ mesaj: 'Bu siparişte size ait ürün bulunamadı.' });
         }
 
-        if (['shipped', 'delivered'].includes(orderStatus) && order.paymentStatus === 'failed') {
-            return res.status(400).json({ mesaj: 'Ödemesi başarısız sipariş kargoya verilemez.' });
+        if (['shipped', 'delivered'].includes(orderStatus) && order.paymentStatus !== 'completed') {
+            return res.status(400).json({ mesaj: 'Ödemesi tamamlanmamış sipariş kargoya verilemez.' });
         }
 
         await ensureSellerFulfillments(order);
@@ -472,7 +555,7 @@ const updateMyOrder = async (req, res) => {
         order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
         await order.save();
 
-        const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id)[0];
+        const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id, catalogMapOf(products))[0];
         return res.json({
             success: true,
             mesaj: 'Sipariş durumu güncellendi.',
@@ -485,27 +568,31 @@ const updateMyOrder = async (req, res) => {
 
 const getMyOverview = async (req, res) => {
     try {
+        await expireWeeklyAteliers();
         const products = await Product.find({ seller: req.user._id })
-            .select('_id price stock isActive approvalStatus')
+            .select('_id price stock isActive approvalStatus immediateDelivery customProductionTime')
             .lean();
         const productIds = products.map((p) => p._id);
 
         const orders = productIds.length
             ? await Order.find({ 'orderItems.product': { $in: productIds } }).sort({ createdAt: -1 }).limit(200).lean()
             : [];
-        const sellerOrders = buildSellerOrders(orders, productIds, req.user._id);
-        const revenue = sellerOrders
-            .filter((order) => order.paymentStatus === 'completed')
-            .reduce((sum, order) => sum + order.sellerTotal, 0);
+        const sellerOrders = buildSellerOrders(orders, productIds, req.user._id, catalogMapOf(products));
+        const paid = sellerOrders.filter((order) => order.paymentStatus === 'completed');
+        const revenue = paid.reduce((sum, order) => sum + Number(order.sellerNet || 0), 0);
+        const platformFee = paid.reduce((sum, order) => sum + Number(order.platformFee || 0), 0);
+        const grossRevenue = paid.reduce((sum, order) => sum + Number(order.sellerTotal || 0), 0);
 
-        const unansweredQuestions = productIds.length
-            ? await ProductQuestion.countDocuments({
-                product: { $in: productIds },
-                isPublic: true,
-                $or: [{ answer: { $exists: false } }, { answer: '' }, { answer: null }]
-            })
-            : 0;
-        const pendingFeatured = await FeaturedRequest.countDocuments({ seller: req.user._id, status: 'pending' });
+        const [unansweredQuestions, overdueQuestions] = productIds.length
+            ? await Promise.all([
+                ProductQuestion.countDocuments({ product: { $in: productIds }, ...unansweredQuery }),
+                ProductQuestion.countDocuments({ product: { $in: productIds }, ...overdueQuery() })
+            ])
+            : [0, 0];
+        const [pendingFeatured, pendingAtelierWeek] = await Promise.all([
+            FeaturedRequest.countDocuments({ seller: req.user._id, status: 'pending' }),
+            WeeklyAtelier.countDocuments({ seller: req.user._id, status: 'pending' })
+        ]);
 
         return res.json({
             success: true,
@@ -518,8 +605,12 @@ const getMyOverview = async (req, res) => {
                 orders: sellerOrders.length,
                 openOrders: sellerOrders.filter((order) => order.orderStatus === 'processing').length,
                 unansweredQuestions,
+                overdueQuestions,
                 pendingFeatured,
+                pendingAtelierWeek,
                 revenue,
+                platformFee,
+                grossRevenue,
                 recentOrders: sellerOrders.slice(0, 6)
             }
         });
@@ -572,6 +663,7 @@ const fillMonthly = (count, map) => {
 
 const getMyReports = async (req, res) => {
     try {
+        await expireWeeklyAteliers();
         const sellerId = req.user._id;
         const products = await Product.find({ seller: sellerId })
             .select('_id title category image stock price rating numReviews')
@@ -580,7 +672,7 @@ const getMyReports = async (req, res) => {
         const owned = new Set(productIds.map(String));
         const productById = new Map(products.map((item) => [String(item._id), item]));
 
-        const [orders, reviews, questions, promos, featured] = await Promise.all([
+        const [orders, reviews, questions, promos, featured, weeklyAteliers] = await Promise.all([
             productIds.length
                 ? Order.find({ 'orderItems.product': { $in: productIds } }).sort({ createdAt: 1 }).lean()
                 : Promise.resolve([]),
@@ -589,7 +681,8 @@ const getMyReports = async (req, res) => {
                 ? ProductQuestion.find({ product: { $in: productIds }, isPublic: true }).lean()
                 : Promise.resolve([]),
             PromoCode.find({ seller: sellerId }).lean(),
-            FeaturedRequest.find({ seller: sellerId }).sort({ createdAt: -1 }).lean()
+            FeaturedRequest.find({ seller: sellerId }).sort({ createdAt: -1 }).lean(),
+            WeeklyAtelier.find({ seller: sellerId }).sort({ createdAt: -1 }).lean()
         ]);
 
         const sellerItemsOf = (order) => (order.orderItems || []).filter((item) => owned.has(String(item.product)));
@@ -826,7 +919,7 @@ const getMyReports = async (req, res) => {
                     revenue += itemRevenue(line);
                 });
             });
-            const spent = ['approved', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
+            const spent = ['approved', 'live', 'ended', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
             return {
                 id: item._id,
                 productId,
@@ -953,7 +1046,21 @@ const getMyReports = async (req, res) => {
                     totals: {
                         spent: roundMoney(featuredRows.reduce((sum, row) => sum + row.spent, 0)),
                         revenue: roundMoney(featuredRows.reduce((sum, row) => sum + row.revenue, 0)),
-                        live: featuredRows.filter((row) => row.status === 'approved').length
+                        live: featuredRows.filter((row) => row.status === 'live' || row.status === 'approved').length
+                    }
+                },
+                atelierWeek: {
+                    items: weeklyAteliers.map((item) => ({
+                        id: item._id,
+                        days: item.days,
+                        status: item.status,
+                        spent: ['live', 'ended'].includes(item.status) ? Number(item.price || 0) : 0,
+                        startsAt: item.startsAt,
+                        endsAt: item.endsAt
+                    })),
+                    totals: {
+                        spent: roundMoney(weeklyAteliers.filter((item) => ['live', 'ended'].includes(item.status)).reduce((sum, item) => sum + Number(item.price || 0), 0)),
+                        live: weeklyAteliers.filter((item) => item.status === 'live').length
                     }
                 },
                 quality: {
@@ -994,6 +1101,7 @@ const getPublicSeller = async (req, res) => {
             return res.status(404).json({ success: false, mesaj: 'Atölye bulunamadı.' });
         }
 
+        await expireWeeklyAteliers();
         const seller = await Seller.findOne({ slug, durum: 'approved' }).lean();
         if (!seller) {
             return res.status(404).json({ success: false, mesaj: 'Atölye bulunamadı.' });
@@ -1014,11 +1122,13 @@ const getPublicSeller = async (req, res) => {
         const productMatch = { ...publicMatch };
         if (category) productMatch.category = category;
 
-        let sortStage = { createdAt: -1 };
-        if (sortKey === 'popular') sortStage = { soldCount: -1, rating: -1, createdAt: -1 };
-        if (sortKey === 'rating') sortStage = { rating: -1, numReviews: -1 };
-        if (sortKey === 'priceAsc') sortStage = { price: 1 };
-        if (sortKey === 'priceDesc') sortStage = { price: -1 };
+        let sortStage = { isSponsored: -1, createdAt: -1 };
+        if (sortKey === 'popular') sortStage = { isSponsored: -1, soldCount: -1, rating: -1, createdAt: -1 };
+        if (sortKey === 'rating') sortStage = { isSponsored: -1, rating: -1, numReviews: -1 };
+        if (sortKey === 'priceAsc') sortStage = { isSponsored: -1, price: 1 };
+        if (sortKey === 'priceDesc') sortStage = { isSponsored: -1, price: -1 };
+
+        await expireFeaturedProducts();
 
         const [maker, products, filteredCount, stats, categoryDocs, coverDocs] = await Promise.all([
             User.findById(seller.user).select('adSoyad avatarUrl').lean(),

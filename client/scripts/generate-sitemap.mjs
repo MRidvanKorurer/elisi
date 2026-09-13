@@ -12,11 +12,16 @@ const distDir = path.join(root, '../dist');
 const SITE_URL = (process.env.VITE_SITE_URL || 'https://www.nikbag.com').replace(/\/$/, '');
 const API_BASE = (process.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
-// Arama motorlarına açık statik sayfalar
 const STATIC_ROUTES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/products', changefreq: 'daily', priority: '0.9' },
-  { path: '/satici-ol', changefreq: 'monthly', priority: '0.6' }
+  { path: '/satici-ol', changefreq: 'monthly', priority: '0.6' },
+  { path: '/gizlilik', changefreq: 'yearly', priority: '0.3' },
+  { path: '/kvkk', changefreq: 'yearly', priority: '0.3' },
+  { path: '/mesafeli-satis', changefreq: 'yearly', priority: '0.3' },
+  { path: '/on-bilgilendirme', changefreq: 'yearly', priority: '0.3' },
+  { path: '/iade', changefreq: 'yearly', priority: '0.3' },
+  { path: '/kargo', changefreq: 'yearly', priority: '0.3' }
 ];
 
 const escapeXml = (value = '') =>
@@ -28,18 +33,37 @@ const escapeXml = (value = '') =>
     '"': '&quot;'
   })[char]);
 
-const urlEntry = ({ loc, lastmod, changefreq, priority, image }) =>
-  [
+const localize = (pathname, locale) => {
+  if (locale === 'en') return pathname === '/' ? '/en' : `/en${pathname}`;
+  return pathname;
+};
+
+const abs = (pathname, locale) => `${SITE_URL}${localize(pathname, locale)}`;
+
+const urlEntry = ({ pathname, lastmod, changefreq, priority, image, locale }) => {
+  const loc = abs(pathname, locale);
+  const tr = abs(pathname, 'tr');
+  const en = abs(pathname, 'en');
+  return [
     '  <url>',
     `    <loc>${escapeXml(loc)}</loc>`,
     lastmod ? `    <lastmod>${lastmod}</lastmod>` : null,
     changefreq ? `    <changefreq>${changefreq}</changefreq>` : null,
     priority ? `    <priority>${priority}</priority>` : null,
+    `    <xhtml:link rel="alternate" hreflang="tr" href="${escapeXml(tr)}" />`,
+    `    <xhtml:link rel="alternate" hreflang="en" href="${escapeXml(en)}" />`,
+    `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(tr)}" />`,
     image ? `    <image:image><image:loc>${escapeXml(image)}</image:loc></image:image>` : null,
     '  </url>'
   ]
     .filter(Boolean)
     .join('\n');
+};
+
+const withLocales = (entry) => [
+  urlEntry({ ...entry, locale: 'tr' }),
+  urlEntry({ ...entry, locale: 'en' })
+];
 
 const fetchProducts = async () => {
   try {
@@ -59,11 +83,16 @@ const main = async () => {
   const products = await fetchProducts();
 
   const entries = [
-    ...STATIC_ROUTES.map((route) => urlEntry({ loc: `${SITE_URL}${route.path}`, lastmod: today, ...route })),
-    ...products.map((product) => {
+    ...STATIC_ROUTES.flatMap((route) => withLocales({
+      pathname: route.path,
+      lastmod: today,
+      changefreq: route.changefreq,
+      priority: route.priority
+    })),
+    ...products.flatMap((product) => {
       const image = product.image || product.gorsel;
-      return urlEntry({
-        loc: `${SITE_URL}/product/${product._id || product.id}`,
+      return withLocales({
+        pathname: `/product/${product._id || product.id}`,
         lastmod: (product.updatedAt || product.createdAt || '').split('T')[0] || today,
         changefreq: 'weekly',
         priority: '0.8',
@@ -73,7 +102,7 @@ const main = async () => {
   ];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${entries.join('\n')}
 </urlset>
 `;
@@ -84,10 +113,15 @@ Allow: /
 # Kişisel ve işlemsel sayfalar dizine eklenmez
 Disallow: /admin
 Disallow: /auth
+Disallow: /en/auth
 Disallow: /checkout
+Disallow: /en/checkout
 Disallow: /profile
+Disallow: /en/profile
 Disallow: /siparis-basarili
+Disallow: /en/siparis-basarili
 Disallow: /odeme-basarisiz
+Disallow: /en/odeme-basarisiz
 Disallow: /*?search=
 
 Sitemap: ${SITE_URL}/sitemap.xml
@@ -98,10 +132,10 @@ Sitemap: ${SITE_URL}/sitemap.xml
     writeFile(path.join(distDir, 'robots.txt'), robots, 'utf8')
   ]);
 
-  console.log(`[sitemap] ${STATIC_ROUTES.length} statik sayfa + ${products.length} ürün yazıldı (${SITE_URL}).`);
+  console.log(`[sitemap] ${STATIC_ROUTES.length} statik sayfa + ${products.length} ürün, tr/en yazıldı (${SITE_URL}).`);
 };
 
 main().catch((error) => {
   console.error('[sitemap] Üretilemedi:', error);
-  process.exit(0); // Derlemeyi bozma
+  process.exit(1);
 });

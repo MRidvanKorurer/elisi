@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { Avatar, Box, Button, IconButton, Rating, TextField, Typography } from '@mui/material';
 import AddPhotoAlternateOutlined from '@mui/icons-material/AddPhotoAlternateOutlined';
 import CloseRounded from '@mui/icons-material/CloseRounded';
@@ -23,7 +23,7 @@ function ReviewAvatar({ name, src, size = 34 }) {
 }
 
 export default function ProductReviews({ productId, user, onSummaryChange }) {
-  const navigate = useNavigate();
+  const navigate = useLocaleNavigate();
   const photoInput = useRef(null);
   const [reviews, setReviews] = useState([]);
   const [numReviews, setNumReviews] = useState(0);

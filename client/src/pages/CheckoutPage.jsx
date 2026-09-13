@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
   Alert,
   Box,
@@ -13,7 +14,9 @@ import {
   Snackbar,
   Stack,
   TextField,
-  Typography
+  Typography,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AddCardOutlinedIcon from '@mui/icons-material/AddCardOutlined';
@@ -37,19 +40,10 @@ import userService from '../api/userService';
 import { imgBagOrange } from '../assets/media';
 import Seo from '../components/Seo';
 import { FREE_SHIPPING_LIMIT, SHIPPING_FEE } from '../utils/shipping';
+import { getSitePublic } from '../api/siteService';
+import LocaleLink from '../i18n/LocaleLink';
 
-const WHATSAPP_NUMBER = '905551234567';
 const FALLBACK_IMAGE = imgBagOrange;
-const BANK = {
-  name: 'NikBag El Sanatları',
-  iban: 'TR00 0000 0000 0000 0000 0000 00'
-};
-const SAMPLE_CARD = {
-  kartSahibi: 'Nik Bag',
-  kartNumarasi: '5890 0400 0000 0016',
-  skt: '12/30',
-  cvc: '000'
-};
 
 const formatPrice = (value) =>
   Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -218,7 +212,8 @@ function PayOption({ selected, icon, title, subtitle, onClick }) {
 }
 
 export default function CheckoutPage({ user }) {
-  const navigate = useNavigate();
+  const { t } = useTranslation('checkout');
+  const navigate = useLocaleNavigate();
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [loading, setLoading] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
@@ -234,7 +229,7 @@ export default function CheckoutPage({ user }) {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', email: '', phone: '', address: '', city: '', district: '', addressTitle: 'Ev'
+    firstName: '', lastName: '', email: '', phone: '', identityNumber: '', address: '', city: '', district: '', addressTitle: 'Ev'
   });
   const [cardForm, setCardForm] = useState({
     kartSahibi: '', kartNumarasi: '', skt: '', cvc: ''
@@ -248,6 +243,12 @@ export default function CheckoutPage({ user }) {
   const [promoApplied, setPromoApplied] = useState(null);
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoMessage, setPromoMessage] = useState('');
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [site, setSite] = useState(null);
+
+  useEffect(() => {
+    getSitePublic().then(setSite);
+  }, []);
 
   const showToast = (message, severity = 'error') => setToast({ open: true, message, severity });
 
@@ -543,6 +544,10 @@ export default function CheckoutPage({ user }) {
     if (!formData.address.trim()) next.address = 'Adres zorunlu';
     if (!formData.city.trim()) next.city = 'İl zorunlu';
     if (!formData.district.trim()) next.district = 'İlçe zorunlu';
+    if (paymentMethod === 'credit_card' && formData.identityNumber.replace(/\D/g, '').length !== 11) {
+      next.identityNumber = 'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli';
+    }
+    if (!legalAccepted) next.legal = 'Sözleşmeleri onaylayın';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -560,19 +565,6 @@ export default function CheckoutPage({ user }) {
       ...prev,
       kartSahibi: prev.kartSahibi || `${formData.firstName} ${formData.lastName}`.trim() || user?.adSoyad || ''
     }));
-  };
-
-  const fillSampleCard = () => {
-    setPaymentMethod('credit_card');
-    setSelectedCardId('new');
-    setShowCardForm(true);
-    setCardForm({
-      kartSahibi: `${formData.firstName} ${formData.lastName}`.trim() || SAMPLE_CARD.kartSahibi,
-      kartNumarasi: SAMPLE_CARD.kartNumarasi,
-      skt: SAMPLE_CARD.skt,
-      cvc: SAMPLE_CARD.cvc
-    });
-    showToast('Örnek kart dolduruldu. Kaydetmeniz yeterli.', 'success');
   };
 
   const handleSaveAddress = async () => {
@@ -642,7 +634,8 @@ export default function CheckoutPage({ user }) {
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
       email: formData.email.trim(),
-      phone: formData.phone.trim()
+      phone: formData.phone.trim(),
+      identityNumber: formData.identityNumber.replace(/\D/g, '')
     },
     shippingAddress: {
       address: formData.address.trim(),
@@ -659,7 +652,6 @@ export default function CheckoutPage({ user }) {
       size: item.size
     })),
     paymentMethod: method,
-    savedCardId: method === 'credit_card' && selectedCardId && selectedCardId !== 'new' ? selectedCardId : undefined,
     couponCode: couponApplied?.code || undefined,
     promoCode: promoApplied?.code || undefined
   });
@@ -707,7 +699,12 @@ export default function CheckoutPage({ user }) {
     const promoLine = promoDiscount > 0 ? `\nKampanya (${promoApplied?.code || ''} %${promoApplied?.percent || ''}): -${formatPrice(promoDiscount)} ₺` : '';
     const discountLine = `${welcomeLine}${promoLine}`;
     const text = `Merhaba NikBag, sipariş vermek istiyorum.\n\n${formData.firstName} ${formData.lastName}\n${formData.phone}\n${formData.address}, ${formData.district}/${formData.city}\n\n${lines}${discountLine}\n\nToplam: ${formatPrice(total)} ₺`;
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+    const number = site?.whatsapp;
+    if (!number) {
+      showToast('WhatsApp numarası henüz tanımlanmamış.', 'warning');
+      return;
+    }
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank');
 
     try {
       await orderService.createOrder(buildPayload('whatsapp'));
@@ -724,7 +721,7 @@ export default function CheckoutPage({ user }) {
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FDF4D2 0%, #F4E7C4 100%)', pt: { xs: 10, md: 13 }, pb: { xs: 14, md: 8 } }}>
-      <Seo title="Sepet ve Ödeme" path="/checkout" noindex />
+      <Seo title={t('seoTitle')} path="/checkout" noindex />
       <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} sx={{ mt: 8 }}>
         <Alert severity={toast.severity} variant="filled" sx={{ borderRadius: '12px', fontWeight: 700 }}>{toast.message}</Alert>
       </Snackbar>
@@ -750,17 +747,17 @@ export default function CheckoutPage({ user }) {
         >
           <Stack spacing={2.5}>
             <Paper elevation={0} sx={cardSx}>
-              <SectionTitle step="1" title="İletişim" hint="Sipariş ve kargo güncellemeleri bu bilgilere gider." />
+              <SectionTitle step="1" title={t('contact')} hint={t('contactHint')} />
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                <TextField name="firstName" label="Ad" value={formData.firstName} onChange={handleInputChange} error={!!errors.firstName} helperText={errors.firstName} sx={fieldSx} />
-                <TextField name="lastName" label="Soyad" value={formData.lastName} onChange={handleInputChange} error={!!errors.lastName} helperText={errors.lastName} sx={fieldSx} />
-                <TextField name="email" label="E-posta" value={formData.email} onChange={handleInputChange} error={!!errors.email} helperText={errors.email} sx={fieldSx} />
-                <TextField name="phone" label="Telefon" value={formData.phone} onChange={handleInputChange} error={!!errors.phone} helperText={errors.phone} placeholder="05xx xxx xx xx" sx={fieldSx} />
+                <TextField name="firstName" label={t('firstName')} value={formData.firstName} onChange={handleInputChange} error={!!errors.firstName} helperText={errors.firstName} sx={fieldSx} />
+                <TextField name="lastName" label={t('lastName')} value={formData.lastName} onChange={handleInputChange} error={!!errors.lastName} helperText={errors.lastName} sx={fieldSx} />
+                <TextField name="email" label={t('email')} value={formData.email} onChange={handleInputChange} error={!!errors.email} helperText={errors.email} sx={fieldSx} />
+                <TextField name="phone" label={t('phone')} value={formData.phone} onChange={handleInputChange} error={!!errors.phone} helperText={errors.phone} placeholder="05xx xxx xx xx" sx={fieldSx} />
               </Box>
             </Paper>
 
             <Paper elevation={0} sx={cardSx}>
-              <SectionTitle step="2" title="Teslimat adresi" hint="Kayıtlı adresiniz varsa seçin, yoksa yeni adres ekleyin." />
+              <SectionTitle step="2" title={t('addressTitle')} hint={t('addressHint')} />
               {!user && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
                   Adresi profilinize kaydetmek için{' '}
@@ -792,11 +789,11 @@ export default function CheckoutPage({ user }) {
               </Button>
               <Collapse in={showAddressForm || !selectedAddressId} unmountOnExit={false}>
                 <Stack spacing={2}>
-                  <TextField name="addressTitle" label="Adres başlığı" value={formData.addressTitle} onChange={handleInputChange} placeholder="Ev, iş, stüdyo" sx={fieldSx} />
-                  <TextField name="address" label="Açık adres" value={formData.address} onChange={handleInputChange} multiline minRows={2} error={!!errors.address} helperText={errors.address} sx={fieldSx} />
+                  <TextField name="addressTitle" label={t('addressLabel')} value={formData.addressTitle} onChange={handleInputChange} placeholder={t('addressPlaceholder')} sx={fieldSx} />
+                  <TextField name="address" label={t('street')} value={formData.address} onChange={handleInputChange} multiline minRows={2} error={!!errors.address} helperText={errors.address} sx={fieldSx} />
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                    <TextField name="city" label="İl" value={formData.city} onChange={handleInputChange} error={!!errors.city} helperText={errors.city} sx={fieldSx} />
-                    <TextField name="district" label="İlçe" value={formData.district} onChange={handleInputChange} error={!!errors.district} helperText={errors.district} sx={fieldSx} />
+                    <TextField name="city" label={t('city')} value={formData.city} onChange={handleInputChange} error={!!errors.city} helperText={errors.city} sx={fieldSx} />
+                    <TextField name="district" label={t('district')} value={formData.district} onChange={handleInputChange} error={!!errors.district} helperText={errors.district} sx={fieldSx} />
                   </Box>
                   {user && (
                     <Button disabled={savingAddress} onClick={handleSaveAddress} sx={{ alignSelf: 'flex-start', fontWeight: 800, color: '#2E3B55' }}>
@@ -808,112 +805,30 @@ export default function CheckoutPage({ user }) {
             </Paper>
 
             <Paper elevation={0} sx={cardSx}>
-              <SectionTitle step="3" title="Ödeme yöntemi" hint="Kayıtlı kart seçin, yeni kart ekleyin veya havale ile tamamlayın." />
+              <SectionTitle step="3" title={t('payment')} hint={t('paymentHint')} />
               <PayOption
                 selected={paymentMethod === 'credit_card'}
                 onClick={() => setPaymentMethod('credit_card')}
                 icon={<CreditCardOutlinedIcon />}
                 title="Kredi / banka kartı"
-                subtitle="Kayıtlı kartınızı seçin veya örnek kart ile yeni kart ekleyin."
+                subtitle="Ödeme İyzico sayfasında alınır. Kart numarası bu sitede saklanmaz."
               />
               <Collapse in={paymentMethod === 'credit_card'}>
-                <Box sx={{ mb: 2, pl: { xs: 0, sm: 0.5 } }}>
-                  {!user && (
-                    <Alert severity="info" sx={{ mb: 1.5, borderRadius: '14px' }}>
-                      Kart kaydı için giriş gerekir. Misafir ödeme İyzico sayfasında açılır.
-                    </Alert>
-                  )}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.2, mb: 1.5 }}>
-                    {savedCards.map((card) => (
-                      <SelectBox
-                        key={card._id}
-                        selected={selectedCardId === card._id && !showCardForm}
-                        onClick={() => {
-                          setSelectedCardId(card._id);
-                          setShowCardForm(false);
-                        }}
-                      >
-                        <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.85rem' }}>{card.kartTipi || 'Kart'}</Typography>
-                        <Typography sx={{ fontFamily: 'ui-monospace, monospace', fontWeight: 800, letterSpacing: 1.4, mt: 0.5, color: '#2E3B55' }}>•••• {card.son4Hane}</Typography>
-                        <Typography variant="caption" sx={{ color: '#6E5252' }}>{card.kartSahibi} · {card.skt}</Typography>
-                      </SelectBox>
-                    ))}
-                    <SelectBox
-                      selected={selectedCardId === 'new'}
-                      onClick={openCardForm}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AddCardOutlinedIcon sx={{ color: '#946D6D' }} />
-                        <Box>
-                          <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>Yeni kart ekle</Typography>
-                          <Typography variant="caption" sx={{ color: '#6E5252' }}>Formu aç, örnek kartı doldur</Typography>
-                        </Box>
-                      </Box>
-                    </SelectBox>
-                  </Box>
-
-                  <Button
-                    variant="outlined"
-                    startIcon={<AutoAwesomeOutlinedIcon />}
-                    onClick={fillSampleCard}
-                    sx={{ mb: 1.5, borderRadius: '14px', fontWeight: 800, borderColor: '#A290B7', color: '#2E3B55', '&:hover': { borderColor: '#946D6D', backgroundColor: 'rgba(162,144,183,0.12)' } }}
-                  >
-                    Örnek kart doldur
-                  </Button>
-
-                  <Collapse in={showCardForm || selectedCardId === 'new'} unmountOnExit={false}>
-                    <Box
-                      sx={{
-                        p: { xs: 1.6, sm: 2 },
-                        borderRadius: '20px',
-                        background: 'linear-gradient(180deg, #FDF4D2 0%, #fff 100%)',
-                        border: '1px solid rgba(148,109,109,0.16)'
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          mb: 2,
-                          p: 2,
-                          borderRadius: '18px',
-                          minHeight: 132,
-                          background: 'linear-gradient(135deg, #2E3B55 0%, #946D6D 100%)',
-                          color: '#FDF4D2',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <Typography sx={{ fontWeight: 800, letterSpacing: 1.5, fontSize: 12 }}>{cardBrand(cardForm.kartNumarasi)}</Typography>
-                        <Typography sx={{ fontFamily: 'ui-monospace, monospace', fontWeight: 800, letterSpacing: 2, fontSize: { xs: 16, sm: 18 } }}>
-                          {cardForm.kartNumarasi || '•••• •••• •••• ••••'}
-                        </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 700 }}>{cardForm.kartSahibi || 'Kart sahibi'}</Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 700 }}>{cardForm.skt || 'AA/YY'}</Typography>
-                        </Box>
-                      </Box>
-                      <Stack spacing={1.6}>
-                        <TextField name="kartSahibi" label="Kart üzerindeki isim" value={cardForm.kartSahibi} onChange={handleCardChange} sx={fieldSx} />
-                        <TextField name="kartNumarasi" label="Kart numarası" value={cardForm.kartNumarasi} onChange={handleCardChange} placeholder="ACCT-000015" slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 19 } }} sx={fieldSx} />
-                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.6 }}>
-                          <TextField name="skt" label="Son kullanma" value={cardForm.skt} onChange={handleCardChange} placeholder="12/30" slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 5 } }} sx={fieldSx} />
-                          <TextField name="cvc" label="CVC" value={cardForm.cvc} onChange={handleCardChange} placeholder="000" slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 4 } }} sx={fieldSx} />
-                        </Box>
-                        <Typography variant="caption" sx={{ color: '#6E5252' }}>
-                          Kart numarası kayıtta maskelenir. CVC saklanmaz.
-                        </Typography>
-                        <Button
-                          variant="contained"
-                          disabled={savingCard}
-                          onClick={handleSaveCard}
-                          startIcon={savingCard ? <CircularProgress size={16} color="inherit" /> : <AddCardOutlinedIcon />}
-                          sx={{ ...darkBtnSx, borderRadius: '14px', py: 1.2 }}
-                        >
-                          {user ? 'Kartı kaydet' : 'Kart kaydı için giriş yapın'}
-                        </Button>
-                      </Stack>
-                    </Box>
-                  </Collapse>
+                <Box sx={{ mb: 2 }}>
+                  <Alert severity="info" sx={{ mb: 1.5, borderRadius: '14px' }}>
+                    Kart bilgisi İyzico’nun güvenli sayfasında girilir. Bu sitede saklanmaz.
+                  </Alert>
+                  <TextField
+                    name="identityNumber"
+                    label="T.C. kimlik numarası"
+                    value={formData.identityNumber}
+                    onChange={handleInputChange}
+                    error={!!errors.identityNumber}
+                    helperText={errors.identityNumber || 'İyzico ödemesi için zorunlu'}
+                    slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 11 } }}
+                    sx={fieldSx}
+                    fullWidth
+                  />
                 </Box>
               </Collapse>
 
@@ -927,11 +842,43 @@ export default function CheckoutPage({ user }) {
               <Collapse in={paymentMethod === 'transfer'}>
                 <Box sx={{ mb: 2, p: 2, borderRadius: '18px', border: '1px dashed rgba(148,109,109,0.35)', backgroundColor: 'rgba(253,244,210,0.55)' }}>
                   <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6 }}>Banka bilgisi</Typography>
-                  <Typography variant="body2" sx={{ color: '#6E5252' }}>{BANK.name}</Typography>
-                  <Typography variant="body2" sx={{ color: '#2E3B55', fontWeight: 800, letterSpacing: 0.4 }}>{BANK.iban}</Typography>
+                  {site?.bank?.iban ? (
+                    <>
+                      <Typography variant="body2" sx={{ color: '#6E5252' }}>{site.bank.name}</Typography>
+                      <Typography variant="body2" sx={{ color: '#2E3B55', fontWeight: 800, letterSpacing: 0.4 }}>{site.bank.iban}</Typography>
+                    </>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: '#946D6D', fontWeight: 700 }}>
+                      Havale hesabı henüz tanımlanmamış. BANK_IBAN ortam değişkenini ekleyin.
+                    </Typography>
+                  )}
                   <Typography variant="caption" sx={{ color: '#946D6D', fontWeight: 700 }}>Açıklamaya sipariş kodunu yazın.</Typography>
                 </Box>
               </Collapse>
+
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start', mt: 1, mb: 1.5, mx: 0 }}
+                control={
+                  <Checkbox
+                    checked={legalAccepted}
+                    onChange={(e) => {
+                      setLegalAccepted(e.target.checked);
+                      setErrors((prev) => ({ ...prev, legal: '' }));
+                    }}
+                    sx={{ color: '#946D6D', pt: 0.2 }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ color: errors.legal ? '#d32f2f' : '#6E5252', lineHeight: 1.5 }}>
+                    <LocaleLink to="/on-bilgilendirme">Ön bilgilendirme</LocaleLink>
+                    {', '}
+                    <LocaleLink to="/mesafeli-satis">mesafeli satış sözleşmesi</LocaleLink>
+                    {' ve '}
+                    <LocaleLink to="/gizlilik">gizlilik</LocaleLink>
+                    {' metinlerini okudum, kabul ediyorum.'}
+                  </Typography>
+                }
+              />
 
               <Button
                 fullWidth

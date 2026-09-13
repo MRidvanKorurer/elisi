@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { Avatar, Box, Button, TextField, Typography } from '@mui/material';
 import { questionService } from '../api/questionService';
 import { isSuperAdmin } from '../utils/roles';
@@ -26,7 +26,7 @@ function PersonAvatar({ name, src, size = 34 }) {
 }
 
 export default function ProductQuestions({ productId, productSellerId, user, onAnsweredChange }) {
-  const navigate = useNavigate();
+  const navigate = useLocaleNavigate();
   const [questions, setQuestions] = useState([]);
   const [numQuestions, setNumQuestions] = useState(0);
   const [numAnswered, setNumAnswered] = useState(0);
@@ -181,6 +181,9 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
               '& .MuiInputBase-input': { color: '#2E3B55', fontSize: '0.92rem', lineHeight: 1.5 }
             }}
           />
+          <Typography sx={{ color: '#6E5252', fontSize: '0.75rem', mb: 1 }}>
+            Soru satıcıya iletilir. 3 gün içinde yanıtlanmazsa satıcı uyarılır.
+          </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.8 }}>
             <Button type="button" onClick={() => setComposerOpen(false)} sx={{ fontWeight: 800, fontSize: '0.8rem', color: '#6E5252', textTransform: 'none' }}>Vazgeç</Button>
             <Button

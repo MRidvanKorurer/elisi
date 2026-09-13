@@ -25,6 +25,8 @@ SİPARİŞ
 SATICI
 - Satıcı Ol sayfasından başvuru yapılır, inceleme sonrası onaylanır.
 - Satıcı kendi gelen siparişlerinin üretim durumunu panelinden günceller.
+- Platform payı tek ve şeffaftır: ürün satışının %10’u, kart (Iyzico) ücreti bu orana dahildir. 90 günde 50.000 ₺ ve üzeri tamamlanmış ciroda pay %8’e iner. Süper admin Satıcılar’dan özel oran kilitleyebilir. Kargo bu paya dahil değildir.
+- Satıcının kendi kampanya kodu o mağazanın komisyon matrahını düşürür. Site kampanyası ve hoş geldin kuponunu platform karşılar; satıcının tahsilatı düşmez.
 
 HESAP
 - Kayıt/giriş /auth sayfasındadır.
@@ -51,8 +53,8 @@ const FAQS = [
     answer: 'Siparişini Profil > Siparişler’den takip edebilirsin. Giriş yaptıysan son sipariş özetini buradan da söyleyebilirim. İptal veya adres değişikliği için WhatsApp’tan insan destek gerekir.'
   },
   {
-    keys: ['satıcı', 'satici', 'mağaza aç', 'magaza ac', 'başvuru', 'basvuru', 'atelier', 'atölye'],
-    answer: 'Satıcı Ol sayfasından başvur. Başvurun incelenip onaylanınca mağazan yayına alınır. Onay sonrası ürün ekler, gelen siparişlerin üretim durumunu kendi panelinden güncellersin.'
+    keys: ['satıcı', 'satici', 'mağaza aç', 'magaza ac', 'başvuru', 'basvuru', 'atelier', 'atölye', 'komisyon', 'platform pay', 'yüzde 8', 'yuzde 8', '%8'],
+    answer: 'Satıcı Ol sayfasından başvur. Başvurun incelenip onaylanınca mağazan yayına alınır. Onay sonrası ürün ekler, gelen siparişlerin üretim durumunu kendi panelinden güncellersin. Platform payı ürün satışının %10’udur (kart ücreti dahil); 90 günde 50.000 ₺ ciroda %8’e iner. Kargo komisyona girmez. Süper admin özel oran kilitleyebilir.'
   },
   {
     keys: ['üretim', 'uretim', 'sipariş üzerine', 'hazırlanır', 'kaç gün', 'kac gun'],
@@ -64,7 +66,7 @@ const FAQS = [
   },
   {
     keys: ['kupon', 'indirim', 'kampanya', 'kod', 'yüzde 10', 'yuzde 10', '%10', 'nik10', 'hoş geldin', 'hos geldin'],
-    answer: 'Kayıt olunca sana özel %10 hoş geldin kodu oluşur; yalnızca ilk siparişte geçerlidir. Site kampanya kodları tüm sepette, satıcı kodları yalnızca o atölyenin ürünlerinde geçerlidir. Kodlar ödeme sayfasındaki kampanya alanına yazılır; minimum tutar kodda belirtilir.'
+    answer: 'Kayıt olunca sana özel %10 hoş geldin kodu oluşur; yalnızca ilk siparişte geçerlidir. Site kampanya kodları tüm sepette, satıcı kodları yalnızca o atölyenin ürünlerinde geçerlidir. Hoş geldin ve site kodunu platform karşılar; satıcı kendi kodunu yazarsa o atölyenin payı düşer.'
   },
   {
     keys: ['merhaba', 'selam', 'hey', 'hi', 'help', 'yardım', 'yardim'],

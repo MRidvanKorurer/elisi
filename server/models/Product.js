@@ -49,6 +49,9 @@ const productSchema = new mongoose.Schema(
             required: [true, 'Ürün fiyatı zorunludur.'],
             min: [0, 'Fiyat 0\'dan küçük olamaz.']
         },
+        costPrice: { type: Number, default: 0, min: 0 },
+        shippingCostCover: { type: Number, default: 0, min: 0 },
+        extraCost: { type: Number, default: 0, min: 0 },
         discountPercentage: {
             type: Number,
             default: 0,

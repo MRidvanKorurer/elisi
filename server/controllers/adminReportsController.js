@@ -6,9 +6,12 @@ const Review = require('../models/Review');
 const ProductQuestion = require('../models/ProductQuestion');
 const PromoCode = require('../models/PromoCode');
 const FeaturedRequest = require('../models/FeaturedRequest');
+const WeeklyAtelier = require('../models/WeeklyAtelier');
+const { expireWeeklyAteliers } = require('./atelierWeekController');
 const AdEvent = require('../models/AdEvent');
 const { CATEGORY_LABELS } = require('../constants/categories');
 const { sellerStatusOf } = require('../utils/orderFulfillment');
+const { feeOf, resolveCommission, sellerSettlementOf, ratesForSellers } = require('../utils/commission');
 const {
   emptyOps,
   timingOf,
@@ -38,8 +41,8 @@ const fillDaily = (from, to, map, extra = {}) => {
   last.setUTCHours(0, 0, 0, 0);
   while (cursor <= last) {
     const date = cursor.toISOString().slice(0, 10);
-    const row = map.get(date) || { date, orders: 0, revenue: 0, qty: 0, cancelled: 0, ...extra };
-    rows.push({ ...row, revenue: roundMoney(row.revenue || 0) });
+    const row = map.get(date) || { date, orders: 0, revenue: 0, commission: 0, qty: 0, cancelled: 0, ...extra };
+    rows.push({ ...row, revenue: roundMoney(row.revenue || 0), commission: roundMoney(row.commission || 0) });
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return rows;
@@ -52,8 +55,8 @@ const fillMonthly = (count, map) => {
   cursor.setUTCMonth(cursor.getUTCMonth() - (count - 1));
   for (let i = 0; i < count; i += 1) {
     const month = cursor.toISOString().slice(0, 7);
-    const row = map.get(month) || { month, orders: 0, revenue: 0, qty: 0, cancelled: 0, users: 0 };
-    rows.push({ ...row, revenue: roundMoney(row.revenue || 0) });
+    const row = map.get(month) || { month, orders: 0, revenue: 0, commission: 0, qty: 0, cancelled: 0, users: 0 };
+    rows.push({ ...row, revenue: roundMoney(row.revenue || 0), commission: roundMoney(row.commission || 0) });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
   return rows;
@@ -66,23 +69,26 @@ const sellerIdOf = (item) => {
 
 const getAdminReports = async (req, res) => {
   try {
+    await expireWeeklyAteliers();
     const now = new Date();
     const from30 = new Date(now);
     from30.setUTCDate(from30.getUTCDate() - 29);
     from30.setUTCHours(0, 0, 0, 0);
 
-    const [users, sellers, products, orders, reviews, questions, promos, featured, adEvents] = await Promise.all([
+    const [users, sellers, products, orders, reviews, questions, promos, featured, weeklyAteliers, adEvents] = await Promise.all([
       User.find({ rol: { $ne: 'superadmin' } }).select('adSoyad email rol createdAt').lean(),
-      Seller.find().select('user magazaAdi durum sehir createdAt').lean(),
+      Seller.find().select('user magazaAdi durum sehir createdAt komisyonOrani komisyonManuel').lean(),
       Product.find().select('_id title category image stock price seller approvalStatus isActive rating numReviews soldCount isSponsored').lean(),
       Order.find().sort({ createdAt: 1 }).lean(),
       Review.find().lean(),
       ProductQuestion.find({ isPublic: true }).lean(),
       PromoCode.find().lean(),
       FeaturedRequest.find().sort({ createdAt: -1 }).lean(),
+      WeeklyAtelier.find().sort({ createdAt: -1 }).lean(),
       AdEvent.find({ createdAt: { $gte: from30 } }).lean()
     ]);
 
+    const { rates } = await ratesForSellers(sellers);
     const shopByUser = new Map(sellers.map((item) => [String(item.user), item]));
     const productById = new Map(products.map((item) => [String(item._id), item]));
     const buyerOnly = users.filter((item) => item.rol === 'user');
@@ -108,8 +114,12 @@ const getAdminReports = async (req, res) => {
         shop: item.magazaAdi || 'Mağaza',
         city: item.sehir || '',
         status: item.durum || 'unknown',
+        commissionPercent: rates[sid] ?? (item.komisyonOrani != null ? item.komisyonOrani : 10),
         orders: 0,
         revenue: 0,
+        fee: 0,
+        net: 0,
+        collectedFee: 0,
         qty: 0
       });
       sellerOps.set(sid, emptyOps());
@@ -135,6 +145,10 @@ const getAdminReports = async (req, res) => {
     let gmv = 0;
     let collected = 0;
     let qtySold = 0;
+    let commissionCollected = 0;
+    let commissionPending = 0;
+    let commissionGross = 0;
+    const commissionOrders = [];
 
     orders.forEach((order) => {
       const cancelled = order.orderStatus === 'cancelled';
@@ -147,20 +161,25 @@ const getAdminReports = async (req, res) => {
       const status = byStatus[order.orderStatus] != null ? order.orderStatus : 'processing';
       byStatus[status] += 1;
 
-      bump(dailyMap, day, (key) => ({ date: key, orders: 0, revenue: 0, qty: 0, cancelled: 0, users: 0 }), (row) => {
+      const commission = resolveCommission(order);
+      const orderFee = cancelled ? 0 : commission.fee;
+
+      bump(dailyMap, day, (key) => ({ date: key, orders: 0, revenue: 0, commission: 0, qty: 0, cancelled: 0, users: 0 }), (row) => {
         if (cancelled) row.cancelled += 1;
         else {
           row.orders += 1;
           row.qty += qty;
           row.revenue += revenue;
+          row.commission += orderFee;
         }
       });
-      bump(monthlyMap, month, (key) => ({ month: key, orders: 0, revenue: 0, qty: 0, cancelled: 0, users: 0 }), (row) => {
+      bump(monthlyMap, month, (key) => ({ month: key, orders: 0, revenue: 0, commission: 0, qty: 0, cancelled: 0, users: 0 }), (row) => {
         if (cancelled) row.cancelled += 1;
         else {
           row.orders += 1;
           row.qty += qty;
           row.revenue += revenue;
+          row.commission += orderFee;
         }
       });
 
@@ -175,7 +194,22 @@ const getAdminReports = async (req, res) => {
       if (!cancelled) {
         gmv += revenue;
         qtySold += qty;
-        if (order.paymentStatus === 'completed') collected += revenue;
+        commissionGross += commission.gross;
+        if (order.paymentStatus === 'completed') {
+          collected += revenue;
+          commissionCollected += orderFee;
+        }
+        if (order.paymentStatus === 'pending') commissionPending += orderFee;
+        commissionOrders.push({
+          id: order._id,
+          createdAt: order.createdAt,
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+          shops: [...new Set(commission.settlements.map((row) => shopByUser.get(row.seller)?.magazaAdi || 'Mağaza'))],
+          gross: commission.gross,
+          fee: orderFee,
+          net: commission.net
+        });
       }
 
       const email = String(order.customerInfo?.email || '').trim().toLowerCase();
@@ -225,13 +259,23 @@ const getAdminReports = async (req, res) => {
             shop: shopByUser.get(sid)?.magazaAdi || 'Mağaza',
             city: shopByUser.get(sid)?.sehir || '',
             status: shopByUser.get(sid)?.durum || 'unknown',
+            commissionPercent: rates[sid] ?? (shopByUser.get(sid)?.komisyonOrani != null ? shopByUser.get(sid).komisyonOrani : 10),
             orders: 0,
             revenue: 0,
+            fee: 0,
+            net: 0,
+            collectedFee: 0,
             qty: 0
           }), (row) => {
             if (!cancelled) {
+              const settled = commission.settlements.find((row) => row.seller === sid);
+              const lineRate = settled?.percent ?? rates[sid] ?? shopByUser.get(sid)?.komisyonOrani ?? 10;
+              const lineFee = feeOf(lineRev, lineRate);
               row.qty += lineQty;
               row.revenue += lineRev;
+              row.fee += lineFee;
+              row.net += lineRev - lineFee;
+              if (order.paymentStatus === 'completed') row.collectedFee += lineFee;
               if (!countedSellers.has(sid)) {
                 row.orders += 1;
                 countedSellers.add(sid);
@@ -310,6 +354,9 @@ const getAdminReports = async (req, res) => {
         return {
           ...row,
           revenue: roundMoney(row.revenue),
+          fee: roundMoney(row.fee),
+          net: roundMoney(row.net),
+          collectedFee: roundMoney(row.collectedFee),
           products: products.filter((item) => String(item.seller) === row.sellerId).length,
           avgDaysToShip: ops.avgDaysToShip,
           avgDaysToDeliver: ops.avgDaysToDeliver,
@@ -381,7 +428,7 @@ const getAdminReports = async (req, res) => {
         });
       });
       const ads = adByProduct.get(String(item.product)) || { impressions: 0, clicks: 0, ctr: 0 };
-      const spent = ['approved', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
+      const spent = ['approved', 'live', 'ended', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
       return {
         id: item._id,
         title: product?.title || 'Ürün',
@@ -418,6 +465,8 @@ const getAdminReports = async (req, res) => {
         overview: {
           gmv: roundMoney(gmv),
           collected: roundMoney(collected),
+          platformFee: roundMoney(commissionCollected),
+          platformFeePending: roundMoney(commissionPending),
           orders: orders.length,
           qty: qtySold,
           buyers: buyerOnly.length,
@@ -501,12 +550,55 @@ const getAdminReports = async (req, res) => {
           daily: fillDaily(from30, now, adDaily, { impressions: 0, clicks: 0 }),
           surfaces: [...adBySurface.values()],
           products: adProductRows.slice(0, 12),
-          featured: featuredRows
+          featured: featuredRows,
+          atelierWeek: {
+            live: weeklyAteliers.filter((item) => item.status === 'live').length,
+            spent: roundMoney(weeklyAteliers.filter((item) => ['live', 'ended'].includes(item.status)).reduce((sum, item) => sum + Number(item.price || 0), 0)),
+            items: weeklyAteliers.slice(0, 20).map((item) => ({
+              id: item._id,
+              shop: shopByUser.get(String(item.seller))?.magazaAdi || '',
+              days: item.days,
+              status: item.status,
+              spent: ['live', 'ended'].includes(item.status) ? Number(item.price || 0) : 0,
+              endsAt: item.endsAt
+            }))
+          }
         },
         promos: {
           codes: [...promoStats.values()].map((row) => ({ ...row, revenue: roundMoney(row.revenue), discount: roundMoney(row.discount) })).sort((a, b) => b.revenue - a.revenue),
           withPromo: { orders: promoOrders, revenue: roundMoney(promoRevenue) },
           withoutPromo: { orders: plainOrders, revenue: roundMoney(plainRevenue) }
+        },
+        commission: {
+          percent: 10,
+          collected: roundMoney(commissionCollected),
+          pending: roundMoney(commissionPending),
+          gross: roundMoney(commissionGross),
+          sellerNet: roundMoney(commissionOrders.reduce((sum, row) => sum + Number(row.net || 0), 0)),
+          sellers: sellerRows
+            .filter((row) => row.fee > 0 || row.revenue > 0)
+            .map((row) => ({
+              sellerId: row.sellerId,
+              shop: row.shop,
+              city: row.city,
+              status: row.status,
+              commissionPercent: row.commissionPercent != null ? row.commissionPercent : 10,
+              orders: row.orders,
+              gross: row.revenue,
+              fee: row.fee,
+              net: row.net,
+              collectedFee: row.collectedFee
+            })),
+          daily: daily.map((row) => ({ date: row.date, commission: row.commission || 0, orders: row.orders || 0 })),
+          orders: commissionOrders
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 40)
+            .map((row) => ({
+              ...row,
+              gross: roundMoney(row.gross),
+              fee: roundMoney(row.fee),
+              net: roundMoney(row.net)
+            }))
         },
         quality: {
           ratings: ratingBuckets,
@@ -548,7 +640,8 @@ const getAdminSellerReport = async (req, res) => {
     const productIds = products.map((item) => item._id);
     const owned = new Set(productIds.map(String));
 
-    const [orders, productReviews, productQuestions, promos, featured, adEvents] = await Promise.all([
+    await expireWeeklyAteliers();
+    const [orders, productReviews, productQuestions, promos, featured, weeklyAteliers, adEvents] = await Promise.all([
       productIds.length || sellerId
         ? Order.find({
           $or: [
@@ -564,6 +657,7 @@ const getAdminSellerReport = async (req, res) => {
         : Promise.resolve([]),
       PromoCode.find({ seller: sellerId }).lean(),
       FeaturedRequest.find({ seller: sellerId }).sort({ createdAt: -1 }).lean(),
+      WeeklyAtelier.find({ seller: sellerId }).sort({ createdAt: -1 }).lean(),
       AdEvent.find({
         $or: [{ seller: sellerId }, { product: { $in: productIds } }],
         createdAt: { $gte: from30 }
@@ -606,6 +700,8 @@ const getAdminSellerReport = async (req, res) => {
     const ops = emptyOps();
     const orderRows = [];
     let revenue = 0;
+    let platformFee = 0;
+    let collectedFee = 0;
     let qtySold = 0;
 
     allOrders.forEach((order) => {
@@ -620,7 +716,11 @@ const getAdminSellerReport = async (req, res) => {
 
       addTimingToOps(ops, timing);
       if (!cancelled) {
+        const share = sellerSettlementOf(order, sellerId);
+        const lineFee = share.gross > 0 ? share.fee : feeOf(lineRev);
         revenue += lineRev;
+        platformFee += lineFee;
+        if (order.paymentStatus === 'completed') collectedFee += lineFee;
         qtySold += lineQty;
       }
 
@@ -770,7 +870,7 @@ const getAdminSellerReport = async (req, res) => {
           featRev += (Number(line.quantity) || 0) * Number(line.price || 0);
         });
       });
-      const spent = ['approved', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
+      const spent = ['approved', 'live', 'ended', 'removed'].includes(item.status) ? Number(item.price || 0) : 0;
       return {
         id: item._id,
         title: product?.title || 'Ürün',
@@ -801,6 +901,9 @@ const getAdminSellerReport = async (req, res) => {
         kpis: {
           orders: fulfillment.total,
           revenue: roundMoney(revenue),
+          platformFee: roundMoney(platformFee),
+          collectedFee: roundMoney(collectedFee),
+          net: roundMoney(revenue - platformFee),
           qty: qtySold,
           products: products.length,
           ...fulfillment,
@@ -847,7 +950,19 @@ const getAdminSellerReport = async (req, res) => {
           impressions,
           clicks,
           ctr: impressions > 0 ? Math.round((clicks / impressions) * 1000) / 10 : 0,
-          featured: featuredRows
+          featured: featuredRows,
+          atelierWeek: {
+            live: weeklyAteliers.filter((item) => item.status === 'live').length,
+            spent: roundMoney(weeklyAteliers.filter((item) => ['live', 'ended'].includes(item.status)).reduce((sum, item) => sum + Number(item.price || 0), 0)),
+            items: weeklyAteliers.map((item) => ({
+              id: item._id,
+              shop: shop.magazaAdi || '',
+              days: item.days,
+              status: item.status,
+              spent: ['live', 'ended'].includes(item.status) ? Number(item.price || 0) : 0,
+              endsAt: item.endsAt
+            }))
+          }
         },
         promos: promos.map((item) => ({
           code: item.code,

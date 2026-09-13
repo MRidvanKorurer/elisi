@@ -27,7 +27,9 @@ const savedCardSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
     adSoyad: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    sifre: { type: String, required: true },
+    // Google-only hesaplarda şifre olmayabilir
+    sifre: { type: String, required: false },
+    googleId: { type: String, unique: true, sparse: true },
     kampanyaKodu: { type: String, unique: true, sparse: true },
     kampanyaKullanildi: { type: Boolean, default: false },
     rol: { 
@@ -52,8 +54,8 @@ const userSchema = new mongoose.Schema({
 // PRE-SAVE MIDDLEWARE
 userSchema.pre('save', async function() {
     
-    // Sadece şifre değiştiyse veya yeni eklendiyse hashle
-    if (this.isModified('sifre')) {
+    // Sadece dolu şifre değiştiyse hashle (Google hesapları şifresiz kalabilir)
+    if (this.isModified('sifre') && this.sifre) {
         const salt = await bcrypt.genSalt(10);
         this.sifre = await bcrypt.hash(this.sifre, salt);
     }

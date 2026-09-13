@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
+import { isLocaleHome } from '../i18n/locale';
+import LanguageSwitch from '../i18n/LanguageSwitch';
 import {
   AppBar, Toolbar, Button, Box, Badge, Container,
   Menu, MenuItem, Avatar, IconButton, ClickAwayListener
@@ -29,10 +33,11 @@ const iconBtn = (solid) => ({
 });
 
 export default function Navbar({ setPage, user, handleLogout }) {
-  const navigate = useNavigate();
+  const { t } = useTranslation('common');
+  const navigate = useLocaleNavigate();
   const location = useLocation();
 
-  const isHome = location.pathname === '/';
+  const isHome = isLocaleHome(location.pathname);
   const [scrolled, setScrolled] = useState(!isHome);
   const solid = !isHome || scrolled;
 
@@ -87,14 +92,15 @@ export default function Navbar({ setPage, user, handleLogout }) {
 
   const go = (path) => {
     if (path === '/' || path === 'home') navigate('/');
+    else if (path === 'admin' || path === '/admin') navigate('/admin');
     else if (path.startsWith('/')) navigate(path);
     else if (setPage) setPage(path);
     else navigate(`/${path}`);
   };
 
   const getUserName = () => {
-    if (!user) return 'Hesabım';
-    return user.adSoyad || user.name || user.email?.split('@')[0] || 'Hesabım';
+    if (!user) return t('nav.account');
+    return user.adSoyad || user.name || user.email?.split('@')[0] || t('nav.account');
   };
 
   return (
@@ -138,8 +144,10 @@ export default function Navbar({ setPage, user, handleLogout }) {
           </Box>
 
           <Box sx={{ display: 'flex', gap: { xs: 0.6, sm: 1 }, alignItems: 'center', flexShrink: 0 }}>
+            <LanguageSwitch solid={solid} />
+
             <IconButton
-              aria-label="Ara"
+              aria-label={t('nav.search')}
               onClick={() => setMobileOpen((v) => !v)}
               sx={{ ...iconBtn(solid), display: { xs: 'inline-flex', md: 'none' } }}
             >
@@ -159,7 +167,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
                   '&:hover': { backgroundColor: solid ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.14)' }
                 }}
               >
-                Admin
+                {t('nav.admin')}
               </Button>
             ) : (
               <Button
@@ -174,11 +182,11 @@ export default function Navbar({ setPage, user, handleLogout }) {
                   '&:hover': { backgroundColor: solid ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.14)' }
                 }}
               >
-                {isSellerRole(user?.rol) ? 'Mağazam' : 'Satıcı Ol'}
+                {isSellerRole(user?.rol) ? t('nav.myShop') : t('nav.becomeSeller')}
               </Button>
             )}
 
-            <IconButton aria-label="Sepet" onClick={() => go('checkout')} sx={iconBtn(solid)}>
+            <IconButton aria-label={t('nav.cart')} onClick={() => go('checkout')} sx={iconBtn(solid)}>
               <Badge badgeContent={cartCount} color="error" sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}>
                 <ShoppingBagOutlined />
               </Badge>
@@ -210,10 +218,10 @@ export default function Navbar({ setPage, user, handleLogout }) {
                   onClose={() => setAnchorEl(null)}
                   slotProps={{ paper: { sx: { mt: 1.4, borderRadius: '16px', minWidth: 200, boxShadow: '0 16px 40px rgba(46,59,85,0.16)', border: '1px solid rgba(148,109,109,0.12)' } } }}
                 >
-                  <MenuItem onClick={() => { setAnchorEl(null); go('profile'); }} sx={{ fontWeight: 600, gap: 1 }}><AccountCircleOutlined sx={{ color: '#946D6D' }} /> Profilim</MenuItem>
+                  <MenuItem onClick={() => { setAnchorEl(null); go('profile'); }} sx={{ fontWeight: 600, gap: 1 }}><AccountCircleOutlined sx={{ color: '#946D6D' }} /> {t('nav.profile')}</MenuItem>
                   {isSuperAdmin(user?.rol) && (
                     <MenuItem onClick={() => { setAnchorEl(null); go('admin'); }} sx={{ fontWeight: 600, gap: 1 }}>
-                      <AdminPanelSettingsOutlined sx={{ color: '#946D6D' }} /> Admin paneli
+                      <AdminPanelSettingsOutlined sx={{ color: '#946D6D' }} /> {t('nav.adminPanel')}
                     </MenuItem>
                   )}
                   {!isSuperAdmin(user?.rol) && (
@@ -221,10 +229,10 @@ export default function Navbar({ setPage, user, handleLogout }) {
                       onClick={() => { setAnchorEl(null); go(isSellerRole(user?.rol) ? 'admin' : 'satici-ol'); }}
                       sx={{ fontWeight: 600, gap: 1 }}
                     >
-                      <StorefrontOutlined sx={{ color: '#946D6D' }} /> {isSellerRole(user?.rol) ? 'Mağazam' : 'Satıcı Ol'}
+                      <StorefrontOutlined sx={{ color: '#946D6D' }} /> {isSellerRole(user?.rol) ? t('nav.myShop') : t('nav.becomeSeller')}
                     </MenuItem>
                   )}
-                  <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ fontWeight: 600, color: '#d32f2f', gap: 1 }}><LogoutOutlined fontSize="small" /> Çıkış Yap</MenuItem>
+                  <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ fontWeight: 600, color: '#d32f2f', gap: 1 }}><LogoutOutlined fontSize="small" /> {t('nav.logout')}</MenuItem>
                 </Menu>
               </>
             ) : (
@@ -242,7 +250,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
                     '&:hover': { borderColor: solid ? '#2E3B55' : '#fff', backgroundColor: solid ? 'rgba(46,59,85,0.05)' : 'rgba(255,255,255,0.1)' }
                   }}
                 >
-                  Giriş
+                  {t('nav.login')}
                 </Button>
                 <Button
                   variant="contained"
@@ -258,7 +266,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
                     '&:hover': { backgroundColor: '#946D6D', color: '#fff' }
                   }}
                 >
-                  Kayıt Ol
+                  {t('nav.register')}
                 </Button>
               </>
             )}

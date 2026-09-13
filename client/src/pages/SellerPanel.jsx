@@ -33,18 +33,24 @@ import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
+import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
+import CalculateOutlined from '@mui/icons-material/CalculateOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton, panelButton } from '../components/PanelShell';
 import SellerProductEditor, { emptyProductForm, formFromProduct } from '../components/SellerProductEditor';
+import ProductMarginCalculator from '../components/ProductMarginCalculator';
 import SellerPerformanceReport from '../components/SellerPerformanceReport';
+import SellerOrderDetail from '../components/SellerOrderDetail';
+import SellerOrders from '../components/SellerOrders';
 import { sellerService } from '../api/sellerService';
 import { questionService } from '../api/questionService';
 import { isSellerRole } from '../utils/roles';
 import { asMagazaTurleri, formatIban, sanitizeIban } from '../utils/sellerValidation';
-import { APPROVAL_STATUS, ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money, when } from '../utils/panel';
-import { lineTotalOf, salePriceOf } from '../utils/price';
+import { APPROVAL_STATUS, ORDER_STATUS, T, money, when } from '../utils/panel';
+import { salePriceOf } from '../utils/price';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
-import { FEATURED_PACKAGES, FEATURED_STATUS, FEATURED_BANK, isReceiptPdf } from '../utils/featured';
+import { FEATURED_PACKAGES, FEATURED_STATUS, FEATURED_BANK, FEATURED_SLOTS, isLiveFeatured, isReceiptPdf } from '../utils/featured';
+import { ATELIER_WEEK_PACKAGE, ATELIER_WEEK_SLOTS, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
 
 const MAGAZA_TURLERI = CATEGORY_OPTIONS;
 
@@ -84,7 +90,6 @@ export default function SellerPanel({ user, handleLogout }) {
   const [overview, setOverview] = useState(null);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [orderFilter, setOrderFilter] = useState('all');
   const [openOrder, setOpenOrder] = useState(null);
   const [updatingOrder, setUpdatingOrder] = useState('');
   const [questions, setQuestions] = useState([]);
@@ -109,12 +114,24 @@ export default function SellerPanel({ user, handleLogout }) {
   const [promoForm, setPromoForm] = useState({ code: '', percent: 10, minSubtotal: 0, note: '', isActive: true });
   const [savingPromo, setSavingPromo] = useState(false);
   const [featuredRequests, setFeaturedRequests] = useState([]);
+  const [featuredSlots, setFeaturedSlots] = useState({ used: 0, total: FEATURED_SLOTS, free: FEATURED_SLOTS, nextFreeAt: null });
+  const [featuredBank, setFeaturedBank] = useState(FEATURED_BANK);
+  const [featuredPackages, setFeaturedPackages] = useState(FEATURED_PACKAGES);
   const [featureOpen, setFeatureOpen] = useState(false);
   const [featureTarget, setFeatureTarget] = useState(null);
   const [featureDays, setFeatureDays] = useState(3);
   const [featureNote, setFeatureNote] = useState('');
   const [featureReceipt, setFeatureReceipt] = useState(null);
   const [savingFeature, setSavingFeature] = useState(false);
+  const [weekRequests, setWeekRequests] = useState([]);
+  const [weekSlots, setWeekSlots] = useState({ used: 0, total: ATELIER_WEEK_SLOTS, free: ATELIER_WEEK_SLOTS, nextFreeAt: null });
+  const [weekBank, setWeekBank] = useState(FEATURED_BANK);
+  const [weekPack, setWeekPack] = useState(ATELIER_WEEK_PACKAGE);
+  const [weekLive, setWeekLive] = useState(false);
+  const [weekOpen, setWeekOpen] = useState(false);
+  const [weekNote, setWeekNote] = useState('');
+  const [weekReceipt, setWeekReceipt] = useState(null);
+  const [savingWeek, setSavingWeek] = useState(false);
   const [report, setReport] = useState(null);
 
   const fail = (err, fallback) => setError(err.response?.data?.mesaj || fallback);
@@ -142,13 +159,14 @@ export default function SellerPanel({ user, handleLogout }) {
   };
 
   const loadPanel = async () => {
-    const [ov, pr, or, qs, pm, ft, rp] = await Promise.all([
+    const [ov, pr, or, qs, pm, ft, wk, rp] = await Promise.all([
       sellerService.getOverview(),
       sellerService.getMyProducts(),
       sellerService.getMyOrders(),
       questionService.getSellerInbox('all'),
       sellerService.getMyPromos(),
       sellerService.getMyFeatured().catch(() => ({ requests: [] })),
+      sellerService.getMyAtelierWeek().catch(() => ({ requests: [] })),
       sellerService.getMyReports().catch(() => ({ report: null }))
     ]);
     setOverview(ov.overview);
@@ -157,6 +175,14 @@ export default function SellerPanel({ user, handleLogout }) {
     setQuestions(qs.questions || []);
     setPromos(pm.promos || []);
     setFeaturedRequests(ft.requests || []);
+    if (ft.slots) setFeaturedSlots(ft.slots);
+    if (ft.bank?.name) setFeaturedBank(ft.bank);
+    if (ft.packages?.length) setFeaturedPackages(ft.packages);
+    setWeekRequests(wk.requests || []);
+    if (wk.slots) setWeekSlots(wk.slots);
+    if (wk.bank?.name) setWeekBank(wk.bank);
+    if (wk.packages?.[0]) setWeekPack(wk.packages[0]);
+    setWeekLive(Boolean(wk.live));
     setReport(rp.report || null);
   };
 
@@ -191,19 +217,12 @@ export default function SellerPanel({ user, handleLogout }) {
       return `${p.title} ${p.category} ${p.productCode} ${p.description}`.toLowerCase().includes(q);
     });
   }, [products, q, productFilter]);
-  const filteredOrders = useMemo(
-    () => orders.filter((o) => {
-      if (orderFilter !== 'all' && o.orderStatus !== orderFilter) return false;
-      if (!q) return true;
-      return `${o.customerInfo?.firstName} ${o.customerInfo?.lastName} ${o.customerInfo?.phone} ${o._id}`.toLowerCase().includes(q);
-    }),
-    [orders, q, orderFilter]
-  );
   const filteredQuestions = useMemo(() => {
     return questions.filter((item) => {
       const open = !String(item.answer || '').trim();
       if (questionFilter === 'unanswered' && !open) return false;
       if (questionFilter === 'answered' && open) return false;
+      if (questionFilter === 'overdue' && !item.overdue) return false;
       if (!q) return true;
       return `${item.question} ${item.answer} ${item.user?.adSoyad} ${item.product?.title}`.toLowerCase().includes(q);
     });
@@ -226,6 +245,22 @@ export default function SellerPanel({ user, handleLogout }) {
     () => new Set(featuredRequests.filter((item) => item.status === 'pending').map((item) => String(item.product?.id || ''))),
     [featuredRequests]
   );
+  const liveFeaturedProductIds = useMemo(
+    () => new Set(featuredRequests.filter(isLiveFeatured).map((item) => String(item.product?.id || ''))),
+    [featuredRequests]
+  );
+  const filteredWeek = useMemo(
+    () => weekRequests.filter((item) => {
+      if (!q) return true;
+      return `${item.status} ${item.days} ${item.note || ''}`.toLowerCase().includes(q);
+    }),
+    [weekRequests, q]
+  );
+  const hasPendingWeek = weekRequests.some((item) => item.status === 'pending');
+  const shopIsWeekly = weekLive || Boolean(seller?.isWeeklyAtelier) || weekRequests.some(isLiveWeek);
+  const weekFull = Number(weekSlots.free || 0) <= 0;
+  const weekLocked = weekFull && !shopIsWeekly;
+  const vitrinFull = Number(featuredSlots.free || 0) <= 0;
   const liveFeatureProducts = useMemo(
     () => products.filter((p) => p.approvalStatus === 'approved' && p.isActive),
     [products]
@@ -309,6 +344,9 @@ export default function SellerPanel({ user, handleLogout }) {
       body.append('description', form.description.trim());
       body.append('category', form.category);
       body.append('price', form.price);
+      body.append('costPrice', form.costPrice || 0);
+      body.append('shippingCostCover', form.shippingCost || 0);
+      body.append('extraCost', form.extraCost || 0);
       body.append('stock', form.stock);
       body.append('discountPercentage', form.discountPercentage || 0);
       body.append('colors', (form.colors || []).join(', '));
@@ -460,7 +498,9 @@ export default function SellerPanel({ user, handleLogout }) {
       body.append('note', featureNote);
       body.append('receipt', featureReceipt.file);
       await sellerService.createFeatured(body);
-      flash('Dekont gönderildi. Süper admin ödemeyi kontrol edip onaylarsa ürün önerilenlere düşer.');
+      flash(featureTarget?.isSponsored || liveFeaturedProductIds.has(String(featureTarget?._id))
+        ? 'Uzatma dekontu gönderildi. Onaylanınca mevcut vitrin süren uzar.'
+        : 'Dekont gönderildi. Onaylanırsa ürün 12 kişilik vitrine çıkar.');
       closeFeature();
       await refresh();
     } catch (err) {
@@ -473,6 +513,66 @@ export default function SellerPanel({ user, handleLogout }) {
   const cancelFeature = async (item) => {
     try {
       await sellerService.cancelFeatured(item.id);
+      flash('Talep iptal edildi.');
+      await refresh();
+    } catch (err) {
+      fail(err, 'Talep iptal edilemedi.');
+    }
+  };
+
+  const openWeek = () => {
+    setWeekNote('');
+    setWeekReceipt(null);
+    setWeekOpen(true);
+  };
+
+  const closeWeek = () => {
+    if (weekReceipt?.preview) URL.revokeObjectURL(weekReceipt.preview);
+    setWeekOpen(false);
+    setWeekReceipt(null);
+  };
+
+  const pickWeekReceipt = (fileList) => {
+    const file = Array.from(fileList || [])[0];
+    if (!file) return;
+    const ok = file.type.startsWith('image/') || file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    if (!ok) {
+      setError('Dekont için görsel veya PDF yükleyin.');
+      return;
+    }
+    if (weekReceipt?.preview) URL.revokeObjectURL(weekReceipt.preview);
+    setWeekReceipt({
+      file,
+      preview: URL.createObjectURL(file),
+      isPdf: file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
+    });
+    setError('');
+  };
+
+  const submitWeek = async () => {
+    if (!weekReceipt?.file) return;
+    setSavingWeek(true);
+    try {
+      const body = new FormData();
+      body.append('days', weekPack.days || 7);
+      body.append('note', weekNote);
+      body.append('receipt', weekReceipt.file);
+      await sellerService.createAtelierWeek(body);
+      flash(shopIsWeekly
+        ? 'Uzatma dekontu gönderildi. Onaylanınca mevcut hafta süren uzar.'
+        : 'Dekont gönderildi. Onaylanırsa atölyen 3 kişilik haftalık vitrine çıkar.');
+      closeWeek();
+      await refresh();
+    } catch (err) {
+      fail(err, 'Talep gönderilemedi.');
+    } finally {
+      setSavingWeek(false);
+    }
+  };
+
+  const cancelWeek = async (item) => {
+    try {
+      await sellerService.cancelAtelierWeek(item.id);
       flash('Talep iptal edildi.');
       await refresh();
     } catch (err) {
@@ -531,7 +631,9 @@ export default function SellerPanel({ user, handleLogout }) {
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.openOrders || 0 },
     { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
     { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
+    { id: 'margin', label: 'Kar marjı', icon: CalculateOutlined },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || 0 },
+    { id: 'week', label: 'Haftanın atölyesi', icon: CelebrationOutlined, badge: overview?.pendingAtelierWeek || 0 },
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
     { id: 'store', label: 'Mağaza bilgileri', icon: StorefrontOutlined }
@@ -547,13 +649,30 @@ export default function SellerPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'reports' ? 'Raporlarda ara' : view === 'promos' ? 'Kampanya kodu ara' : 'Kendi ürün ve siparişlerinde ara'}
+      searchPlaceholder={view === 'orders' ? 'Müşteri, sipariş no veya ürün ara' : view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'week' ? 'Haftanın atölyesi taleplerinde ara' : view === 'reports' ? 'Raporlarda ara' : view === 'promos' ? 'Kampanya kodu ara' : view === 'margin' ? 'Kar marjında ara' : 'Kendi ürün ve siparişlerinde ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
       siteHref={seller.slug ? `/atolye/${seller.slug}` : '/'}
     >
       {error ? <Alert severity="error" sx={{ mb: 2, borderRadius: '14px' }}>{error}</Alert> : null}
       {message ? <Alert severity="success" sx={{ mb: 2, borderRadius: '14px' }} onClose={() => setMessage('')}>{message}</Alert> : null}
+      {overview?.overdueQuestions > 0 ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2, borderRadius: '14px', alignItems: 'center' }}
+          action={<Button color="inherit" size="small" onClick={() => { setQuestionFilter('overdue'); goView('questions'); }} sx={{ fontWeight: 800 }}>Yanıtla</Button>}
+        >
+          {overview.overdueQuestions} müşteri sorusu 3 gündür yanıtsız. Bu bir uyarıdır — süre dolmuş soruları hemen yanıtlayın.
+        </Alert>
+      ) : overview?.unansweredQuestions > 0 ? (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: '14px', alignItems: 'center' }}
+          action={<Button color="inherit" size="small" onClick={() => { setQuestionFilter('unanswered'); goView('questions'); }} sx={{ fontWeight: 800 }}>Sorular</Button>}
+        >
+          {overview.unansweredQuestions} müşteri sorunuz var. 3 gün içinde yanıtlayın; süre dolunca uyarı düşer.
+        </Alert>
+      ) : null}
 
       {view === 'editor' && (
         <SellerProductEditor
@@ -569,7 +688,50 @@ export default function SellerPanel({ user, handleLogout }) {
           saving={savingProduct}
           onCancel={closeEditor}
           onSave={saveProduct}
+          commissionPercent={seller?.komisyonOrani ?? 10}
         />
+      )}
+
+      {view === 'margin' && (
+        <Box>
+          <SectionTitle
+            overline="FİYATLAMA"
+            title="Kar marjı hesapla"
+            subtitle="Maliyet ve varsa kendi kargo masrafını yaz. Site payı kart ücretini içerir; 500 ₺ üstü bedava kargo senin komisyonuna girmez."
+            action={
+              <Button
+                startIcon={<AddRounded />}
+                onClick={() => {
+                  setEditing(null);
+                  setForm({
+                    ...emptyProductForm,
+                    costPrice: form.costPrice,
+                    shippingCost: form.shippingCost,
+                    extraCost: form.extraCost,
+                    price: form.price
+                  });
+                  setMainImage(null);
+                  setGallery([]);
+                  setRemovedImages([]);
+                  setView('editor');
+                }}
+                sx={primaryButton}
+              >
+                Bu fiyatla ürün ekle
+              </Button>
+            }
+          />
+          <PanelCard>
+            <ProductMarginCalculator
+              commissionPercent={seller?.komisyonOrani ?? 10}
+              costPrice={form.costPrice}
+              shippingCost={form.shippingCost}
+              extraCost={form.extraCost}
+              price={form.price}
+              onChange={setForm}
+            />
+          </PanelCard>
+        </Box>
       )}
 
       {view === 'dashboard' && overview && (
@@ -605,9 +767,21 @@ export default function SellerPanel({ user, handleLogout }) {
               <StatCard icon={ShoppingBagOutlined} title="Siparişlerim" value={overview.orders} hint={`${overview.openOrders} hazırlanıyor`} tone={T.lavender} />
             </Box>
             <Box onClick={() => goView('questions')} sx={{ cursor: 'pointer' }}>
-              <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint="Müşteri soruları" tone={T.blue} />
+              <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint={overview.overdueQuestions ? `${overview.overdueQuestions} tanesi süre aşımı` : '3 gün içinde yanıtlayın'} tone={overview.overdueQuestions ? '#C08A4A' : T.blue} />
             </Box>
-            <StatCard icon={PaymentsOutlined} title="Tahsil edilen" value={money(overview.revenue)} hint="Ödenen siparişler" tone={T.rose} />
+            <StatCard
+              icon={PaymentsOutlined}
+              title="Tahsil edilen"
+              value={money(overview.revenue)}
+              hint={
+                seller?.komisyonManuel
+                  ? `Manuel pay %${seller.komisyonOrani} · satışın %${100 - Number(seller.komisyonOrani)}’ı size`
+                  : seller?.komisyonHacim?.qualifies
+                    ? `Hacim indirimi %${seller.komisyonOrani} (kart ücreti dahil)`
+                    : `Satışın %${100 - Number(seller?.komisyonOrani ?? 10)}’ı size · 50.000 ₺ üzeri %8`
+              }
+              tone={T.rose}
+            />
           </Box>
 
           {overview.pendingApproval > 0 && (
@@ -615,6 +789,14 @@ export default function SellerPanel({ user, handleLogout }) {
               {overview.pendingApproval} ürününüz süper admin onayında. Onaylandığında otomatik yayına alınır.
             </Alert>
           )}
+
+          {!seller?.komisyonManuel && seller?.komisyonHacim ? (
+            <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
+              {seller.komisyonHacim.qualifies
+                ? `Son ${seller.komisyonHacim.windowDays} günde ${money(seller.komisyonHacim.gmv)} ciro. Platform payın %${seller.komisyonOrani} (kart ücreti dahil).`
+                : `Platform payı %${seller.komisyonOrani} (kart ücreti dahil). %${seller.komisyonHacim.volumeRate} için son ${seller.komisyonHacim.windowDays} günde ${money(seller.komisyonHacim.remaining)} ciro kaldı.`}
+            </Alert>
+          ) : null}
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.4fr 1fr' }, gap: 1.8 }}>
             <PanelCard sx={{ p: 0, overflow: 'hidden' }}>
@@ -628,10 +810,18 @@ export default function SellerPanel({ user, handleLogout }) {
                     <TableRow key={order._id} hover sx={{ cursor: 'pointer' }} onClick={() => { setOpenOrder(order); goView('orders'); }}>
                       <TableCell sx={bodyCell}>
                         <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
-                        <Typography sx={{ fontSize: 12, color: T.muted }}>{when(order.createdAt)}</Typography>
+                        <Typography sx={{ fontSize: 12, color: T.muted }}>
+                          #{order.code || String(order._id).slice(-6).toUpperCase()} · {when(order.createdAt)}
+                          {order.qty ? ` · ${order.qty} ürün` : ''}
+                        </Typography>
                       </TableCell>
-                      <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(order.sellerTotal)}</TableCell>
-                      <TableCell sx={bodyCell}><StatusChip map={ORDER_STATUS} value={order.orderStatus} /></TableCell>
+                      <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>
+                        {money(order.sellerNet != null ? order.sellerNet : order.sellerTotal)}
+                        <Typography sx={{ fontSize: 11, color: T.muted, fontWeight: 700 }}>net</Typography>
+                      </TableCell>
+                      <TableCell sx={bodyCell}>
+                        <StatusChip map={ORDER_STATUS} value={order.orderStatus} />
+                      </TableCell>
                     </TableRow>
                   ))}
                   {(overview.recentOrders || []).length === 0 && (
@@ -667,72 +857,13 @@ export default function SellerPanel({ user, handleLogout }) {
       )}
 
       {view === 'orders' && (
-        <Box>
-          <SectionTitle
-            overline="SATIŞLAR"
-            title="Siparişlerim"
-            subtitle="Gelen siparişin durumunu siz güncellersiniz: hazırlanıyor, kargoda, teslim veya iptal."
-            action={
-              <Select size="small" value={orderFilter} onChange={(e) => setOrderFilter(e.target.value)} sx={{ minWidth: 190, bgcolor: '#fff', borderRadius: '12px' }}>
-                <MenuItem value="all">Tümü</MenuItem>
-                <MenuItem value="processing">Hazırlanıyor</MenuItem>
-                <MenuItem value="shipped">Kargoda</MenuItem>
-                <MenuItem value="delivered">Teslim edildi</MenuItem>
-                <MenuItem value="cancelled">İptal</MenuItem>
-              </Select>
-            }
-          />
-          <PanelCard sx={{ p: 0, overflow: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  {['Müşteri', 'Ürünler', 'Tutarım', 'Ödeme', 'Durum', 'Tarih', ''].map((h) => (
-                    <TableCell key={h} sx={headCell}>{h}</TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order._id} hover>
-                    <TableCell sx={bodyCell}>
-                      <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
-                      <Typography sx={{ fontSize: 12, color: T.muted }}>
-                        {order.shippingAddress?.district}/{order.shippingAddress?.city}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={bodyCell}>
-                      {(order.orderItems || []).map((item, idx) => (
-                        <Typography key={idx} sx={{ fontSize: 13 }}>{item.name} × {item.quantity}</Typography>
-                      ))}
-                    </TableCell>
-                    <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(order.sellerTotal)}</TableCell>
-                    <TableCell sx={bodyCell}><StatusChip map={PAYMENT_STATUS} value={order.paymentStatus} /></TableCell>
-                    <TableCell sx={bodyCell}>
-                      <Select
-                        size="small"
-                        value={order.orderStatus || 'processing'}
-                        disabled={updatingOrder === order._id}
-                        onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                        sx={{ minWidth: 155, borderRadius: '12px', bgcolor: '#fff' }}
-                      >
-                        {Object.entries(ORDER_STATUS).map(([key, text]) => (
-                          <MenuItem key={key} value={key}>{text}</MenuItem>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell sx={{ ...bodyCell, color: T.muted }}>{when(order.createdAt)}</TableCell>
-                    <TableCell sx={bodyCell}>
-                      <Button onClick={() => setOpenOrder(order)} sx={{ fontWeight: 800, color: T.rose }}>Detay</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredOrders.length === 0 && (
-                  <TableRow><TableCell colSpan={7} sx={{ ...bodyCell, color: T.muted }}>Sipariş bulunamadı.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </PanelCard>
-        </Box>
+        <SellerOrders
+          orders={orders}
+          query={query}
+          updatingOrder={updatingOrder}
+          onOpen={setOpenOrder}
+          onStatus={updateOrderStatus}
+        />
       )}
 
       {view === 'questions' && (
@@ -740,12 +871,13 @@ export default function SellerPanel({ user, handleLogout }) {
           <SectionTitle
             overline="DESTEK"
             title="Müşteri soruları"
-            subtitle="Ürünlerinize gelen soruları yanıtlayın. Yanıtsız sorular üstte durur."
+            subtitle="Yeni soru satıcıya düşer. 3 gün içinde yanıtlanmayan sorular uyarı olur."
             action={
               <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
                 {[
                   ['all', 'Tümü'],
                   ['unanswered', 'Yanıtsız'],
+                  ['overdue', 'Uyarı'],
                   ['answered', 'Yanıtlanan']
                 ].map(([id, label]) => (
                   <Chip
@@ -795,9 +927,14 @@ export default function SellerPanel({ user, handleLogout }) {
                       <TableCell sx={bodyCell}>
                         <Chip
                           size="small"
-                          label={open ? 'Yanıtsız' : 'Yanıtlandı'}
-                          sx={{ fontWeight: 800, bgcolor: open ? 'rgba(192,138,74,0.2)' : 'rgba(150,190,150,0.24)', color: open ? '#8A5A24' : '#3F6B47' }}
+                          label={item.overdue ? 'Süre doldu — uyarı' : open ? 'Yanıt bekleniyor' : 'Yanıtlandı'}
+                          sx={{ fontWeight: 800, bgcolor: item.overdue ? 'rgba(183,28,28,0.12)' : open ? 'rgba(192,138,74,0.2)' : 'rgba(150,190,150,0.24)', color: item.overdue ? '#8B1E1E' : open ? '#8A5A24' : '#3F6B47' }}
                         />
+                        {open && item.dueAt ? (
+                          <Typography sx={{ fontSize: 12, color: item.overdue ? '#8B1E1E' : T.muted, mt: 0.6, fontWeight: item.overdue ? 800 : 600 }}>
+                            {item.overdue ? '3 gün geçti' : `Son tarih ${when(item.dueAt)}`}
+                          </Typography>
+                        ) : null}
                       </TableCell>
                       <TableCell sx={{ ...bodyCell, color: T.muted, whiteSpace: 'nowrap' }}>{when(item.createdAt)}</TableCell>
                       <TableCell sx={{ ...bodyCell, whiteSpace: 'nowrap' }}>
@@ -905,11 +1042,17 @@ export default function SellerPanel({ user, handleLogout }) {
                         )}
                         {product.approvalStatus === 'approved' && product.isActive && (
                           <Button
-                            disabled={pendingFeaturedProductIds.has(String(product._id))}
+                            disabled={pendingFeaturedProductIds.has(String(product._id)) || (vitrinFull && !product.isSponsored && !liveFeaturedProductIds.has(String(product._id)))}
                             onClick={() => openFeature(product)}
                             sx={{ ...panelButton, color: T.rose, border: `1px solid ${T.line}` }}
                           >
-                            {pendingFeaturedProductIds.has(String(product._id)) ? 'Talepte' : 'Öne çıkar'}
+                            {pendingFeaturedProductIds.has(String(product._id))
+                              ? 'Talepte'
+                              : (product.isSponsored || liveFeaturedProductIds.has(String(product._id)))
+                                ? 'Uzat'
+                                : vitrinFull
+                                  ? 'Vitrin dolu'
+                                  : 'Öne çıkar'}
                           </Button>
                         )}
                         <Button onClick={() => window.open(`/product/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
@@ -1023,15 +1166,32 @@ export default function SellerPanel({ user, handleLogout }) {
           <SectionTitle
             overline="VİTRİN"
             title="Öne çıkan ürün talepleri"
-            subtitle="Ürün ve paket seçin, havale dekontunu yükleyin. Süper admin dekontu görünce onaylar; onaylanırsa seçilen süre boyunca ana sayfada görünür."
+            subtitle="12 ürünlük açık vitrin. Yeni ürün yalnızca boş yer varken alınır; vitrindeki ürünün süresini uzatmak her zaman mümkün. Havale + dekont, kart yok."
             action={liveFeatureProducts.length ? (
               <Button startIcon={<AutoAwesomeOutlined />} onClick={() => openFeature()} sx={primaryButton}>
                 Yeni talep
               </Button>
             ) : null}
           />
+          <PanelCard sx={{ mb: 2.4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontWeight: 900, color: T.navy }}>Vitrin kapasitesi</Typography>
+                <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.3 }}>
+                  {featuredSlots.used}/{featuredSlots.total} dolu
+                  {vitrinFull && featuredSlots.nextFreeAt ? ` · sıradaki boşalma ${when(featuredSlots.nextFreeAt)}` : ''}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontWeight: 900, color: vitrinFull ? T.rose : T.navy }}>
+                {vitrinFull ? 'Dolu — yalnızca uzatma' : `${featuredSlots.free} yer boş`}
+              </Typography>
+            </Box>
+            <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
+              <Box sx={{ width: `${Math.min(100, (Number(featuredSlots.used) / Number(featuredSlots.total || FEATURED_SLOTS)) * 100)}%`, height: '100%', bgcolor: vitrinFull ? T.rose : T.navy }} />
+            </Box>
+          </PanelCard>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.4, mb: 2.4 }}>
-            {FEATURED_PACKAGES.map((pack) => (
+            {featuredPackages.map((pack) => (
               <PanelCard key={pack.days}>
                 <Typography sx={{ fontWeight: 800, color: T.lavender, fontSize: 12, letterSpacing: 1 }}>{pack.label.toUpperCase()}</Typography>
                 <Typography sx={{ fontWeight: 900, color: T.navy, fontSize: '1.6rem', mt: 0.4 }}>{money(pack.price)}</Typography>
@@ -1056,7 +1216,8 @@ export default function SellerPanel({ user, handleLogout }) {
                         <StatusChip map={FEATURED_STATUS} value={item.status} />
                       </Box>
                       <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
-                        {item.days} gün · {money(item.price)}
+                        {item.days} gün · {Number(item.price) === 0 ? 'Ücretsiz' : money(item.price)}
+                        {item.remainingDays ? ` · ${item.remainingDays} gün kaldı` : ''}
                       </Typography>
                       {item.endsAt ? (
                         <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>Bitiş: {when(item.endsAt)}</Typography>
@@ -1078,6 +1239,87 @@ export default function SellerPanel({ user, handleLogout }) {
                   </Box>
                   {item.status === 'pending' ? (
                     <Button onClick={() => cancelFeature(item)} sx={{ ...panelButton, mt: 1.6, color: T.muted }}>Talebi iptal et</Button>
+                  ) : null}
+                </PanelCard>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {view === 'week' && (
+        <Box>
+          <SectionTitle
+            overline="VİTRİN"
+            title="Haftanın atölyesi"
+            subtitle="3 mağazalık şerit, 7 gün 6.000 ₺. Onaydan itibaren sayılır. Havale + dekont; kart yok. Komisyon ve kargo değişmez."
+            action={liveFeatureProducts.length && !hasPendingWeek && !weekLocked ? (
+              <Button startIcon={<CelebrationOutlined />} onClick={openWeek} sx={primaryButton}>
+                {shopIsWeekly ? 'Uzat' : 'Talep gönder'}
+              </Button>
+            ) : null}
+          />
+          <PanelCard sx={{ mb: 2.4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontWeight: 900, color: T.navy }}>Vitrin kapasitesi</Typography>
+                <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.3 }}>
+                  {weekSlots.used}/{weekSlots.total} dolu
+                  {weekFull && weekSlots.nextFreeAt ? ` · sıradaki boşalma ${when(weekSlots.nextFreeAt)}` : ''}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontWeight: 900, color: weekLocked ? T.rose : T.navy }}>
+                {weekLocked ? 'Dolu — yeni mağaza alınmaz' : shopIsWeekly && weekFull ? 'Dolu — uzatma açık' : `${weekSlots.free} yer boş`}
+              </Typography>
+            </Box>
+            <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
+              <Box sx={{ width: `${Math.min(100, (Number(weekSlots.used) / Number(weekSlots.total || ATELIER_WEEK_SLOTS)) * 100)}%`, height: '100%', bgcolor: weekFull ? T.rose : T.navy }} />
+            </Box>
+          </PanelCard>
+          <PanelCard sx={{ mb: 2.4 }}>
+            <Typography sx={{ fontWeight: 800, color: T.lavender, fontSize: 12, letterSpacing: 1 }}>{(weekPack.label || '7 gün').toUpperCase()}</Typography>
+            <Typography sx={{ fontWeight: 900, color: T.navy, fontSize: '1.6rem', mt: 0.4 }}>{money(weekPack.price)}</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13 }}>{weekPack.hint || 'Haftanın atölyesi'} · tüm mağaza</Typography>
+          </PanelCard>
+          {filteredWeek.length === 0 ? (
+            <PanelCard sx={{ textAlign: 'center', py: 6 }}>
+              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.8 }}>Henüz talep yok</Typography>
+              <Typography sx={{ color: T.muted }}>
+                {weekLocked
+                  ? 'Vitrin dolu. Bir yer boşalınca başvurabilirsin; canlıysan uzatma açık kalır.'
+                  : 'Yayında en az bir onaylı ürünün olsun, dekontu yükle.'}
+              </Typography>
+            </PanelCard>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8 }}>
+              {filteredWeek.map((item) => (
+                <PanelCard key={item.id}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                    <Typography sx={{ fontWeight: 900, color: T.navy }}>Haftanın atölyesi</Typography>
+                    <StatusChip map={ATELIER_WEEK_STATUS} value={item.status} />
+                  </Box>
+                  <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
+                    {item.days} gün · {Number(item.price) === 0 ? 'Ücretsiz' : money(item.price)}
+                    {item.remainingDays ? ` · ${item.remainingDays} gün kaldı` : ''}
+                  </Typography>
+                  {item.endsAt ? (
+                    <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>Bitiş: {when(item.endsAt)}</Typography>
+                  ) : null}
+                  {item.receiptUrl ? (
+                    <Button
+                      href={item.receiptUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      sx={{ ...panelButton, mt: 0.8, color: T.navy, px: 0, minWidth: 0 }}
+                    >
+                      {isReceiptPdf(item.receiptUrl) ? 'Dekontu aç (PDF)' : 'Dekontu gör'}
+                    </Button>
+                  ) : null}
+                  {item.rejectionReason ? (
+                    <Typography sx={{ color: '#96393C', fontSize: 12, mt: 0.6 }}>{item.rejectionReason}</Typography>
+                  ) : null}
+                  {item.status === 'pending' ? (
+                    <Button onClick={() => cancelWeek(item)} sx={{ ...panelButton, mt: 1.6, color: T.muted }}>Talebi iptal et</Button>
                   ) : null}
                 </PanelCard>
               ))}
@@ -1162,10 +1404,16 @@ export default function SellerPanel({ user, handleLogout }) {
       </Dialog>
 
       <Dialog open={featureOpen} onClose={closeFeature} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
-        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Öne çıkanlara talep</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>
+          {featureTarget?.isSponsored || liveFeaturedProductIds.has(String(featureTarget?._id || '')) ? 'Vitrin süresini uzat' : 'Öne çıkanlara talep'}
+        </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: T.muted, mb: 1.4 }}>
-            Önce ürünü ve paketi seçin. Havale/EFT yaptıktan sonra dekontu yükleyin; süper admin bu belgeye göre onaylar.
+            {featureTarget?.isSponsored || liveFeaturedProductIds.has(String(featureTarget?._id || ''))
+              ? 'Paket süresi mevcut bitişe eklenir. Vitrin dolu olsa da uzatma açılır.'
+              : vitrinFull
+                ? `Vitrin dolu (${featuredSlots.used}/${featuredSlots.total}). Yeni ürün alınmaz; yalnızca vitrindeki ürünü uzatabilirsin.`
+                : 'Ürün ve paket seç, havale yap, dekontu yükle. Onaylanınca 12 kişilik ana sayfa vitrine çıkar.'}
           </Typography>
           {liveFeatureProducts.length === 0 ? (
             <Typography sx={{ color: T.muted, mb: 2 }}>Yayında onaylı ürününüz yok. Önce bir ürün yayınlayın.</Typography>
@@ -1174,16 +1422,18 @@ export default function SellerPanel({ user, handleLogout }) {
               {liveFeatureProducts.map((product) => {
                 const selected = String(featureTarget?._id) === String(product._id);
                 const pending = pendingFeaturedProductIds.has(String(product._id));
+                const live = product.isSponsored || liveFeaturedProductIds.has(String(product._id));
+                const blocked = pending || (vitrinFull && !live);
                 return (
                   <Box
                     key={product._id}
                     onClick={() => {
-                      if (pending) return;
+                      if (blocked) return;
                       setFeatureTarget(product);
                     }}
                     sx={{
-                      cursor: pending ? 'not-allowed' : 'pointer',
-                      opacity: pending ? 0.55 : 1,
+                      cursor: blocked ? 'not-allowed' : 'pointer',
+                      opacity: blocked ? 0.55 : 1,
                       display: 'flex',
                       gap: 1,
                       alignItems: 'center',
@@ -1199,7 +1449,7 @@ export default function SellerPanel({ user, handleLogout }) {
                         {product.title}
                       </Typography>
                       <Typography sx={{ color: T.muted, fontSize: 12 }}>
-                        {pending ? 'Bekleyen talep var' : product.isSponsored ? 'Şu an öne çıkan' : money(product.price)}
+                        {pending ? 'Bekleyen talep var' : live ? 'Vitrinde — uzatılabilir' : vitrinFull ? 'Vitrin dolu' : money(product.price)}
                       </Typography>
                     </Box>
                   </Box>
@@ -1209,7 +1459,7 @@ export default function SellerPanel({ user, handleLogout }) {
           )}
           <Typography sx={{ fontWeight: 800, color: T.navy, mb: 1, fontSize: '0.92rem' }}>Paket süresi</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1 }}>
-            {FEATURED_PACKAGES.map((pack) => {
+            {featuredPackages.map((pack) => {
               const selected = featureDays === pack.days;
               return (
                 <Box
@@ -1231,10 +1481,10 @@ export default function SellerPanel({ user, handleLogout }) {
           </Box>
           <Box sx={{ mt: 2, p: 1.6, borderRadius: '16px', border: `1px solid ${T.line}`, bgcolor: T.surfaceSoft }}>
             <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: '0.92rem' }}>Havale / EFT</Typography>
-            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>{FEATURED_BANK.name}</Typography>
-            <Typography sx={{ color: T.navy, fontWeight: 800, letterSpacing: 0.3, mt: 0.2 }}>{FEATURED_BANK.iban}</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>{featuredBank.name}</Typography>
+            <Typography sx={{ color: T.navy, fontWeight: 800, letterSpacing: 0.3, mt: 0.2 }}>{featuredBank.iban}</Typography>
             <Typography sx={{ color: T.rose, fontWeight: 900, mt: 0.8 }}>
-              {money(FEATURED_PACKAGES.find((pack) => pack.days === featureDays)?.price || 0)}
+              {money(featuredPackages.find((pack) => pack.days === featureDays)?.price || 0)}
             </Typography>
             <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>
               Açıklama: {featureTarget?.title || 'ürün adı'} · öne çıkan
@@ -1287,8 +1537,102 @@ export default function SellerPanel({ user, handleLogout }) {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.4 }}>
           <Button onClick={closeFeature} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
-          <Button onClick={submitFeature} disabled={savingFeature || !featureTarget || !featureReceipt?.file} sx={primaryButton}>
-            {savingFeature ? 'Gönderiliyor...' : 'Talep gönder'}
+          <Button
+            onClick={submitFeature}
+            disabled={
+              savingFeature
+              || !featureTarget
+              || !featureReceipt?.file
+              || (vitrinFull && !featureTarget.isSponsored && !liveFeaturedProductIds.has(String(featureTarget._id)))
+            }
+            sx={primaryButton}
+          >
+            {savingFeature
+              ? 'Gönderiliyor...'
+              : (featureTarget?.isSponsored || liveFeaturedProductIds.has(String(featureTarget?._id || '')))
+                ? 'Uzatma gönder'
+                : 'Talep gönder'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={weekOpen} onClose={closeWeek} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>
+          {shopIsWeekly ? 'Haftayı uzat' : 'Haftanın atölyesi talebi'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: T.muted, mb: 1.4 }}>
+            {shopIsWeekly
+              ? '7 gün, mevcut bitişe eklenir. Vitrin dolu olsa da uzatma açılır.'
+              : weekLocked
+                ? `Vitrin dolu (${weekSlots.used}/${weekSlots.total}). Yeni mağaza alınmaz.`
+                : 'Paket 7 gün 6.000 ₺. Havale yap, dekontu yükle. Onaylanınca atölyen ana sayfa şeridine çıkar.'}
+          </Typography>
+          {!liveFeatureProducts.length ? (
+            <Typography sx={{ color: T.muted, mb: 2 }}>Yayında onaylı ürününüz yok. Önce bir ürün yayınlayın.</Typography>
+          ) : null}
+          <Box sx={{ p: 1.6, borderRadius: '16px', border: `1px solid ${T.line}`, bgcolor: T.surfaceSoft }}>
+            <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: '0.92rem' }}>Havale / EFT</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>{weekBank.name}</Typography>
+            <Typography sx={{ color: T.navy, fontWeight: 800, letterSpacing: 0.3, mt: 0.2 }}>{weekBank.iban}</Typography>
+            <Typography sx={{ color: T.rose, fontWeight: 900, mt: 0.8 }}>{money(weekPack.price)}</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>
+              Açıklama: {seller?.magazaAdi || 'atölye adı'} · haftanın atölyesi
+            </Typography>
+          </Box>
+          <Typography sx={{ fontWeight: 800, color: T.navy, mb: 1, mt: 2, fontSize: '0.92rem' }}>Ödeme dekontu</Typography>
+          <Box
+            component="label"
+            sx={{
+              display: 'block',
+              cursor: 'pointer',
+              p: 1.8,
+              borderRadius: '16px',
+              border: `1.5px dashed ${weekReceipt ? T.navy : T.line}`,
+              bgcolor: weekReceipt ? 'rgba(46,59,85,0.06)' : T.surfaceSoft,
+              textAlign: 'center'
+            }}
+          >
+            <input
+              hidden
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+              onChange={(e) => { pickWeekReceipt(e.target.files); e.target.value = ''; }}
+            />
+            {weekReceipt ? (
+              <Box>
+                {weekReceipt.isPdf ? (
+                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{weekReceipt.file.name}</Typography>
+                ) : (
+                  <Box component="img" src={weekReceipt.preview} alt="" sx={{ maxHeight: 140, maxWidth: '100%', objectFit: 'contain', borderRadius: '12px', mb: 0.8 }} />
+                )}
+                <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.6 }}>Değiştirmek için tekrar seçin</Typography>
+              </Box>
+            ) : (
+              <Box>
+                <Typography sx={{ fontWeight: 800, color: T.navy }}>Dekont yükleyin</Typography>
+                <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.4 }}>JPG, PNG veya PDF · en fazla 8 MB</Typography>
+              </Box>
+            )}
+          </Box>
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            label="Not (isteğe bağlı)"
+            value={weekNote}
+            onChange={(e) => setWeekNote(e.target.value)}
+            sx={{ ...fieldSx, mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.4 }}>
+          <Button onClick={closeWeek} sx={{ fontWeight: 800, color: T.muted }}>Vazgeç</Button>
+          <Button
+            onClick={submitWeek}
+            disabled={savingWeek || !weekReceipt?.file || weekLocked || !liveFeatureProducts.length}
+            sx={primaryButton}
+          >
+            {savingWeek ? 'Gönderiliyor...' : shopIsWeekly ? 'Uzatma gönder' : 'Talep gönder'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1319,66 +1663,15 @@ export default function SellerPanel({ user, handleLogout }) {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(openOrder)} onClose={() => setOpenOrder(null)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
-        <DialogTitle sx={{ fontWeight: 900, color: T.navy }}>Sipariş detayı</DialogTitle>
-        <DialogContent>
-          {openOrder && (
-            <Box>
-              <Typography sx={{ fontWeight: 800, color: T.navy }}>
-                {openOrder.customerInfo?.firstName} {openOrder.customerInfo?.lastName}
-              </Typography>
-              <Typography sx={{ color: T.muted }}>
-                {openOrder.customerInfo?.phone}
-                {openOrder.customerInfo?.email ? ` · ${openOrder.customerInfo.email}` : ''}
-              </Typography>
-              <Typography sx={{ mt: 1.2, mb: 2, color: T.navy }}>
-                {openOrder.shippingAddress?.address}
-                {openOrder.shippingAddress?.address ? ', ' : ''}
-                {openOrder.shippingAddress?.district}/{openOrder.shippingAddress?.city}
-              </Typography>
-              {(openOrder.orderItems || []).map((item, idx) => (
-                <Box key={idx} sx={{ display: 'flex', gap: 1.2, alignItems: 'center', py: 0.8, borderBottom: `1px solid ${T.line}` }}>
-                  {item.image ? (
-                    <Box component="img" src={item.image} alt="" sx={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '12px', bgcolor: T.surfaceSoft }} />
-                  ) : null}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ color: T.navy, fontWeight: 800 }}>
-                      {item.name} × {item.quantity}
-                    </Typography>
-                    {item.color || item.size ? (
-                      <Typography sx={{ fontSize: 12, color: T.muted }}>{[item.color, item.size].filter(Boolean).join(' · ')}</Typography>
-                    ) : null}
-                    {Number(item.quantity) > 1 ? (
-                      <Typography sx={{ fontSize: 12, color: T.muted }}>{money(item.price)} / adet</Typography>
-                    ) : null}
-                  </Box>
-                  <Typography sx={{ fontWeight: 800, color: T.navy }}>{money(lineTotalOf(item))}</Typography>
-                </Box>
-              ))}
-              <Typography sx={{ fontWeight: 900, my: 1.8, color: T.navy }}>Tutarınız {money(openOrder.sellerTotal)}</Typography>
-              <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2 }}>
-                Ödeme: {PAYMENT_STATUS[openOrder.paymentStatus] || openOrder.paymentStatus}
-                {openOrder.paymentMethod ? ` · ${PAYMENT_METHOD[openOrder.paymentMethod] || openOrder.paymentMethod}` : ''}
-              </Typography>
-              <Select
-                fullWidth
-                size="small"
-                value={openOrder.orderStatus || 'processing'}
-                disabled={updatingOrder === openOrder._id}
-                onChange={(e) => updateOrderStatus(openOrder._id, e.target.value)}
-                sx={{ borderRadius: '12px', bgcolor: '#fff' }}
-              >
-                {Object.entries(ORDER_STATUS).map(([key, text]) => (
-                  <MenuItem key={key} value={key}>{text}</MenuItem>
-                ))}
-              </Select>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setOpenOrder(null)} sx={{ fontWeight: 800, color: T.muted }}>Kapat</Button>
-        </DialogActions>
-      </Dialog>
+      {openOrder ? (
+        <SellerOrderDetail
+          order={openOrder}
+          onClose={() => setOpenOrder(null)}
+          onStatus={updateOrderStatus}
+          updating={updatingOrder === openOrder._id}
+          onFlash={flash}
+        />
+      ) : null}
     </PanelShell>
   );
 }

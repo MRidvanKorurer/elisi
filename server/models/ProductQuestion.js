@@ -34,6 +34,10 @@ const productQuestionSchema = new mongoose.Schema(
     answeredAt: {
       type: Date
     },
+    responseDueAt: {
+      type: Date,
+      index: true
+    },
     isPublic: {
       type: Boolean,
       default: true

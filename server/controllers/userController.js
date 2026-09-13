@@ -168,40 +168,10 @@ exports.deleteAddress = async (req, res) => {
 };
 
 exports.addCard = async (req, res) => {
-    try {
-        const user = await User.findById(uid(req));
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı.' });
-        }
-        const { kartSahibi, kartNumarasi, skt } = req.body;
-
-        if (!kartSahibi || !kartNumarasi || !skt) {
-            return res.status(400).json({ success: false, message: 'Lütfen tüm kart alanlarını doldurun.' });
-        }
-
-        const digits = String(kartNumarasi).replace(/\D/g, '');
-        if (digits.length < 12) {
-            return res.status(400).json({ success: false, message: 'Geçerli bir kart numarası giriniz.' });
-        }
-
-        const son4Hane = digits.slice(-4);
-        const kartTipi = digits.startsWith('4') ? 'Visa' : 'Mastercard';
-
-        const newCard = {
-            kartSahibi,
-            son4Hane,
-            skt,
-            kartTipi,
-            cardToken: 'mock_token_' + Date.now() // Sanal token
-        };
-
-        user.kayitliKartlar.push(newCard);
-        await user.save();
-
-        res.status(201).json({ success: true, message: 'Kart başarıyla eklendi.', savedCards: user.kayitliKartlar });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Kart eklenemedi.', error: error.message });
-    }
+    return res.status(400).json({
+        success: false,
+        message: 'Kayıtlı kart kapalı. Ödeme İyzico sayfasında alınır; kart numarası bu sunucuda saklanmaz.'
+    });
 };
 
 // @desc    Kart Sil

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import LocaleLink from '../i18n/LocaleLink';
+import { categoryLabel } from '../utils/categories';
 import {
   Box, Container, Typography, IconButton,
   Link, TextField, Button, Divider, SvgIcon, Snackbar, Alert
@@ -11,6 +13,7 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import Logo from '../assets/logo.svg?react';
 import { CATEGORY_OPTIONS } from '../utils/categories';
+import { getSitePublic, subscribeNewsletter } from '../api/siteService';
 
 const EtsyIcon = (props) => (
   <SvgIcon {...props} viewBox="0 0 24 24">
@@ -18,25 +21,37 @@ const EtsyIcon = (props) => (
   </SvgIcon>
 );
 
-const socialLinks = {
-  instagram: 'https://instagram.com/',
-  facebook: 'https://facebook.com/',
-  etsy: 'https://etsy.com/'
-};
+const socialFromSite = (site) => ({
+  instagram: site?.instagram || 'https://www.instagram.com/nikbag',
+  facebook: site?.facebook || 'https://www.facebook.com/nikbag',
+  etsy: site?.pinterest || 'https://tr.pinterest.com/nikbag'
+});
 
 export default function Footer() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
+  const [site, setSite] = useState(null);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const socialLinks = socialFromSite(site);
 
-  const handleSubscribe = (event) => {
+  useEffect(() => {
+    getSitePublic().then(setSite);
+  }, []);
+
+  const handleSubscribe = async (event) => {
     event.preventDefault();
     const value = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      setToast({ open: true, message: 'Geçerli bir e-posta girin.', severity: 'warning' });
+      setToast({ open: true, message: t('footer.invalidEmail'), severity: 'warning' });
       return;
     }
     setEmail('');
-    setToast({ open: true, message: 'Bültene kaydınız alındı.', severity: 'success' });
+    try {
+      await subscribeNewsletter(value);
+      setToast({ open: true, message: t('footer.subscribed'), severity: 'success' });
+    } catch {
+      setToast({ open: true, message: t('footer.invalidEmail'), severity: 'warning' });
+    }
   };
 
   return (
@@ -67,9 +82,9 @@ export default function Footer() {
         >
           <Box sx={{ gridColumn: { xs: '1 / -1', sm: '1 / -1', lg: 'auto' } }}>
             <Box
-              component={RouterLink}
+              component={LocaleLink}
               to="/"
-              aria-label="NikBag anasayfa"
+              aria-label={t('footer.homeAria')}
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -87,7 +102,7 @@ export default function Footer() {
             </Box>
 
             <Typography variant="body2" sx={{ color: '#6E5252', mb: 2.5, lineHeight: 1.75, maxWidth: 360, fontWeight: 600 }}>
-              Evinize ve ruhunuza dokunan, tamamen el yapımı tasarım ürünleri. Geleneksel yöntemleri modern bir dille yeniden yorumluyoruz.
+              {t('footer.blurb')}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 1.2 }}>
@@ -97,7 +112,7 @@ export default function Footer() {
               <IconButton href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" sx={socialIconSx}>
                 <FacebookIcon />
               </IconButton>
-              <IconButton href={socialLinks.etsy} target="_blank" rel="noopener noreferrer" aria-label="Etsy Mağazamız" sx={socialIconSx}>
+              <IconButton href={socialLinks.etsy} target="_blank" rel="noopener noreferrer" aria-label={t('footer.etsy')} sx={socialIconSx}>
                 <EtsyIcon />
               </IconButton>
             </Box>
@@ -105,52 +120,56 @@ export default function Footer() {
 
           <Box>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2, fontSize: '0.95rem', letterSpacing: '0.04em' }}>
-              Keşfet
+              {t('footer.explore')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-              <Link component={RouterLink} to="/" sx={footerLinkSx}>Anasayfa</Link>
-              <Link component={RouterLink} to="/products" sx={footerLinkSx}>Tüm Ürünler</Link>
-              <Link component={RouterLink} to="/satici-ol" sx={footerLinkSx}>Satıcı Ol</Link>
-              <Link component={RouterLink} to="/auth" rel="nofollow" sx={footerLinkSx}>Giriş / Kayıt</Link>
+              <Link component={LocaleLink} to="/" sx={footerLinkSx}>{t('footer.home')}</Link>
+              <Link component={LocaleLink} to="/products" sx={footerLinkSx}>{t('footer.allProducts')}</Link>
+              <Link component={LocaleLink} to="/satici-ol" sx={footerLinkSx}>{t('footer.becomeSeller')}</Link>
+              <Link component={LocaleLink} to="/auth" rel="nofollow" sx={footerLinkSx}>{t('footer.loginRegister')}</Link>
             </Box>
           </Box>
 
           <Box>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2, fontSize: '0.95rem', letterSpacing: '0.04em' }}>
-              Yardım
+              {t('footer.help')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-              <Link href="mailto:info@nikbag.com" sx={footerLinkSx}>İletişim</Link>
-              <Typography sx={{ ...footerLinkSx, cursor: 'default', '&:hover': { color: '#6E5252', transform: 'none' } }}>Kargo ve teslimat</Typography>
-              <Typography sx={{ ...footerLinkSx, cursor: 'default', '&:hover': { color: '#6E5252', transform: 'none' } }}>İade ve değişim</Typography>
-              <Typography sx={{ ...footerLinkSx, cursor: 'default', '&:hover': { color: '#6E5252', transform: 'none' } }}>Gizlilik</Typography>
+              <Link href={`mailto:${site?.email || 'info@nikbag.com'}`} sx={footerLinkSx}>{t('footer.contact')}</Link>
+              <Link component={LocaleLink} to="/kargo" sx={footerLinkSx}>{t('footer.shipping')}</Link>
+              <Link component={LocaleLink} to="/iade" sx={footerLinkSx}>{t('footer.returns')}</Link>
+              <Link component={LocaleLink} to="/gizlilik" sx={footerLinkSx}>{t('footer.privacy')}</Link>
+              <Link component={LocaleLink} to="/kvkk" sx={footerLinkSx}>KVKK</Link>
+              <Link component={LocaleLink} to="/mesafeli-satis" sx={footerLinkSx}>Mesafeli satış</Link>
             </Box>
           </Box>
 
           <Box>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2, fontSize: '0.95rem', letterSpacing: '0.04em' }}>
-              Bize ulaşın
+              {t('footer.reachUs')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, mb: 3 }}>
               <Typography variant="body2" sx={contactRowSx}>
                 <EmailOutlinedIcon fontSize="small" sx={{ color: '#946D6D' }} />
-                info@nikbag.com
+                {site?.email || 'info@nikbag.com'}
               </Typography>
+              {site?.phone ? (
               <Typography variant="body2" sx={contactRowSx}>
                 <PhoneOutlinedIcon fontSize="small" sx={{ color: '#946D6D' }} />
-                +90 555 123 45 67
+                {site.phone}
               </Typography>
+              ) : null}
             </Box>
 
             <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1.4, fontSize: '0.95rem' }}>
-              Bülten
+              {t('footer.newsletter')}
             </Typography>
             <Box component="form" onSubmit={handleSubscribe} sx={{ display: 'flex', gap: 1 }}>
               <TextField
                 fullWidth
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="E-posta adresiniz"
+                placeholder={t('footer.emailPlaceholder')}
                 size="small"
                 type="email"
                 variant="outlined"
@@ -168,7 +187,7 @@ export default function Footer() {
               <Button
                 type="submit"
                 variant="contained"
-                aria-label="Bültene abone ol"
+                aria-label={t('footer.subscribeAria')}
                 sx={{
                   backgroundColor: '#946D6D',
                   color: '#FFF',
@@ -186,17 +205,17 @@ export default function Footer() {
 
         <Box sx={{ mt: { xs: 4, md: 5 } }}>
           <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1.6, fontSize: '0.95rem', letterSpacing: '0.04em' }}>
-            Kategoriler
+            {t('footer.categories')}
           </Typography>
           <Box
             component="nav"
-            aria-label="Kategoriler"
+            aria-label={t('footer.categories')}
             sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.8, md: 1 } }}
           >
             {CATEGORY_OPTIONS.map((item) => (
               <Link
                 key={item.value}
-                component={RouterLink}
+                component={LocaleLink}
                 to={`/products?category=${encodeURIComponent(item.value)}`}
                 sx={{
                   color: '#6E5252',
@@ -216,7 +235,7 @@ export default function Footer() {
                   }
                 }}
               >
-                {item.label}
+                {categoryLabel(item.value, t)}
               </Link>
             ))}
           </Box>
@@ -234,7 +253,7 @@ export default function Footer() {
           }}
         >
           <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, textAlign: { xs: 'center', md: 'left' } }}>
-            © {new Date().getFullYear()} NikBag. Tüm hakları saklıdır.
+            {t('footer.rights', { year: new Date().getFullYear() })}
           </Typography>
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 1 }}>

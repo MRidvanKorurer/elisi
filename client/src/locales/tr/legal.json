@@ -1,0 +1,59 @@
+{
+  "disclaimer": "Bu metinler mağaza işletmecisinin iletişim bilgileriyle doldurulur. Yayına almadan önce hukuk danışmanınızla son halini kontrol edin.",
+  "gizlilik": {
+    "title": "Gizlilik Politikası",
+    "lead": "{{company}} olarak sipariş, hesap ve destek süreçlerinde toplanan kişisel verileri bu metinde açıklıyoruz.",
+    "sections": [
+      { "h": "Toplanan veriler", "p": "Ad soyad, e-posta, telefon, teslimat adresi, sipariş içeriği ve ödeme sonucu (kart numarası bizde saklanmaz). Google ile girişte Google’ın doğruladığı e-posta ve ad." },
+      { "h": "Amaç", "p": "Siparişi hazırlamak, kargoya vermek, destek vermek, yasal saklama yükümlülüklerini yerine getirmek ve — onay verirseniz — bülten göndermek." },
+      { "h": "Aktarım", "p": "Ödeme kuruluşu (İyzico), kargo firması ve barındırma sağlayıcısı, işlemin gerektirdiği kadar veriyi görür. Veriler reklam ağlarına satılmaz." },
+      { "h": "Saklama", "p": "Sipariş kayıtları vergi ve tüketici mevzuatının öngördüğü süre boyunca tutulur. Hesap silme talebi {{email}} adresine yazılabilir." },
+      { "h": "Çerezler", "p": "Oturum çerezi (HttpOnly) girişinizi tutar. Zorunlu olmayan pazarlama çerezi kullanılmaz." }
+    ]
+  },
+  "kvkk": {
+    "title": "KVKK Aydınlatma Metni",
+    "lead": "6698 sayılı Kanun kapsamında veri sorumlusu: {{company}}. İletişim: {{email}} {{phone}} {{address}}",
+    "sections": [
+      { "h": "İşleme amaçları", "p": "Sözleşmenin kurulması ve ifası, ödeme, teslimat, müşteri hizmetleri, dolandırıcılığın önlenmesi ve yasal yükümlülükler." },
+      { "h": "Hukuki sebep", "p": "Bir sözleşmenin kurulması veya ifası, veri sorumlusunun hukuki yükümlülüğü ve meşru menfaat. Bülten için ayrıca açık rıza istenir." },
+      { "h": "Haklarınız", "p": "Kanun’un 11. maddesindeki haklarınız için {{email}} adresine kimliğinizi doğrulayan bir talep gönderebilirsiniz. Şikayet için Kişisel Verileri Koruma Kurulu’na başvurabilirsiniz." }
+    ]
+  },
+  "mesafeli-satis": {
+    "title": "Mesafeli Satış Sözleşmesi",
+    "lead": "Bu sözleşme, {{company}} ile alıcı arasında elektronik ortamda kurulan satışa uygulanır.",
+    "sections": [
+      { "h": "Konu", "p": "Alıcının siteden sipariş verdiği el yapımı ürünlerin satışı ve teslimidir. El emeği parçalarda renk ve ölçü küçük farklılıklar gösterebilir; bu, ürünün ayıplı olduğu anlamına gelmez." },
+      { "h": "Bedel ve ödeme", "p": "Toplam bedel sipariş özetinde gösterilir. Kart ödemesi İyzico üzerinden alınır. Havale, ödemenin hesaba geçmesi ve onaylanmasıyla kesinleşir. Ödeme onaylanmadan ürün kargoya verilmez." },
+      { "h": "Teslimat", "p": "Kargo süresi ürün sayfasında ve kargo koşullarında belirtilir. Siparişe özel üretim süreleri ayrıca gösterilir." },
+      { "h": "Cayma", "p": "Hazır ürünlerde teslimden itibaren 14 gün içinde cayma hakkı vardır. Kişiye özel üretilen veya hijyen gerekçesiyle iadesi uygun olmayan ürünlerde cayma hakkı kullanılamayabilir; bu durum ürün sayfasında belirtilir." }
+    ]
+  },
+  "on-bilgilendirme": {
+    "title": "Ön Bilgilendirme Formu",
+    "lead": "Siparişi tamamlamadan önce satıcı, ürün, fiyat ve cayma koşullarını okuduğunuzu kabul edersiniz.",
+    "sections": [
+      { "h": "Satıcı", "p": "{{company}}\n{{address}}\n{{email}} {{phone}}" },
+      { "h": "Ürün ve fiyat", "p": "Ürün adı, adet, birim fiyat, indirim, kargo ve toplam tutar ödeme adımındaki özette yer alır. Sipariş vererek bu özeti kabul etmiş olursunuz." },
+      { "h": "Ödeme ve teslim", "p": "Kart bilgisi İyzico sayfasında girilir. Havale talimatı, hesap tanımlıysa sipariş sonrası gösterilir. Teslimat adresi sizin yazdığınız adrestir." }
+    ]
+  },
+  "iade": {
+    "title": "İade ve Cayma",
+    "lead": "Hazır stoktaki ürünlerde teslimden itibaren 14 gün içinde iade talebi oluşturabilirsiniz.",
+    "sections": [
+      { "h": "Nasıl", "p": "{{email}} adresine sipariş kodu, ürün ve iade gerekçesini yazın. Onaydan sonra ürünü kullanılmamış ve etiketli halde gönderin." },
+      { "h": "İstisna", "p": "Alıcının talebine göre üretilen, kişiselleştirilen veya hijyen nedeniyle iadesi uygun olmayan parçalar cayma kapsamı dışında olabilir." },
+      { "h": "Bedel iadesi", "p": "Ürün bize ulaşıp kontrol edildikten sonra bedel, ödemenin yapıldığı yolla iade edilir. Havale iadesi yazılı olarak bildirilen hesaba yapılır." }
+    ]
+  },
+  "kargo": {
+    "title": "Kargo Koşulları",
+    "lead": "Kargo ücreti ve ücretsiz kargo eşiği ödeme adımında hesaplanır.",
+    "sections": [
+      { "h": "Süre", "p": "Stoktaki ürünler onaydan sonra hazırlanır. Siparişe özel üretim süreleri ürün sayfasında yazar." },
+      { "h": "Hasar", "p": "Paketi teslim alırken kontrol edin. Hasar varsa tutanak tutturup {{email}} adresine fotoğrafla bildirin." }
+    ]
+  }
+}

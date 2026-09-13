@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import userService from '../api/userService';
 import { setFavoriteIds, setProductFavorite } from '../utils/favoritesStore';
 import { imgBagOrange } from '../assets/media';
@@ -74,7 +75,8 @@ function statusConfig(label) {
 }
 
 export default function ProfileDashboard() {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const navigate = useLocaleNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -282,7 +284,7 @@ export default function ProfileDashboard() {
 
   return (
     <Box sx={{ minHeight: '100vh', pt: { xs: 10, md: 13 }, pb: 8 }}>
-      <Seo title="Hesabım" path="/profile" noindex />
+      <Seo title={t('seoTitle', { ns: 'account' })} path="/profile" noindex />
       <Snackbar open={alertConfig.open} autoHideDuration={3600} onClose={() => setAlertConfig((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={alertConfig.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>{alertConfig.message}</Alert>
       </Snackbar>
@@ -343,7 +345,7 @@ export default function ProfileDashboard() {
                       '&:hover': { bgcolor: active ? '#B0CDE6' : 'rgba(176,205,230,0.28)' }
                     }}
                   >
-                    {tab.label}
+                    {t(`tabs.${tab.id}`, { ns: 'account' })}
                   </Button>
                 );
               })}

@@ -50,6 +50,7 @@ const publicWebsite = (value = '') => {
 
 const serializePublicAtelier = (seller, user, extras = {}) => ({
   id: String(seller._id),
+  userId: user?._id ? String(user._id) : (seller.user ? String(seller.user) : ''),
   magazaAdi: seller.magazaAdi,
   slug: seller.slug,
   magazaTuru: seller.magazaTuru || [],
@@ -69,7 +70,10 @@ const serializePublicAtelier = (seller, user, extras = {}) => ({
   categories: extras.categories || [],
   coverImages: extras.coverImages || [],
   sinceYear: seller.createdAt ? new Date(seller.createdAt).getFullYear() : null,
-  isHouse: false
+  isHouse: false,
+  isWeeklyAtelier: extras.isWeeklyAtelier != null
+    ? Boolean(extras.isWeeklyAtelier)
+    : Boolean(seller.isWeeklyAtelier && seller.weeklyUntil && new Date(seller.weeklyUntil) > new Date())
 });
 
 module.exports = { HOUSE_ATELIER, serializePublicAtelier, publicInstagram, publicWebsite };
