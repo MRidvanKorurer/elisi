@@ -429,6 +429,7 @@ const buildSellerOrders = (orders, productIds, sellerId, productById = new Map()
                         image: item.image,
                         color: item.color || '',
                         size: item.size || '',
+                        customBrief: item.customBrief || {},
                         immediateDelivery: product?.immediateDelivery,
                         customProductionTime: product?.customProductionTime || ''
                     };
@@ -483,6 +484,15 @@ const buildSellerOrders = (orders, productIds, sellerId, productById = new Map()
                 platformPromoDiscount: money2(couponDiscount + Math.max(0, promoDiscount - sellerPromoDiscount)),
                 shippingCost: money2(order.shippingCost),
                 mixedCart,
+                makerNotes: (order.makerNotes || [])
+                    .filter((note) => !note.seller || String(note.seller) === sid)
+                    .map((note) => ({
+                        id: note._id,
+                        authorRole: note.authorRole,
+                        authorName: note.authorName,
+                        text: note.text,
+                        createdAt: note.createdAt
+                    })),
                 timing: {
                     processingAt: mine?.processingAt || order.createdAt || null,
                     shippedAt: timing.shippedAt,
@@ -515,6 +525,39 @@ const getMyOrders = async (req, res) => {
         });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Siparişler alınamadı.', hata: error.message });
+    }
+};
+
+const addMyOrderNote = async (req, res) => {
+    try {
+        const { noteTextOf } = require('../utils/orderBrief');
+        const text = noteTextOf(req.body.text);
+        if (text.length < 2) {
+            return res.status(400).json({ mesaj: 'Kısa bir yanıt yazın.' });
+        }
+        const productIds = await Product.find({ seller: req.user._id }).distinct('_id');
+        const order = await Order.findOne({
+            _id: req.params.id,
+            'orderItems.product': { $in: productIds }
+        });
+        if (!order) return res.status(404).json({ mesaj: 'Bu siparişte size ait ürün bulunamadı.' });
+        if (sellerStatusOf(order, req.user._id) === 'cancelled') {
+            return res.status(400).json({ mesaj: 'İptal edilen siparişe not eklenemez.' });
+        }
+        const shop = await Seller.findOne({ user: req.user._id }).select('magazaAdi').lean();
+        order.makerNotes.push({
+            seller: req.user._id,
+            authorRole: 'seller',
+            authorName: shop?.magazaAdi || 'Atölye',
+            text,
+            createdAt: new Date()
+        });
+        await order.save();
+        const products = await Product.find({ seller: req.user._id }).select('_id immediateDelivery customProductionTime').lean();
+        const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id, catalogMapOf(products))[0];
+        return res.json({ success: true, mesaj: 'Yanıt müşteriye iletildi.', order: serialized });
+    } catch (error) {
+        return res.status(500).json({ mesaj: 'Not eklenemedi.', hata: error.message });
     }
 };
 
@@ -1213,6 +1256,7 @@ module.exports = {
     updateMySeller,
     getMyOrders,
     updateMyOrder,
+    addMyOrderNote,
     getMyOverview,
     getMyReports,
     getPublicSeller

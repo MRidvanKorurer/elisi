@@ -38,10 +38,11 @@ import { authService } from '../api/authService';
 import { promoService } from '../api/promoService';
 import userService from '../api/userService';
 import { imgBagOrange } from '../assets/media';
+import { BRIEF_FIELDS, emptyBrief, lineKey } from '../utils/orderBrief';
 import Seo from '../components/Seo';
 import { FREE_SHIPPING_LIMIT, SHIPPING_FEE } from '../utils/shipping';
 import { getSitePublic } from '../api/siteService';
-import LocaleLink from '../i18n/LocaleLink';
+import LegalTextDialog from '../components/LegalTextDialog';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -107,6 +108,18 @@ const darkBtnSx = {
   boxShadow: 'none',
   '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF', boxShadow: 'none' },
   '&.Mui-disabled': { color: 'rgba(255,255,255,0.7)', backgroundColor: 'rgba(46,59,85,0.45)' }
+};
+
+const legalLinkSx = {
+  display: 'inline',
+  p: 0,
+  border: 0,
+  background: 'none',
+  color: '#946D6D',
+  font: 'inherit',
+  fontWeight: 800,
+  textDecoration: 'underline',
+  cursor: 'pointer'
 };
 
 const cardSx = {
@@ -220,6 +233,7 @@ export default function CheckoutPage({ user }) {
   const [savingAddress, setSavingAddress] = useState(false);
   const [cartLoading, setCartLoading] = useState(true);
   const [cartItems, setCartItems] = useState([]);
+  const [briefs, setBriefs] = useState({});
   const [addresses, setAddresses] = useState([]);
   const [savedCards, setSavedCards] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
@@ -244,6 +258,7 @@ export default function CheckoutPage({ user }) {
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoMessage, setPromoMessage] = useState('');
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalDoc, setLegalDoc] = useState('');
   const [site, setSite] = useState(null);
 
   useEffect(() => {
@@ -649,7 +664,8 @@ export default function CheckoutPage({ user }) {
       price: item.price,
       image: item.image,
       color: item.color,
-      size: item.size
+      size: item.size,
+      customBrief: briefs[lineKey(item)] || emptyBrief()
     })),
     paymentMethod: method,
     couponCode: couponApplied?.code || undefined,
@@ -674,6 +690,8 @@ export default function CheckoutPage({ user }) {
         return;
       }
 
+      try { sessionStorage.setItem('nikbagGuestEmail', String(formData.email || '').trim()); } catch { /* ignore */ }
+
       if (paymentMethod === 'credit_card' && response.paymentUrl && !response.usedSavedCard) {
         window.location.href = response.paymentUrl;
         return;
@@ -694,7 +712,14 @@ export default function CheckoutPage({ user }) {
       showToast('WhatsApp siparişi için iletişim ve adres bilgileri gerekli.', 'warning');
       return;
     }
-    const lines = cartItems.map((item) => `- ${item.name} x${item.quantity} (${formatPrice(item.price * item.quantity)} ₺)`).join('\n');
+    const lines = cartItems.map((item) => {
+      const brief = briefs[lineKey(item)] || {};
+      const notes = BRIEF_FIELDS
+        .map((field) => (String(brief[field.key] || '').trim() ? `${field.label}: ${brief[field.key].trim()}` : ''))
+        .filter(Boolean)
+        .join('\n');
+      return `- ${item.name} x${item.quantity} (${formatPrice(item.price * item.quantity)} ₺)${notes ? `\n${notes}` : ''}`;
+    }).join('\n');
     const welcomeLine = couponDiscount > 0 ? `\nHoş geldin (%${couponApplied?.percent || 10}): -${formatPrice(couponDiscount)} ₺` : '';
     const promoLine = promoDiscount > 0 ? `\nKampanya (${promoApplied?.code || ''} %${promoApplied?.percent || ''}): -${formatPrice(promoDiscount)} ₺` : '';
     const discountLine = `${welcomeLine}${promoLine}`;
@@ -862,19 +887,22 @@ export default function CheckoutPage({ user }) {
                   <Checkbox
                     checked={legalAccepted}
                     onChange={(e) => {
-                      setLegalAccepted(e.target.checked);
-                      setErrors((prev) => ({ ...prev, legal: '' }));
+                      if (e.target.checked) {
+                        setLegalDoc('on-bilgilendirme');
+                        return;
+                      }
+                      setLegalAccepted(false);
                     }}
                     sx={{ color: '#946D6D', pt: 0.2 }}
                   />
                 }
                 label={
                   <Typography variant="body2" sx={{ color: errors.legal ? '#d32f2f' : '#6E5252', lineHeight: 1.5 }}>
-                    <LocaleLink to="/on-bilgilendirme">Ön bilgilendirme</LocaleLink>
+                    <Box component="button" type="button" onClick={() => setLegalDoc('on-bilgilendirme')} sx={legalLinkSx}>Ön bilgilendirme</Box>
                     {', '}
-                    <LocaleLink to="/mesafeli-satis">mesafeli satış sözleşmesi</LocaleLink>
+                    <Box component="button" type="button" onClick={() => setLegalDoc('mesafeli-satis')} sx={legalLinkSx}>mesafeli satış sözleşmesi</Box>
                     {' ve '}
-                    <LocaleLink to="/gizlilik">gizlilik</LocaleLink>
+                    <Box component="button" type="button" onClick={() => setLegalDoc('gizlilik')} sx={legalLinkSx}>gizlilik</Box>
                     {' metinlerini okudum, kabul ediyorum.'}
                   </Typography>
                 }
@@ -925,6 +953,45 @@ export default function CheckoutPage({ user }) {
                   </Box>
                 ))}
               </Stack>
+            )}
+
+            {cartItems.length > 0 && (
+              <Box sx={{ mb: 2, p: 1.6, borderRadius: '16px', border: '1px solid rgba(148,109,109,0.16)', bgcolor: 'rgba(253,244,210,0.45)' }}>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Atölyeye not</Typography>
+                <Typography sx={{ color: '#6E5252', fontSize: 13, mb: 1.4 }}>
+                  Özel üretimde ölçü, renk ve teslim günü siparişle birlikte atölyeye gider.
+                </Typography>
+                <Stack spacing={1.6}>
+                  {cartItems.map((item) => {
+                    const key = lineKey(item);
+                    const brief = briefs[key] || emptyBrief();
+                    return (
+                      <Box key={key}>
+                        <Typography sx={{ fontWeight: 800, color: '#946D6D', fontSize: 13, mb: 0.8 }}>{item.name}</Typography>
+                        <Stack spacing={1}>
+                          {BRIEF_FIELDS.map((field) => (
+                            <TextField
+                              key={field.key}
+                              size="small"
+                              fullWidth
+                              multiline={Boolean(field.multiline)}
+                              minRows={field.multiline ? 2 : undefined}
+                              label={field.label}
+                              placeholder={field.placeholder}
+                              value={brief[field.key]}
+                              onChange={(event) => setBriefs((prev) => ({
+                                ...prev,
+                                [key]: { ...emptyBrief(), ...prev[key], [field.key]: event.target.value.slice(0, field.max) }
+                              }))}
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
+                            />
+                          ))}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Box>
             )}
 
             {subtotal > 0 && remainingForFreeShipping > 0 && (
@@ -1061,6 +1128,16 @@ export default function CheckoutPage({ user }) {
           {loading ? 'İşleniyor...' : payLabel}
         </Button>
       </Paper>
+      <LegalTextDialog
+        open={Boolean(legalDoc)}
+        slug={legalDoc}
+        slugs={['on-bilgilendirme', 'mesafeli-satis', 'gizlilik']}
+        onClose={() => setLegalDoc('')}
+        onAccept={() => {
+          setLegalAccepted(true);
+          setErrors((prev) => ({ ...prev, legal: '' }));
+        }}
+      />
     </Box>
   );
 }

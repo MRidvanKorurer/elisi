@@ -29,6 +29,17 @@ export const lookbookService = {
     });
     return response.data;
   },
+  setPublished: async (id, isActive) => {
+    const response = await API.patch(`/lookbook/${id}/publish`, { isActive });
+    return response.data;
+  },
+  update: async (id, payload) => {
+    const isForm = typeof FormData !== 'undefined' && payload instanceof FormData;
+    const response = await API.put(`/lookbook/${id}`, payload, isForm
+      ? { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 }
+      : undefined);
+    return response.data;
+  },
   remove: async (id) => {
     const response = await API.delete(`/lookbook/${id}`);
     return response.data;

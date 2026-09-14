@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import userService from '../api/userService';
+import { orderService } from '../api/orderServices';
+import OrderMakerThread from './OrderMakerThread';
 import { setFavoriteIds, setProductFavorite } from '../utils/favoritesStore';
 import { imgBagOrange } from '../assets/media';
 import Seo from './Seo';
@@ -698,6 +700,23 @@ export default function ProfileDashboard() {
                   </Box>
                 );
               })}
+              <OrderMakerThread
+                items={selectedOrder.orderItems}
+                notes={selectedOrder.makerNotes}
+                viewer="buyer"
+                canReply={selectedOrder.orderStatus !== 'cancelled' && Boolean(selectedOrder.user)}
+                onSend={async (text) => {
+                  try {
+                    const data = await orderService.addNote(selectedOrder._id, text);
+                    setSelectedOrder((prev) => (prev ? { ...prev, makerNotes: data.makerNotes || prev.makerNotes } : prev));
+                    showAlert(data.mesaj || 'Not atölyeye iletildi.');
+                    return true;
+                  } catch (error) {
+                    showAlert(error.message || error.mesaj || 'Not iletilemedi.', 'error');
+                    return false;
+                  }
+                }}
+              />
               <Box sx={{ mt: 1, pt: 1.5, borderTop: '1px solid rgba(148,109,109,0.12)' }}>
                 {orderChargeRows(selectedOrder).map((row) => (
                   <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.8 }}>

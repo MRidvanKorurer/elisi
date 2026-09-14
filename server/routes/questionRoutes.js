@@ -13,6 +13,6 @@ router.get('/seller/inbox', protect, approvedSeller, getSellerQuestions);
 router.put('/item/:questionId/answer', protect, answerQuestion);
 router.delete('/item/:questionId', protect, deleteQuestion);
 router.get('/:id', optionalProtect, getProductQuestions);
-router.post('/:id', protect, askQuestion);
+router.post('/:id', optionalProtect, askQuestion);
 
 module.exports = router;

@@ -11,9 +11,10 @@ const productQuestionSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
       index: true
     },
+    guestName: { type: String, default: '', trim: true, maxlength: 40 },
     question: {
       type: String,
       required: true,

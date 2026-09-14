@@ -43,7 +43,8 @@ import AdminPlatformReport from '../components/AdminPlatformReport';
 import ImageUploader from '../components/ImageUploader';
 import { adminService } from '../api/adminService';
 import { promoService } from '../api/promoService';
-import { lookbookService, mediaUrl } from '../api/lookbookService';
+import { lookbookService } from '../api/lookbookService';
+import AdminSiteContent from '../components/AdminSiteContent';
 import { isSuperAdmin } from '../utils/roles';
 import { toRelativeUpload } from '../utils/media';
 import {
@@ -116,10 +117,6 @@ export default function AdminPanel({ user, handleLogout }) {
   const [lookbook, setLookbook] = useState([]);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [label, setLabel] = useState('');
-  const [video, setVideo] = useState(null);
-  const [poster, setPoster] = useState(null);
-  const [saving, setSaving] = useState(false);
   const [orderFilter, setOrderFilter] = useState('all');
   const [productFilter, setProductFilter] = useState('all');
   const [editing, setEditing] = useState(null);
@@ -500,32 +497,6 @@ export default function AdminPanel({ user, handleLogout }) {
       if (openOrder?._id === id) setOpenOrder((prev) => (prev ? { ...prev, ...payload } : prev));
     } catch (err) {
       fail(err, 'Sipariş güncellenemedi.');
-    }
-  };
-
-  const handleLookbook = async (event) => {
-    event.preventDefault();
-    if (!video) {
-      setError('Video seçin.');
-      return;
-    }
-    setSaving(true);
-    try {
-      const body = new FormData();
-      body.append('label', label || 'Lookbook');
-      body.append('video', video);
-      if (poster) body.append('poster', poster);
-      await lookbookService.create(body);
-      setLabel('');
-      setVideo(null);
-      setPoster(null);
-      event.target.reset();
-      flash('Video eklendi.');
-      await load();
-    } catch (err) {
-      fail(err, 'Video yüklenemedi.');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -1250,35 +1221,13 @@ export default function AdminPanel({ user, handleLogout }) {
       )}
 
       {view === 'lookbook' && (
-        <Box>
-          <SectionTitle overline="İÇERİK" title="Lookbook videoları" subtitle="Ana sayfadaki atölye şeridini buradan yönetin." />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '0.9fr 1.1fr' }, gap: 1.8 }}>
-            <PanelCard>
-              <Box component="form" onSubmit={handleLookbook}>
-                <TextField fullWidth label="Etiket" value={label} onChange={(e) => setLabel(e.target.value)} sx={{ ...fieldSx, mb: 2 }} />
-                <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
-                  <Button variant="outlined" component="label" sx={{ fontWeight: 800, borderRadius: '12px', borderColor: T.line, color: T.navy }}>
-                    Video seç<input hidden type="file" accept="video/*" onChange={(e) => setVideo(e.target.files?.[0] || null)} />
-                  </Button>
-                  <Button variant="outlined" component="label" sx={{ fontWeight: 800, borderRadius: '12px', borderColor: T.line, color: T.navy }}>
-                    Poster seç<input hidden type="file" accept="image/*" onChange={(e) => setPoster(e.target.files?.[0] || null)} />
-                  </Button>
-                </Box>
-                <Typography sx={{ mb: 2, color: T.muted, fontSize: '0.85rem' }}>{video ? video.name : 'Video seçilmedi'}</Typography>
-                <Button type="submit" disabled={saving} sx={primaryButton}>{saving ? 'Yükleniyor...' : 'Video ekle'}</Button>
-              </Box>
-            </PanelCard>
-            <Box>
-              {lookbook.map((item) => (
-                <PanelCard key={item._id} sx={{ mb: 1.4, display: 'flex', gap: 2, alignItems: 'center' }}>
-                  <Box component="video" src={mediaUrl(item.videoUrl)} muted preload="metadata" sx={{ width: 150, height: 88, objectFit: 'cover', borderRadius: '14px' }} />
-                  <Typography sx={{ flex: 1, fontWeight: 800, color: T.navy }}>{item.label}</Typography>
-                  <Button color="error" onClick={async () => { await lookbookService.remove(item._id); await load(); }} sx={{ fontWeight: 800 }}>Sil</Button>
-                </PanelCard>
-              ))}
-            </Box>
-          </Box>
-        </Box>
+        <AdminSiteContent
+          items={lookbook}
+          products={products}
+          onChanged={load}
+          onMessage={flash}
+          onError={(text) => setError(text)}
+        />
       )}
 
       {view === 'promos' && (

@@ -4,7 +4,7 @@ const lookbookSchema = new mongoose.Schema(
   {
     title: { type: String, trim: true, default: '' },
     label: { type: String, trim: true, required: true },
-    videoUrl: { type: String, required: true, trim: true },
+    videoUrl: { type: String, trim: true, default: '' },
     posterUrl: { type: String, trim: true, default: '' },
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
     key: { type: String, trim: true, unique: true, sparse: true },

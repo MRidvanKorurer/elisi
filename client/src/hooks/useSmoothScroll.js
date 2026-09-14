@@ -6,6 +6,15 @@ const prefersReducedMotion = () =>
 
 let lenisInstance = null;
 
+export const scrollPageTop = (immediate = false) => {
+  if (typeof window === 'undefined') return;
+  if (lenisInstance) {
+    lenisInstance.scrollTo(0, { immediate, duration: immediate ? 0 : 1.05 });
+    return;
+  }
+  window.scrollTo({ top: 0, behavior: immediate ? 'auto' : 'smooth' });
+};
+
 export const scrollPageTo = (target, { offset = 0, immediate = false } = {}) => {
   if (typeof window === 'undefined' || !target) return;
 

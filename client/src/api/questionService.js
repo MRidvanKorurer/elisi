@@ -8,8 +8,11 @@ export const questionService = {
     return response.data;
   },
 
-  askQuestion: async (productId, question) => {
-    const response = await API.post(`/questions/${encodeURIComponent(productId)}`, { question });
+  askQuestion: async (productId, question, guestName = '') => {
+    const response = await API.post(`/questions/${encodeURIComponent(productId)}`, {
+      question,
+      guestName: String(guestName || '').trim()
+    });
     return response.data;
   },
 

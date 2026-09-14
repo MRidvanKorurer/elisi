@@ -6,6 +6,7 @@ const {
   updateMySeller,
   getMyOrders,
   updateMyOrder,
+  addMyOrderNote,
   getMyOverview,
   getMyReports,
   getPublicSeller
@@ -43,6 +44,7 @@ router.get('/me/overview', protect, approvedSeller, getMyOverview);
 router.get('/me/reports', protect, approvedSeller, getMyReports);
 router.get('/me/orders', protect, approvedSeller, getMyOrders);
 router.put('/me/orders/:id', protect, approvedSeller, updateMyOrder);
+router.post('/me/orders/:id/notes', protect, approvedSeller, addMyOrderNote);
 router.get('/me/products', protect, approvedSeller, getMyProducts);
 router.post('/me/products', protect, approvedSeller, productImages, createMyProduct);
 router.put('/me/products/:id', protect, approvedSeller, productImages, updateMyProduct);

@@ -1,7 +1,7 @@
 const multer = require('multer');
 const express = require('express');
 const { protect, superAdmin } = require('../middleware/authMiddleware');
-const { listLookbook, createLookbook, deleteLookbook } = require('../controllers/lookbookController');
+const { listLookbook, createLookbook, updateLookbook, setLookbookPublished, deleteLookbook } = require('../controllers/lookbookController');
 const { storeUploaded } = require('../utils/mediaStore');
 
 const upload = multer({
@@ -19,7 +19,7 @@ const router = express.Router();
 
 router.get('/', listLookbook);
 router.get('/admin', protect, superAdmin, (req, res) => {
-  req.query.all = '1';
+  req.adminAll = true;
   return listLookbook(req, res);
 });
 router.post(
@@ -33,6 +33,18 @@ router.post(
   storeUploaded('lookbook'),
   createLookbook
 );
+router.put(
+  '/:id',
+  protect,
+  superAdmin,
+  upload.fields([
+    { name: 'video', maxCount: 1 },
+    { name: 'poster', maxCount: 1 }
+  ]),
+  storeUploaded('lookbook'),
+  updateLookbook
+);
+router.patch('/:id/publish', protect, superAdmin, setLookbookPublished);
 router.delete('/:id', protect, superAdmin, deleteLookbook);
 
 module.exports = router;

@@ -14,6 +14,7 @@ import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import Logo from '../assets/logo.svg?react';
 import { CATEGORY_OPTIONS } from '../utils/categories';
 import { getSitePublic, subscribeNewsletter } from '../api/siteService';
+import LegalTextDialog from './LegalTextDialog';
 
 const EtsyIcon = (props) => (
   <SvgIcon {...props} viewBox="0 0 24 24">
@@ -32,6 +33,7 @@ export default function Footer() {
   const [email, setEmail] = useState('');
   const [site, setSite] = useState(null);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [legalDoc, setLegalDoc] = useState('');
   const socialLinks = socialFromSite(site);
 
   useEffect(() => {
@@ -136,11 +138,11 @@ export default function Footer() {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <Link href={`mailto:${site?.email || 'info@nikbag.com'}`} sx={footerLinkSx}>{t('footer.contact')}</Link>
-              <Link component={LocaleLink} to="/kargo" sx={footerLinkSx}>{t('footer.shipping')}</Link>
-              <Link component={LocaleLink} to="/iade" sx={footerLinkSx}>{t('footer.returns')}</Link>
-              <Link component={LocaleLink} to="/gizlilik" sx={footerLinkSx}>{t('footer.privacy')}</Link>
-              <Link component={LocaleLink} to="/kvkk" sx={footerLinkSx}>KVKK</Link>
-              <Link component={LocaleLink} to="/mesafeli-satis" sx={footerLinkSx}>Mesafeli satış</Link>
+              <Box component="button" type="button" onClick={() => setLegalDoc('kargo')} sx={legalBtnSx}>{t('footer.shipping')}</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('iade')} sx={legalBtnSx}>{t('footer.returns')}</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('gizlilik')} sx={legalBtnSx}>{t('footer.privacy')}</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('kvkk')} sx={legalBtnSx}>KVKK</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('mesafeli-satis')} sx={legalBtnSx}>Mesafeli satış</Box>
             </Box>
           </Box>
 
@@ -289,9 +291,31 @@ export default function Footer() {
           {toast.message}
         </Alert>
       </Snackbar>
+      <LegalTextDialog
+        open={Boolean(legalDoc)}
+        slug={legalDoc}
+        slugs={['kargo', 'iade', 'gizlilik', 'kvkk', 'mesafeli-satis']}
+        onClose={() => setLegalDoc('')}
+      />
     </Box>
   );
 }
+
+const legalBtnSx = {
+  color: '#6E5252',
+  display: 'inline-block',
+  mb: 1.15,
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  cursor: 'pointer',
+  textAlign: 'left',
+  border: 0,
+  background: 'none',
+  p: 0,
+  fontFamily: 'inherit',
+  transition: 'color 0.2s ease, transform 0.2s ease',
+  '&:hover': { color: '#946D6D', transform: 'translateX(3px)' }
+};
 
 const footerLinkSx = {
   color: '#6E5252',

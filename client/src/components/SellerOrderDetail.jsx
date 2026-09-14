@@ -21,6 +21,7 @@ import PlaceOutlined from '@mui/icons-material/PlaceOutlined';
 import { StatusChip, primaryButton } from './PanelShell';
 import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money } from '../utils/panel';
 import { lineTotalOf } from '../utils/price';
+import OrderMakerThread from './OrderMakerThread';
 
 const whenFull = (value) =>
   value
@@ -130,7 +131,8 @@ export default function SellerOrderDetail({
   onClose,
   onStatus,
   updating,
-  onFlash
+  onFlash,
+  onReply
 }) {
   if (!order) return null;
   const name = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Müşteri';
@@ -322,6 +324,13 @@ export default function SellerOrderDetail({
             <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.8 }}>
               Hazırlanıyor → kargoda → teslim. İptal yalnızca gönderemeyeceksen.
             </Typography>
+            <OrderMakerThread
+              items={order.orderItems}
+              notes={order.makerNotes}
+              viewer="seller"
+              canReply={order.orderStatus !== 'cancelled'}
+              onSend={onReply}
+            />
           </Box>
         </Box>
       </DialogContent>

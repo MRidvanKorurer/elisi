@@ -169,7 +169,8 @@ exports.createOrder = async (req, res) => {
                 price: unitPriceOf(product),
                 image: product.image,
                 color: String(item.color || '').trim(),
-                size: String(item.size || '').trim()
+                size: String(item.size || '').trim(),
+                customBrief: require('../utils/orderBrief').briefOf(item.customBrief)
             });
         }
 
@@ -423,6 +424,113 @@ const finishPaymentCallback = async (req, res) => {
 };
 
 exports.iyzicoCallback = finishPaymentCallback;
+
+const guestEmailMatches = (order, email) => {
+    const given = String(email || '').trim().toLowerCase();
+    const stored = String(order?.customerInfo?.email || '').trim().toLowerCase();
+    return Boolean(given && stored && given === stored);
+};
+
+const publicGuestThread = (order) => ({
+    orderStatus: order.orderStatus,
+    items: (order.orderItems || []).map((item) => ({
+        name: item.name,
+        customBrief: item.customBrief || null
+    })),
+    makerNotes: (order.makerNotes || []).map((note) => ({
+        id: String(note._id || ''),
+        authorRole: note.authorRole,
+        authorName: note.authorName,
+        text: note.text,
+        createdAt: note.createdAt
+    }))
+});
+
+const pushBuyerNote = (order, text) => {
+    const sellerIds = [...new Set((order.orderItems || []).map((item) => String(item.seller || '')).filter(Boolean))];
+    order.makerNotes.push({
+        seller: sellerIds.length === 1 ? sellerIds[0] : null,
+        authorRole: 'buyer',
+        authorName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Müşteri',
+        text,
+        createdAt: new Date()
+    });
+};
+
+exports.addOrderNote = async (req, res) => {
+    try {
+        const { noteTextOf } = require('../utils/orderBrief');
+        const text = noteTextOf(req.body.text);
+        if (text.length < 8) {
+            return res.status(400).json({ success: false, message: 'Sorunuzu biraz daha açın. En az 8 karakter.' });
+        }
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
+        }
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
+        const userId = String(req.user._id || req.user.id);
+        if (!order.user || String(order.user) !== userId) {
+            return res.status(403).json({ success: false, message: 'Bu siparişe not ekleyemezsiniz.' });
+        }
+        if (order.orderStatus === 'cancelled') {
+            return res.status(400).json({ success: false, message: 'İptal edilen siparişe not eklenemez.' });
+        }
+        pushBuyerNote(order, text);
+        await order.save();
+        return res.json({ success: true, mesaj: 'Not atölyeye iletildi.', makerNotes: order.makerNotes });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Not eklenemedi.', hata: error.message });
+    }
+};
+
+const loadGuestOrder = async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
+        return null;
+    }
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+        res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
+        return null;
+    }
+    const email = req.body?.email || req.query?.email;
+    if (!guestEmailMatches(order, email)) {
+        res.status(403).json({ success: false, message: 'Siparişteki e-posta ile eşleşmedi. Giriş gerekmez, sipariş e-postanızı yazın.' });
+        return null;
+    }
+    return order;
+};
+
+exports.getGuestOrderThread = async (req, res) => {
+    try {
+        const order = await loadGuestOrder(req, res);
+        if (!order) return undefined;
+        return res.json({ success: true, thread: publicGuestThread(order) });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Sipariş notları alınamadı.', hata: error.message });
+    }
+};
+
+exports.addGuestOrderNote = async (req, res) => {
+    try {
+        const { noteTextOf } = require('../utils/orderBrief');
+        const text = noteTextOf(req.body.text);
+        if (text.length < 8) {
+            return res.status(400).json({ success: false, message: 'Sorunuzu biraz daha açın. En az 8 karakter.' });
+        }
+        const order = await loadGuestOrder(req, res);
+        if (!order) return undefined;
+        if (order.orderStatus === 'cancelled') {
+            return res.status(400).json({ success: false, message: 'İptal edilen siparişe not eklenemez.' });
+        }
+        pushBuyerNote(order, text);
+        await order.save();
+        return res.json({ success: true, mesaj: 'Sorunuz atölyeye iletildi.', thread: publicGuestThread(order) });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Not eklenemedi.', hata: error.message });
+    }
+};
 
 exports.getMyOrders = async (req, res) => {
     try {

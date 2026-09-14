@@ -1,5 +1,7 @@
-import React from 'react';
-import { Box } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, IconButton } from '@mui/material';
+import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
+import { scrollPageTop } from '../hooks/useSmoothScroll';
 import HeroBanner from '../components/HeroBanner';
 import WeeklyAteliers from '../components/WeeklyAteliers';
 import BestSellers from '../components/BestSellers';
@@ -22,6 +24,15 @@ export default function HomePage({
     favorites = []
 }) {
     const { t } = useTranslation('seo');
+    const [showTop, setShowTop] = useState(false);
+
+    useEffect(() => {
+        const onScroll = () => setShowTop(window.scrollY > 420);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     return (
         <Box sx={{ width: '100%', overflowX: 'hidden', pb: { xs: 2, md: 0 } }}>
             <Seo
@@ -60,6 +71,28 @@ export default function HomePage({
             <Reveal>
                 <TrustStrip />
             </Reveal>
+
+            {showTop && (
+                <IconButton
+                    aria-label="En üste git"
+                    onClick={() => scrollPageTop(false)}
+                    sx={{
+                        position: 'fixed',
+                        left: 16,
+                        bottom: 28,
+                        zIndex: 1100,
+                        width: 48,
+                        height: 48,
+                        bgcolor: '#2E3B55',
+                        color: '#FFFFFF',
+                        boxShadow: '0 10px 24px -12px rgba(46,59,85,0.55)',
+                        '&:hover': { bgcolor: '#946D6D', transform: 'translateY(-2px)' },
+                        transition: 'transform 0.2s ease, background-color 0.2s ease'
+                    }}
+                >
+                    <KeyboardArrowUpRoundedIcon />
+                </IconButton>
+            )}
         </Box>
     );
 }

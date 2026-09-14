@@ -23,7 +23,7 @@ export default function HomepageFilm({ embedded = false }) {
         const item = (data.items || [])[0];
         if (cancelled || !item?.videoUrl) return;
         setClip({
-          src: SITE_CLIPS.canta1,
+          src: mediaUrl(item.videoUrl) || SITE_CLIPS.canta1,
           label: item.label || item.title || '',
           poster: mediaUrl(item.posterUrl)
         });

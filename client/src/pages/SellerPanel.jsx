@@ -918,7 +918,7 @@ export default function SellerPanel({ user, handleLogout }) {
                         </Box>
                       </TableCell>
                       <TableCell sx={{ ...bodyCell, maxWidth: 420 }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: 13 }}>{item.user?.adSoyad}</Typography>
+                        <Typography sx={{ fontWeight: 800, fontSize: 13 }}>{item.user?.adSoyad || 'Misafir'}</Typography>
                         <Typography sx={{ fontSize: 13, color: T.navy }}>{item.question}</Typography>
                         {!open ? (
                           <Typography sx={{ fontSize: 12, color: T.muted, mt: 0.6 }}>Yanıt: {item.answer}</Typography>
@@ -1670,6 +1670,17 @@ export default function SellerPanel({ user, handleLogout }) {
           onStatus={updateOrderStatus}
           updating={updatingOrder === openOrder._id}
           onFlash={flash}
+          onReply={async (text) => {
+            try {
+              const data = await sellerService.addOrderNote(openOrder._id, text);
+              if (data.order) setOpenOrder(data.order);
+              flash(data.mesaj || 'Yanıt iletildi.');
+              return true;
+            } catch (err) {
+              fail(err, 'Yanıt iletilemedi.');
+              return false;
+            }
+          }}
         />
       ) : null}
     </PanelShell>

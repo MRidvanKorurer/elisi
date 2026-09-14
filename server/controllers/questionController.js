@@ -56,7 +56,7 @@ const serializeQuestion = (doc) => {
     : null,
   user: {
     id: String(doc.user?._id || doc.user || ''),
-    adSoyad: doc.user?.adSoyad || 'Nik Bag üyesi',
+    adSoyad: doc.user?.adSoyad || String(doc.guestName || '').trim() || 'Misafir',
     avatarUrl: doc.user?.avatarUrl || ''
   },
   answeredBy: doc.answeredBy
@@ -117,7 +117,7 @@ const askQuestion = async (req, res) => {
       return res.status(404).json({ success: false, mesaj: 'Ürün bulunamadı.' });
     }
 
-    if (canAnswerProduct(req.user, product) && !isSuperAdmin(req.user.rol)) {
+    if (req.user && canAnswerProduct(req.user, product) && !isSuperAdmin(req.user.rol)) {
       return res.status(400).json({ success: false, mesaj: 'Kendi ürününüze soru soramazsınız.' });
     }
 
@@ -129,9 +129,17 @@ const askQuestion = async (req, res) => {
       return res.status(400).json({ success: false, mesaj: `Soru en fazla ${MAX_QUESTION} karakter olabilir.` });
     }
 
+    const guestName = String(req.body.guestName || '').trim().slice(0, 40);
+    if (!req.user && guestName.length < 2) {
+      return res.status(400).json({ success: false, mesaj: 'Soru için adınızı yazın. Giriş gerekmez.' });
+    }
+
+    const ownerMatch = req.user
+      ? { user: req.user._id }
+      : { user: null, guestName };
     const openCount = await ProductQuestion.countDocuments({
       product: product._id,
-      user: req.user._id,
+      ...ownerMatch,
       ...unansweredMatch
     });
     if (openCount >= MAX_OPEN_PER_PRODUCT) {
@@ -143,7 +151,8 @@ const askQuestion = async (req, res) => {
 
     const created = await ProductQuestion.create({
       product: product._id,
-      user: req.user._id,
+      user: req.user?._id || null,
+      guestName: req.user ? '' : guestName,
       question,
       responseDueAt: new Date(Date.now() + RESPONSE_MS)
     });

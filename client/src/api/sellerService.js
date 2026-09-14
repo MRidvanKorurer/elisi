@@ -36,6 +36,11 @@ export const sellerService = {
     return response.data;
   },
 
+  addOrderNote: async (id, text) => {
+    const response = await API.post(`/sellers/me/orders/${id}/notes`, { text });
+    return response.data;
+  },
+
   getMyProducts: async () => {
     const response = await API.get('/sellers/me/products');
     return response.data;

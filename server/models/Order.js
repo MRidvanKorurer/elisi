@@ -8,7 +8,14 @@ const orderItemSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   image: { type: String },
   color: { type: String, default: '' },
-  size: { type: String, default: '' }
+  size: { type: String, default: '' },
+  customBrief: {
+    neededBy: { type: String, default: '', maxlength: 80 },
+    fitNote: { type: String, default: '', maxlength: 400 },
+    colorNote: { type: String, default: '', maxlength: 400 },
+    occasion: { type: String, default: '', maxlength: 200 },
+    extra: { type: String, default: '', maxlength: 800 }
+  }
 });
 
 const orderSchema = new mongoose.Schema({
@@ -83,6 +90,13 @@ const orderSchema = new mongoose.Schema({
     shippedAt: Date,
     deliveredAt: Date,
     cancelledAt: Date
+  }],
+  makerNotes: [{
+    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    authorRole: { type: String, enum: ['buyer', 'seller'], required: true },
+    authorName: { type: String, default: '', maxlength: 80 },
+    text: { type: String, required: true, trim: true, maxlength: 1000 },
+    createdAt: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
 

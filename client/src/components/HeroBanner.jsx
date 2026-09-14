@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import FeaturedModal from './FeaturedModal';
+import { lookbookService, mediaUrl } from '../api/lookbookService';
 
 import {
   imgBanner1,
@@ -31,8 +32,24 @@ const IMAGE_SLIDES = [
 export default function HeroBanner({ user, onNavigateAuth }) {
   const { t } = useTranslation('home');
   const navigate = useLocaleNavigate();
-  const heroImages = IMAGE_SLIDES;
+  const [heroImages, setHeroImages] = useState(IMAGE_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    lookbookService.list(false, 'hero')
+      .then((data) => {
+        const slides = (data.items || [])
+          .map((item) => ({ _id: item._id, url: mediaUrl(item.posterUrl), alt: item.label }))
+          .filter((item) => item.url);
+        if (!cancelled && slides.length) {
+          setHeroImages(slides);
+          setCurrentIndex(0);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const slide = heroImages[currentIndex];
 
   const stageRef = useRef(null);

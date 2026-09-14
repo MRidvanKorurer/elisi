@@ -26,10 +26,10 @@ const mediaSx = {
   display: 'block'
 };
 
-function StudioClip({ src, poster, label, onClick }) {
+function StudioClip({ src, poster, label, onClick, media = 'auto' }) {
   const wrapRef = useRef(null);
   const videoRef = useRef(null);
-  const isVideo = Boolean(src) && isVideoUrl(src);
+  const isVideo = Boolean(src) && (media === 'video' || (media !== 'image' && isVideoUrl(src)));
   // Video dosyası ancak kart görünüme yaklaşınca indirilir
   const [activated, setActivated] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -135,7 +135,24 @@ export default function AtelierLookbook() {
         const lookbookRes = await lookbookService.list(false, 'lookbook');
         if (cancelled) return;
 
-        const byKey = new Map((lookbookRes.items || []).map((item) => [item.key, item]));
+        const uploaded = lookbookRes.items || [];
+        if (uploaded.length) {
+          setClips(
+            uploaded
+              .map((item) => ({
+                id: item.product || null,
+                src: mediaUrl(item.videoUrl) || mediaUrl(item.posterUrl),
+                poster: mediaUrl(item.posterUrl),
+                label: item.label || item.title || 'Atölye',
+                media: item.videoUrl ? 'video' : 'image',
+                translated: false
+              }))
+              .filter((clip) => clip.src)
+          );
+          return;
+        }
+
+        const byKey = new Map(uploaded.map((item) => [item.key, item]));
         setClips(
           TOP_CLIPS.map((slot) => {
             const item = byKey.get(slot.key);
@@ -143,7 +160,9 @@ export default function AtelierLookbook() {
               id: item?.product || null,
               src: LOOKBOOK_CLIPS[slot.key] || mediaUrl(item?.videoUrl),
               poster: mediaUrl(item?.posterUrl),
-              label: slot.labelKey
+              label: slot.labelKey,
+              media: 'video',
+              translated: true
             };
           }).filter((clip) => clip.src)
         );
@@ -189,7 +208,7 @@ export default function AtelierLookbook() {
             <Reveal key={clip.id || clip.label} delay={index * 0.08}>
               <StudioClip
                 {...clip}
-                label={t(clip.label)}
+                label={clip.translated === false ? clip.label : t(clip.label)}
                 onClick={clip.id ? () => navigate(`/product/${clip.id}`) : undefined}
               />
             </Reveal>

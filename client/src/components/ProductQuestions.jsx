@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { Avatar, Box, Button, TextField, Typography } from '@mui/material';
 import { questionService } from '../api/questionService';
 import { isSuperAdmin } from '../utils/roles';
@@ -26,13 +25,13 @@ function PersonAvatar({ name, src, size = 34 }) {
 }
 
 export default function ProductQuestions({ productId, productSellerId, user, onAnsweredChange }) {
-  const navigate = useLocaleNavigate();
   const [questions, setQuestions] = useState([]);
   const [numQuestions, setNumQuestions] = useState(0);
   const [numAnswered, setNumAnswered] = useState(0);
   const [loading, setLoading] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
   const [draft, setDraft] = useState('');
+  const [guestName, setGuestName] = useState('');
   const [answerDrafts, setAnswerDrafts] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [answeringId, setAnsweringId] = useState('');
@@ -43,7 +42,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
 
   const sellerId = String(productSellerId?._id || productSellerId || '');
   const canAnswer = Boolean(user) && (canAnswerApi || sellerId === String(user._id || user.id) || isSuperAdmin(user.rol));
-  const canAsk = Boolean(user) && !canAnswer;
+  const canAsk = !canAnswer;
 
   const loadQuestions = async () => {
     if (!productId) return;
@@ -86,7 +85,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
     setSubmitting(true);
     setError('');
     try {
-      await questionService.askQuestion(productId, draft);
+      await questionService.askQuestion(productId, draft, user ? '' : guestName);
       setDraft('');
       setComposerOpen(false);
       await loadQuestions();
@@ -147,14 +146,6 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
             Soru sor
           </Button>
         )}
-        {!user && (
-          <Button
-            onClick={() => navigate('/auth')}
-            sx={{ flexShrink: 0, borderRadius: '999px', px: 1.8, py: 0.7, fontWeight: 800, fontSize: '0.82rem', color: '#2E3B55', backgroundColor: '#FFFFFF', border: '1px solid rgba(148,109,109,0.22)', textTransform: 'none' }}
-          >
-            Giriş yap
-          </Button>
-        )}
       </Box>
 
       {canAsk && composerOpen && (
@@ -164,9 +155,22 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
           sx={{ mb: 1.6, p: 1.6, borderRadius: '16px', backgroundColor: '#FFFFFF', border: '1px solid rgba(148,109,109,0.16)' }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <PersonAvatar name={user.adSoyad} src={user.avatarUrl} size={32} />
-            <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>{user.adSoyad || 'Siz'}</Typography>
+            <PersonAvatar name={user?.adSoyad || guestName || 'Misafir'} src={user?.avatarUrl} size={32} />
+            <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>{user?.adSoyad || guestName || 'Misafir'}</Typography>
           </Box>
+          {!user && (
+            <TextField
+              fullWidth
+              value={guestName}
+              onChange={(event) => setGuestName(event.target.value.slice(0, 40))}
+              placeholder="Adınız"
+              sx={{
+                mb: 1.1,
+                '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#FFFDF6' },
+                '& .MuiInputBase-input': { color: '#2E3B55', fontSize: '0.92rem' }
+              }}
+            />
+          )}
           <TextField
             fullWidth
             multiline
@@ -188,7 +192,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
             <Button type="button" onClick={() => setComposerOpen(false)} sx={{ fontWeight: 800, fontSize: '0.8rem', color: '#6E5252', textTransform: 'none' }}>Vazgeç</Button>
             <Button
               type="submit"
-              disabled={submitting || draft.trim().length < 10}
+              disabled={submitting || draft.trim().length < 10 || (!user && guestName.trim().length < 2)}
               sx={{ borderRadius: '999px', fontWeight: 800, fontSize: '0.8rem', px: 1.8, color: '#FFFFFF', backgroundColor: '#2E3B55', textTransform: 'none', '&:hover': { backgroundColor: '#946D6D' }, '&.Mui-disabled': { color: '#FFFFFF', backgroundColor: '#C4B4B4' } }}
             >
               {submitting ? 'Gönderiliyor' : 'Soruyu gönder'}
