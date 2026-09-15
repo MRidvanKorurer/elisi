@@ -22,13 +22,3 @@ export const cachedGet = (key, fetcher, ttlMs = 60_000) => {
   inflight.set(key, request);
   return request;
 };
-
-export const invalidateCache = (prefix = '') => {
-  if (!prefix) {
-    memory.clear();
-    return;
-  }
-  [...memory.keys()].forEach((key) => {
-    if (key.startsWith(prefix)) memory.delete(key);
-  });
-};

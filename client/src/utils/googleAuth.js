@@ -1,9 +1,24 @@
+import { getSitePublic } from '../api/siteService';
+
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 
 let loadPromise = null;
+let resolvedClientId = '';
 
 export const getGoogleClientId = () =>
-  (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+  resolvedClientId || (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+
+export const resolveGoogleClientId = async () => {
+  const fromEnv = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+  if (fromEnv) {
+    resolvedClientId = fromEnv;
+    return fromEnv;
+  }
+  if (resolvedClientId) return resolvedClientId;
+  const site = await getSitePublic();
+  resolvedClientId = String(site?.googleClientId || '').trim();
+  return resolvedClientId;
+};
 
 export const loadGoogleIdentityScript = () => {
   if (typeof window === 'undefined') {
@@ -58,7 +73,7 @@ export const loadGoogleIdentityScript = () => {
  * Opens Google account popup and resolves with an OAuth access token.
  */
 export const requestGoogleAccessToken = async () => {
-  const clientId = getGoogleClientId();
+  const clientId = await resolveGoogleClientId();
   if (!clientId) {
     const err = new Error('MISSING_CLIENT_ID');
     err.code = 'MISSING_CLIENT_ID';

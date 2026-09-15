@@ -26,6 +26,9 @@ export const sellerService = {
     return response.data;
   },
 
+  adsBoard: async (params) => (await API.get('/sellers/me/ads', { params })).data,
+  adsSuggest: async () => (await API.post('/sellers/me/ads/suggest')).data,
+
   getMyOrders: async () => {
     const response = await API.get('/sellers/me/orders');
     return response.data;
@@ -43,11 +46,6 @@ export const sellerService = {
 
   getMyProducts: async () => {
     const response = await API.get('/sellers/me/products');
-    return response.data;
-  },
-
-  getQuestions: async (status = 'all') => {
-    const response = await API.get('/questions/seller/inbox', { params: { status } });
     return response.data;
   },
 

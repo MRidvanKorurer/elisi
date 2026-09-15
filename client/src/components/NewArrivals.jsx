@@ -24,7 +24,7 @@ const arrowSx = (disabled) => ({
   '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(148,109,109,0.12)' }
 });
 
-export default function NewArrivals({ onAddToCart }) {
+export default function NewArrivals() {
   const { t } = useTranslation('home');
   const trackRef = useRef(null);
   const progressRef = useRef(null);
@@ -148,7 +148,7 @@ export default function NewArrivals({ onAddToCart }) {
               key={product._id}
               sx={{ flex: `0 0 ${PRODUCT_CARD_WIDTH}px`, scrollSnapAlign: 'start' }}
             >
-              <ProductCard product={product} onAddToCart={onAddToCart} />
+              <ProductCard product={product} />
             </Box>
           ))}
         </Box>

@@ -2,10 +2,9 @@ const User = require('../models/User');
 const Seller = require('../models/Seller');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const Category = require('../models/Category');
 const { isSuperAdmin } = require('../utils/roles');
 const { applyPaidStock, restorePaidStock } = require('../utils/orderStock');
-const { publicPath, categoryPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
+const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 const FeaturedRequest = require('../models/FeaturedRequest');
 const WeeklyAtelier = require('../models/WeeklyAtelier');
@@ -522,43 +521,6 @@ const updateOrder = async (req, res) => {
   }
 };
 
-const listCategories = async (_req, res) => {
-  try {
-    const categories = await Category.find().sort({ order: 1, name: 1 }).lean();
-    return res.json({ success: true, categories });
-  } catch (error) {
-    return res.status(500).json({ mesaj: 'Kategoriler alınamadı.', hata: error.message });
-  }
-};
-
-const updateCategory = async (req, res) => {
-  try {
-    const category = await Category.findOne({
-      categoryId: String(req.params.id || '').toLowerCase()
-    });
-    if (!category) {
-      return res.status(404).json({ mesaj: 'Kategori bulunamadı.' });
-    }
-
-    const { name, description, order, isActive } = req.body;
-    if (typeof name === 'string' && name.trim()) category.name = name.trim();
-    if (typeof description === 'string') category.description = description.trim();
-    if (order !== undefined) category.order = Number(order) || 0;
-    if (isActive !== undefined) category.isActive = isActive === true || isActive === 'true';
-
-    const uploaded = categoryPublicPath(req.file);
-    if (uploaded) {
-      if (category.image) removeUpload(category.image);
-      category.image = uploaded;
-    }
-
-    await category.save();
-    return res.json({ success: true, mesaj: 'Kategori güncellendi.', category });
-  } catch (error) {
-    return res.status(500).json({ mesaj: 'Kategori güncellenemedi.', hata: error.message });
-  }
-};
-
 module.exports = {
   getOverview,
   listUsers,
@@ -571,7 +533,5 @@ module.exports = {
   deleteProduct,
   setProductApproval,
   listOrders,
-  updateOrder,
-  listCategories,
-  updateCategory
+  updateOrder
 };

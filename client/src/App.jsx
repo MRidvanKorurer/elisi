@@ -167,7 +167,7 @@ export default function App() {
         element={<HomePage onNavigateAuth={() => navigate(withLocale('/auth', locale))} user={user} />}
       />
       <Route path="auth" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
-      <Route path="checkout" element={<CheckoutPage setPage={handleSetPage} user={user} />} />
+      <Route path="checkout" element={<CheckoutPage user={user} />} />
       <Route path="product/:id" element={<ProductDetailPage user={user} />} />
       <Route path="profile" element={<ProfileDashboard />} />
       <Route path="products" element={<ProductsPage />} />
@@ -237,8 +237,7 @@ export default function App() {
           </Suspense>
         </Box>
 
-        {/* DÜZELTİLEN KISIM: Eski setPage değişkeni yerine handleSetPage verildi */}
-        {!isAdminRoute && <Footer setPage={handleSetPage} />}
+        {!isAdminRoute && <Footer />}
 
       </Box>
     </ThemeProvider>

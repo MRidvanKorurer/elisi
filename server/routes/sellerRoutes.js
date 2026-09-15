@@ -33,6 +33,7 @@ const {
   createWeek,
   cancelWeek
 } = require('../controllers/atelierWeekController');
+const { getMyAdsBoard, refreshMyAdsSuggestions } = require('../controllers/sellerAdsController');
 const { protect, optionalProtect, approvedSeller } = require('../middleware/authMiddleware');
 const { productImages, receiptFile } = require('../middleware/uploadMiddleware');
 
@@ -42,6 +43,8 @@ router.get('/me', protect, getMySeller);
 router.put('/me', protect, approvedSeller, updateMySeller);
 router.get('/me/overview', protect, approvedSeller, getMyOverview);
 router.get('/me/reports', protect, approvedSeller, getMyReports);
+router.get('/me/ads', protect, approvedSeller, getMyAdsBoard);
+router.post('/me/ads/suggest', protect, approvedSeller, refreshMyAdsSuggestions);
 router.get('/me/orders', protect, approvedSeller, getMyOrders);
 router.put('/me/orders/:id', protect, approvedSeller, updateMyOrder);
 router.post('/me/orders/:id/notes', protect, approvedSeller, addMyOrderNote);

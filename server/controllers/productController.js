@@ -392,33 +392,6 @@ const getFilterOptions = async (req, res) => {
     }
 };
 
-const getLookbook = async (req, res) => {
-    try {
-        const clips = await Lookbook.find({
-            isActive: true,
-            $or: [{ placement: 'lookbook' }, { placement: { $exists: false } }, { placement: null }]
-        }).sort({ order: 1, createdAt: -1 }).limit(12);
-        return res.status(200).json({
-            success: true,
-            products: clips.map((clip) => ({
-                _id: clip.product || clip._id,
-                productId: clip.product || null,
-                title: clip.title,
-                lookbookLabel: clip.label || clip.title,
-                video: clip.videoUrl,
-                image: clip.posterUrl || ''
-            }))
-        });
-    } catch (error) {
-        console.error('getLookbook hatası:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Lookbook ürünleri getirilemedi.',
-            products: []
-        });
-    }
-};
-
 const getMyProducts = async (req, res) => {
     try {
         const products = await Product.find({ seller: req.user._id }).sort({ createdAt: -1 });
@@ -619,7 +592,6 @@ module.exports = {
     getFilteredProducts,
     getCategories,
     getFilterOptions,
-    getLookbook,
     getMyProducts,
     createMyProduct,
     updateMyProduct,

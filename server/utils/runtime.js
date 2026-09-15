@@ -66,7 +66,8 @@ const publicSite = () => ({
   ...contact(),
   bank: bank(),
   clientUrl: clientUrl(),
-  siteUrl: siteUrl()
+  siteUrl: siteUrl(),
+  googleClientId: String(process.env.GOOGLE_CLIENT_ID || '').trim()
 });
 
 const warnProductionConfig = () => {

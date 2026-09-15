@@ -33,6 +33,7 @@ import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
+import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
 import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import CalculateOutlined from '@mui/icons-material/CalculateOutlined';
@@ -40,6 +41,7 @@ import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton
 import SellerProductEditor, { emptyProductForm, formFromProduct } from '../components/SellerProductEditor';
 import ProductMarginCalculator from '../components/ProductMarginCalculator';
 import SellerPerformanceReport from '../components/SellerPerformanceReport';
+import SellerAdsBoard from '../components/SellerAdsBoard';
 import SellerOrderDetail from '../components/SellerOrderDetail';
 import SellerOrders from '../components/SellerOrders';
 import { sellerService } from '../api/sellerService';
@@ -633,6 +635,7 @@ export default function SellerPanel({ user, handleLogout }) {
     { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
     { id: 'margin', label: 'Kar marjı', icon: CalculateOutlined },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || 0 },
+    { id: 'ads', label: 'Reklam asistanı', icon: CampaignOutlined },
     { id: 'week', label: 'Haftanın atölyesi', icon: CelebrationOutlined, badge: overview?.pendingAtelierWeek || 0 },
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
@@ -649,7 +652,7 @@ export default function SellerPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'orders' ? 'Müşteri, sipariş no veya ürün ara' : view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'week' ? 'Haftanın atölyesi taleplerinde ara' : view === 'reports' ? 'Raporlarda ara' : view === 'promos' ? 'Kampanya kodu ara' : view === 'margin' ? 'Kar marjında ara' : 'Kendi ürün ve siparişlerinde ara'}
+      searchPlaceholder={view === 'orders' ? 'Müşteri, sipariş no veya ürün ara' : view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'ads' ? 'Ürün veya kategori ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'week' ? 'Haftanın atölyesi taleplerinde ara' : view === 'reports' ? 'Raporlarda ara' : view === 'promos' ? 'Kampanya kodu ara' : view === 'margin' ? 'Kar marjında ara' : 'Kendi ürün ve siparişlerinde ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
       siteHref={seller.slug ? `/atolye/${seller.slug}` : '/'}
@@ -1158,6 +1161,22 @@ export default function SellerPanel({ user, handleLogout }) {
               </Table>
             </PanelCard>
           </Box>
+        </Box>
+      )}
+
+      {view === 'ads' && (
+        <Box>
+          <SectionTitle
+            overline="REKLAM"
+            title="Reklam asistanı"
+            subtitle="Hangi ürününüzü öne çıkaracağınızı AI ve satış verisiyle seçin. Öneri, havale + dekontlu öne çıkan talebe bağlanır; rakip mağaza verisi gösterilmez."
+          />
+          <SellerAdsBoard
+            query={query}
+            products={products}
+            onPromote={(product) => openFeature(product)}
+            onOpenFeatured={() => goView('featured')}
+          />
         </Box>
       )}
 

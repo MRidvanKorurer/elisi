@@ -151,20 +151,6 @@ const syncShopWeek = async (userId) => {
   return shop;
 };
 
-const getAtelierWeekMeta = async (req, res) => {
-  try {
-    const [slots, bank] = await Promise.all([slotsOf(), getBank()]);
-    return res.json({
-      success: true,
-      packages: packageList(),
-      slots,
-      bank
-    });
-  } catch (error) {
-    return res.status(500).json({ mesaj: 'Haftanın atölyeleri bilgisi alınamadı.', hata: error.message });
-  }
-};
-
 const listPublicWeek = async (req, res) => {
   try {
     await expireWeeklyAteliers();
@@ -487,7 +473,6 @@ const removeWeek = async (req, res) => {
 module.exports = {
   expireWeeklyAteliers,
   slotsOf,
-  getAtelierWeekMeta,
   listPublicWeek,
   listMyWeek,
   createWeek,

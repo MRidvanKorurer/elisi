@@ -140,20 +140,6 @@ const shopNamesByUser = async (userIds) => {
   return new Map(shops.map((shop) => [String(shop.user), shop.magazaAdi]));
 };
 
-const getFeaturedMeta = async (req, res) => {
-  try {
-    const [slots, bank] = await Promise.all([slotsOf(), getBank()]);
-    return res.json({
-      success: true,
-      packages: packageList(),
-      slots,
-      bank
-    });
-  } catch (error) {
-    return res.status(500).json({ mesaj: 'Vitrin bilgisi alınamadı.', hata: error.message });
-  }
-};
-
 const updateFeaturedSettings = async (req, res) => {
   try {
     const name = String(req.body.name || req.body.featuredBankName || '').trim();
@@ -533,6 +519,5 @@ module.exports = {
   reviewFeatured,
   removeFeatured,
   giftFeatured,
-  getFeaturedMeta,
   updateFeaturedSettings
 };

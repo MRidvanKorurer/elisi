@@ -149,7 +149,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
   );
 }
 
-export default function CategoryProductList({ onAddToCart, onToggleFavorite, favorites = [] }) {
+export default function CategoryProductList() {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
   const productsAnchor = useRef(null);
@@ -469,9 +469,6 @@ export default function CategoryProductList({ onAddToCart, onToggleFavorite, fav
                   <Box key={product._id || product.id}>
                     <ProductCard
                       product={product}
-                      onAddToCart={onAddToCart}
-                      onToggleFavorite={onToggleFavorite}
-                      isFavorite={favorites.includes(product._id)}
                     />
                   </Box>
                 ))}

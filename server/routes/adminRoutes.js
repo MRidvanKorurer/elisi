@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, superAdmin } = require('../middleware/authMiddleware');
-const { productImages, categoryImage } = require('../middleware/uploadMiddleware');
+const { productImages } = require('../middleware/uploadMiddleware');
 const {
   getOverview,
   listUsers,
@@ -14,20 +14,21 @@ const {
   deleteProduct,
   setProductApproval,
   listOrders,
-  updateOrder,
-  listCategories,
-  updateCategory
+  updateOrder
 } = require('../controllers/adminController');
 const { listPromos, createPromo, updatePromo, deletePromo } = require('../controllers/promoController');
 const { listAdminFeatured, reviewFeatured, removeFeatured, giftFeatured, updateFeaturedSettings } = require('../controllers/featuredController');
 const { listAdminWeek, reviewWeek, removeWeek, giftWeek } = require('../controllers/atelierWeekController');
 const { getAdminReports, getAdminSellerReport } = require('../controllers/adminReportsController');
+const { getAdsBoard, refreshAdsSuggestions } = require('../controllers/adminAdsController');
 
 router.use(protect, superAdmin);
 
 router.get('/overview', getOverview);
 router.get('/reports', getAdminReports);
 router.get('/reports/sellers/:sellerId', getAdminSellerReport);
+router.get('/ads', getAdsBoard);
+router.post('/ads/suggest', refreshAdsSuggestions);
 router.get('/orders', listOrders);
 router.put('/orders/:id', updateOrder);
 router.get('/users', listUsers);
@@ -39,8 +40,6 @@ router.get('/products', listProducts);
 router.put('/products/:id', productImages, updateProduct);
 router.put('/products/:id/approval', setProductApproval);
 router.delete('/products/:id', deleteProduct);
-router.get('/categories', listCategories);
-router.put('/categories/:id', categoryImage, updateCategory);
 router.get('/promos', listPromos);
 router.post('/promos', createPromo);
 router.put('/promos/:id', updatePromo);

@@ -122,5 +122,4 @@ export const cartService = {
   }
 };
 
-export { itemKey };
 export default cartService;

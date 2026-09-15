@@ -32,15 +32,6 @@ const productImages = afterUpload(
   'products'
 );
 
-const categoryImage = afterUpload(
-  multer({
-    storage: memory,
-    limits: { fileSize: 8 * 1024 * 1024, files: 1 },
-    fileFilter: allowImage
-  }).single('image'),
-  'categories'
-);
-
 const reviewPhotos = afterUpload(
   multer({
     storage: memory,
@@ -85,12 +76,10 @@ const storedUrl = (file) => file?.storedUrl || '';
 
 module.exports = {
   productImages,
-  categoryImage,
   reviewPhotos,
   avatarImage,
   receiptFile,
   publicPath: storedUrl,
-  categoryPublicPath: storedUrl,
   reviewPublicPath: storedUrl,
   avatarPublicPath: storedUrl,
   receiptPublicPath: storedUrl,

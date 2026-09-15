@@ -16,13 +16,7 @@ import { useTranslation } from 'react-i18next';
 import Seo from '../components/Seo';
 import { isSuperAdmin } from '../utils/roles';
 
-export default function HomePage({
-    user,
-    onNavigateAuth,
-    onAddToCart = (urun) => console.log("Sepete eklenen ürün:", urun),
-    onToggleFavorite = (id) => console.log("Favori tıklanan id:", id),
-    favorites = []
-}) {
+export default function HomePage({ user, onNavigateAuth }) {
     const { t } = useTranslation('seo');
     const [showTop, setShowTop] = useState(false);
 
@@ -42,16 +36,12 @@ export default function HomePage({
 
             <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
 
-            <CategoryProductList
-                onAddToCart={onAddToCart}
-                onToggleFavorite={onToggleFavorite}
-                favorites={favorites}
-            />
+            <CategoryProductList />
 
             <WeeklyAteliers />
 
             <Reveal>
-                <NewArrivals onAddToCart={onAddToCart} />
+                <NewArrivals />
             </Reveal>
 
             <AtelierLookbook />

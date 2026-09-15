@@ -26,5 +26,7 @@ export const adminService = {
   removeAtelierWeek: async (id, payload) => (await API.put(`/admin/atelier-week/${id}/remove`, payload)).data,
   giftAtelierWeek: async (payload) => (await API.post('/admin/atelier-week/gift', payload)).data,
   reports: async () => (await API.get('/admin/reports')).data,
-  reportsSeller: async (sellerId) => (await API.get(`/admin/reports/sellers/${sellerId}`)).data
+  reportsSeller: async (sellerId) => (await API.get(`/admin/reports/sellers/${sellerId}`)).data,
+  adsBoard: async (params) => (await API.get('/admin/ads', { params })).data,
+  adsSuggest: async () => (await API.post('/admin/ads/suggest')).data
 };

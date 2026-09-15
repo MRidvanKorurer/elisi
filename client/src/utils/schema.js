@@ -1,54 +1,10 @@
 import {
-  DEFAULT_DESCRIPTION,
-  ORGANIZATION,
   SITE_NAME,
   SITE_URL,
   absoluteUrl,
   clampDescription
 } from './seo';
-import { schemaLang, withLocale } from '../i18n/locale';
-
-/** Marka kimliği: Google Knowledge Panel ve site linkleri için. */
-export const organizationSchema = () => ({
-  '@context': 'https://schema.org',
-  '@type': 'OnlineStore',
-  '@id': `${SITE_URL}/#organization`,
-  name: SITE_NAME,
-  legalName: ORGANIZATION.legalName,
-  url: SITE_URL,
-  logo: absoluteUrl('/favicon.svg'),
-  image: absoluteUrl('/og-cover.jpg'),
-  description: DEFAULT_DESCRIPTION,
-  email: ORGANIZATION.email,
-  telephone: ORGANIZATION.phone,
-  address: {
-    '@type': 'PostalAddress',
-    addressLocality: ORGANIZATION.city,
-    addressCountry: ORGANIZATION.country
-  },
-  sameAs: ORGANIZATION.social,
-  currenciesAccepted: 'TRY',
-  paymentAccepted: 'Kredi Kartı, Banka Havalesi'
-});
-
-/** Site içi arama kutusunun Google sonuçlarında görünmesini sağlar. */
-export const websiteSchema = (locale = 'tr') => ({
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  '@id': `${SITE_URL}/#website`,
-  name: SITE_NAME,
-  url: SITE_URL,
-  inLanguage: schemaLang(locale),
-  publisher: { '@id': `${SITE_URL}/#organization` },
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: `${SITE_URL}${withLocale('/products', locale)}?search={search_term_string}`
-    },
-    'query-input': 'required name=search_term_string'
-  }
-});
+import { withLocale } from '../i18n/locale';
 
 /** Arama sonuçlarındaki kırıntı navigasyonu. */
 export const breadcrumbSchema = (items = [], locale = 'tr') => ({

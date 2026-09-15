@@ -34,6 +34,7 @@ import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import AccountBalanceOutlined from '@mui/icons-material/AccountBalanceOutlined';
+import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
@@ -62,6 +63,7 @@ import { FEATURED_PACKAGES, FEATURED_SLOTS, FEATURED_STATUS, isLiveFeatured, isR
 import { ATELIER_WEEK_SLOTS, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
 import { lineTotalOf, orderChargeRows, platformShareOf } from '../utils/price';
 import AdminCommission from '../components/AdminCommission';
+import AdminAdsBoard from '../components/AdminAdsBoard';
 
 const emptyForm = {
   title: '',
@@ -358,6 +360,12 @@ export default function AdminPanel({ user, handleLogout }) {
     }
   };
 
+  const giftFeaturedProduct = async ({ productId, days = 3 }) => {
+    const data = await adminService.giftFeatured({ productId, days, note: 'Reklam panosundan hediye vitrin' });
+    flash(data?.mesaj || 'Ücretsiz vitrin verildi.');
+    await load();
+  };
+
   const saveFeaturedBank = async () => {
     setSavingBank(true);
     try {
@@ -511,6 +519,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length },
+    { id: 'ads', label: 'Reklamlar', icon: CampaignOutlined },
     { id: 'week', label: 'Haftanın atölyeleri', icon: CelebrationOutlined, badge: overview?.pendingAtelierWeek || weekRequests.filter((item) => item.status === 'pending').length },
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'commission', label: 'Komisyon', icon: AccountBalanceOutlined },
@@ -543,7 +552,7 @@ export default function AdminPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'week' ? 'Atölye veya satıcı ara' : view === 'reports' || view === 'commission' ? 'Mağaza veya sipariş ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
+      searchPlaceholder={view === 'week' ? 'Atölye veya satıcı ara' : view === 'ads' ? 'Ürün, kategori veya satıcı ara' : view === 'reports' || view === 'commission' ? 'Mağaza veya sipariş ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
     >
@@ -965,6 +974,28 @@ export default function AdminPanel({ user, handleLogout }) {
               ))}
             </Box>
           )}
+        </Box>
+      )}
+
+      {view === 'ads' && (
+        <Box>
+          <SectionTitle
+            overline="REKLAM"
+            title="Reklam ve vitrin panosu"
+            subtitle="Hangi ürünün reklama çıkabileceğini, yapay zeka önerilerini ve diğer pazarlardaki talep eğilimlerini buradan izleyin. Vitrine alma işlemi ücretsiz hediye slot kullanır."
+          />
+          <AdminAdsBoard
+            query={query}
+            onOpenFeatured={() => goView('featured')}
+            onGift={async (payload) => {
+              try {
+                await giftFeaturedProduct(payload);
+              } catch (err) {
+                fail(err, 'Vitrine alınamadı.');
+                throw err;
+              }
+            }}
+          />
         </Box>
       )}
 
