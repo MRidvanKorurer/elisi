@@ -48,7 +48,7 @@ API.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // Oturum süresi dolduğunda veya yetkisiz istekte çalışır
-      // İsteğe bağlı yönlendirme: window.location.href = '/auth';
+      // İsteğe bağlı yönlendirme: window.location.href = '/giris';
     }
     return Promise.reject(error);
   }

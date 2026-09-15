@@ -14,7 +14,8 @@ const API_BASE = (process.env.VITE_API_BASE_URL || 'http://localhost:5000/api').
 
 const STATIC_ROUTES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
-  { path: '/products', changefreq: 'daily', priority: '0.9' },
+  { path: '/urunler', changefreq: 'daily', priority: '0.9' },
+  { path: '/atolyeler', changefreq: 'daily', priority: '0.8' },
   { path: '/satici-ol', changefreq: 'monthly', priority: '0.6' },
   { path: '/gizlilik', changefreq: 'yearly', priority: '0.3' },
   { path: '/kvkk', changefreq: 'yearly', priority: '0.3' },
@@ -92,7 +93,7 @@ const main = async () => {
     ...products.flatMap((product) => {
       const image = product.image || product.gorsel;
       return withLocales({
-        pathname: `/product/${product._id || product.id}`,
+        pathname: `/urun/${product._id || product.id}`,
         lastmod: (product.updatedAt || product.createdAt || '').split('T')[0] || today,
         changefreq: 'weekly',
         priority: '0.8',

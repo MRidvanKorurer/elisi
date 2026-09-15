@@ -5,6 +5,7 @@
     "guestLead": "Traditional craft with a modern line. Sign up and use your 10% first-order code right away.",
     "memberLead": "See the newest pieces from the atelier.",
     "featured": "Featured",
+    "ateliers": "Ateliers",
     "register": "Sign up",
     "explore": "Explore",
     "alt": "Nik Bag collection"
@@ -37,7 +38,8 @@
     "slots": "{{current}}/3 in the vitrine",
     "seeShop": "See shop",
     "products": "{{count}} products",
-    "vitrine": "Vitrine"
+    "vitrine": "Vitrine",
+    "seeAll": "All ateliers"
   },
   "arrivals": {
     "eyebrow": "FRESH FROM THE ATELIER",
@@ -48,7 +50,54 @@
   },
   "bestsellers": {
     "eyebrow": "THIS WEEK’S FAVORITES",
-    "title": "Best sellers"
+    "title": "Best sellers",
+    "region": "Best sellers",
+    "prev": "Previous products",
+    "next": "Next products"
+  },
+  "featured": {
+    "eyebrow": "VITRINE",
+    "title": "Featured",
+    "subtitle": "Atelier pieces currently in the spotlight.",
+    "region": "Featured products",
+    "prev": "Previous products",
+    "next": "Next products"
+  },
+  "made": {
+    "eyebrow": "MADE FOR YOU",
+    "title": "Made to measure & gifts",
+    "subtitle": "Leave a size note on made-to-order pieces; tell the atelier who the gift is for.",
+    "customEyebrow": "MADE TO ORDER",
+    "customTitle": "Custom production",
+    "customText": "Many pieces are prepared with your order. At checkout you can send measure, color, and delivery notes to the atelier.",
+    "customCta": "Browse made-to-order",
+    "giftEyebrow": "GIFTS",
+    "giftTitle": "Gift boxes & occasions",
+    "giftText": "Say who it’s for and which day; the atelier sees your note with the order.",
+    "giftCta": "Gift collection"
+  },
+  "directory": {
+    "eyebrow": "MAKERS",
+    "title": "Ateliers",
+    "subtitle": "Browse independent ateliers by city, craft, and rating.",
+    "searchPlaceholder": "Search atelier or city",
+    "sortPopular": "Popular",
+    "sortRating": "Rating",
+    "sortNewest": "Newest",
+    "sortName": "Name",
+    "allCities": "All cities",
+    "allCrafts": "All crafts",
+    "products": "products",
+    "open": "Open shop",
+    "count": "{{count}} ateliers",
+    "showing": "{{shown}} of {{total}} ateliers",
+    "loading": "Loading ateliers…",
+    "clearFilters": "Clear filters",
+    "newMaker": "New shop",
+    "showMore": "Show more ({{count}} left)",
+    "emptyTitle": "No ateliers found",
+    "emptyText": "Clear filters and try again.",
+    "loadError": "Couldn’t load ateliers."
   },
   "lookbook": {
     "eyebrow": "ATELIER",

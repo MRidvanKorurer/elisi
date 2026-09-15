@@ -160,16 +160,16 @@ export default function OrderResultPage({ success }) {
             </Box>
           )}
           <Box sx={{ display: 'flex', gap: 1, mt: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
-            <Button fullWidth variant="contained" onClick={() => navigate('/products')} sx={{ backgroundColor: '#2E3B55', color: '#FFFFFF', fontWeight: 800, py: 1.2, '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' } }}>
+            <Button fullWidth variant="contained" onClick={() => navigate('/urunler')} sx={{ backgroundColor: '#2E3B55', color: '#FFFFFF', fontWeight: 800, py: 1.2, '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' } }}>
               {t('actions.keepShopping', { ns: 'common' })}
             </Button>
             {success && (
-              <Button fullWidth variant="outlined" onClick={() => navigate('/profile')} sx={{ borderColor: '#946D6D', color: '#946D6D', fontWeight: 800, backgroundColor: '#fff' }}>
+              <Button fullWidth variant="outlined" onClick={() => navigate('/hesabim')} sx={{ borderColor: '#946D6D', color: '#946D6D', fontWeight: 800, backgroundColor: '#fff' }}>
                 {t('actions.myOrders', { ns: 'common' })}
               </Button>
             )}
             {!success && (
-              <Button fullWidth variant="outlined" onClick={() => navigate('/checkout')} sx={{ borderColor: '#946D6D', color: '#946D6D', fontWeight: 800, backgroundColor: '#fff' }}>
+              <Button fullWidth variant="outlined" onClick={() => navigate('/sepet')} sx={{ borderColor: '#946D6D', color: '#946D6D', fontWeight: 800, backgroundColor: '#fff' }}>
                 {t('actions.tryAgain', { ns: 'common' })}
               </Button>
             )}

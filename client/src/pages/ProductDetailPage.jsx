@@ -10,7 +10,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Container,
   Divider,
   IconButton,
   Link,
@@ -18,6 +17,7 @@ import {
   Snackbar,
   Typography
 } from '@mui/material';
+import SiteContainer from '../components/SiteContainer';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
@@ -41,6 +41,7 @@ import ProductSlider from '../components/ProductSlider';
 import { imgBagOrange } from '../assets/media';
 import { formatTRY, salePriceOf } from '../utils/price';
 import Seo from '../components/Seo';
+import { PageSpinner } from '../components/LoadingButton';
 import { breadcrumbSchema, faqSchema, productSchema } from '../utils/schema';
 import { productDescription } from '../utils/seo';
 import { categoryLabel } from '../utils/categories';
@@ -48,6 +49,7 @@ import ProductReviews from '../components/ProductReviews';
 import ProductQuestions from '../components/ProductQuestions';
 import AtelierCard from '../components/AtelierCard';
 import ProductFulfillment from '../components/ProductFulfillment';
+import ProductMakerNote from '../components/ProductMakerNote';
 import ProductClip from '../components/ProductClip';
 import { resolveProductVideo } from '../utils/productVideo';
 import {
@@ -259,17 +261,13 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <CircularProgress sx={{ color: '#946D6D' }} />
-      </Box>
-    );
+    return <PageSpinner minHeight="80vh" />;
   }
 
   if (error || !product) {
     return (
       <Box sx={{ textAlign: 'center', py: { xs: 12, md: 16 }, px: 3 }}>
-        <Seo title={t('product.notFoundTitle', { ns: 'catalog' })} path={`/product/${id || ''}`} noindex />
+        <Seo title={t('product.notFoundTitle', { ns: 'catalog' })} path={`/urun/${id || ''}`} noindex />
         <Typography variant="h5" fontWeight={800} sx={{ color: '#2E3B55' }}>
           {error || t('product.notFound', { ns: 'catalog' })}
         </Typography>
@@ -278,7 +276,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         </Typography>
         <Button
           variant="contained"
-          onClick={() => navigate('/products')}
+          onClick={() => navigate('/urunler')}
           sx={{ bgcolor: '#946D6D', borderRadius: '14px', px: 3, fontWeight: 800, '&:hover': { bgcolor: '#7c5a5a' } }}
         >
           {t('product.backToProducts', { ns: 'catalog' })}
@@ -292,7 +290,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const colors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
   const sizes = Array.isArray(product.sizes) ? product.sizes.filter(Boolean) : [];
 
-  const productPath = `/product/${product._id || product.id}`;
+  const productPath = `/urun/${product._id || product.id}`;
   const seoDescription = productDescription(product);
 
   return (
@@ -314,14 +312,14 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           }),
           breadcrumbSchema([
             { name: t('product.home', { ns: 'catalog' }), path: '/' },
-            { name: t('list.products', { ns: 'catalog' }), path: '/products' },
-            { name: categoryLabel(product.category, t), path: `/products?category=${encodeURIComponent(product.category || '')}` },
+            { name: t('list.products', { ns: 'catalog' }), path: '/urunler' },
+            { name: categoryLabel(product.category, t), path: `/urunler?category=${encodeURIComponent(product.category || '')}` },
             { name: title, path: productPath }
           ], locale),
           ...(faqItems.length ? [faqSchema(faqItems)] : [])
         ]}
       />
-      <Container maxWidth="lg">
+      <SiteContainer>
         <Breadcrumbs
           separator={<NavigateNextIcon fontSize="small" />}
           sx={{ mb: { xs: 3, md: 4 }, color: '#A290B7', fontWeight: 600, '& .MuiBreadcrumbs-ol': { flexWrap: 'wrap' } }}
@@ -332,7 +330,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           <Link
             underline="hover"
             color="inherit"
-            onClick={() => navigate(`/products?category=${encodeURIComponent(product.category || '')}`)}
+            onClick={() => navigate(`/urunler?category=${encodeURIComponent(product.category || '')}`)}
             sx={{ cursor: 'pointer', textTransform: 'capitalize' }}
           >
             {categoryLabel(product.category, t)}
@@ -567,6 +565,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
               </IconButton>
             </Box>
 
+            <ProductMakerNote product={product} />
             <ProductFulfillment product={product} />
 
             <AtelierCard
@@ -638,7 +637,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             <ProductSlider products={similarProducts} ariaLabel={t('product.similar', { ns: 'catalog' })} />
           </Box>
         )}
-      </Container>
+      </SiteContainer>
 
       <Box
         sx={{

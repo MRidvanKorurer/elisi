@@ -57,6 +57,7 @@
       "onSale": "İndirim",
       "isNew": "Yeni",
       "immediateDelivery": "Hızlı kargo",
+      "madeToOrder": "Sipariş üzerine",
       "minRating": "4+ puan"
     },
     "chips": {
@@ -67,6 +68,8 @@
       "ship": "Hemen kargo"
     },
     "filters": "Filtreler",
+    "filtering": "Koleksiyon düzenleniyor",
+    "filteringHint": "Seçtiğiniz filtrelere göre parçalar hazırlanıyor.",
     "colorPlaceholder": "Renk adı yaz",
     "searchPlaceholder": "Parça, renk veya malzeme"
   },
@@ -98,7 +101,13 @@
     "favFailed": "Favori işlemi başarısız.",
     "addFailed": "Ürün sepete eklenemedi.",
     "addError": "Ürün sepete eklenirken bir sorun oluştu.",
-    "keywordHandmade": "el yapımı"
+    "keywordHandmade": "el yapımı",
+    "giftNoteTitle": "Hediye veya özel not",
+    "giftNoteText": "Checkout’ta kime, hangi gün için aldığınızı yazabilirsiniz; not atölyeye siparişle gider.",
+    "customNoteTitle": "Sipariş üzerine üretim",
+    "customNoteText": "Bu parça siparişinizle hazırlanır ({{time}}). Ölçü, renk ve teslim notunu ödeme adımında bırakın.",
+    "measureNoteTitle": "Ölçü ve kullanım",
+    "measureNoteText": "Ölçü seçeneklerini aşağıda görün; ek notu checkout’ta atölyeye iletebilirsiniz."
   },
   "atelier": {
     "notFoundTitle": "Atölye bulunamadı",

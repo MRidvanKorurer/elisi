@@ -154,7 +154,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
   // Ürünler sayfasındaki arama kutusuyla aynı terim gösterilsin.
   // Kategori filtresi yalnızca soldaki panelin işidir, buradan okunmaz.
   useEffect(() => {
-    if (location.pathname !== '/products') return;
+    if (location.pathname !== '/urunler') return;
     setQuery(new URLSearchParams(location.search).get('q') || '');
   }, [location.pathname, location.search]);
 
@@ -250,13 +250,13 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
   const goToResults = useCallback(
     (nextTerm = term) => {
       const params =
-        location.pathname === '/products' ? new URLSearchParams(location.search) : new URLSearchParams();
+        location.pathname === '/urunler' ? new URLSearchParams(location.search) : new URLSearchParams();
 
       if (nextTerm) params.set('q', nextTerm);
       else params.delete('q');
 
       pushRecent(nextTerm);
-      navigate(`/products${params.toString() ? `?${params.toString()}` : ''}`);
+      navigate(`/urunler${params.toString() ? `?${params.toString()}` : ''}`);
       close();
       onNavigate?.();
     },
@@ -269,7 +269,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       setQuery('');
       close();
       onNavigate?.();
-      navigate(`/products?category=${encodeURIComponent(value)}`);
+      navigate(`/urunler?category=${encodeURIComponent(value)}`);
     },
     [close, onNavigate, navigate]
   );
@@ -294,7 +294,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
         setQuery('');
         close();
         onNavigate?.();
-        navigate(`/product/${option.product._id}`);
+        navigate(`/urun/${option.product._id}`);
         return;
       }
 

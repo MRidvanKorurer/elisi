@@ -240,7 +240,7 @@ export default function PanelShell({
         background: `linear-gradient(180deg, ${T.cream} 0%, ${T.creamDeep} 100%)`
       }}
     >
-      <Seo title="Yönetim Paneli" path="/admin" noindex />
+      <Seo title="Yönetim Paneli" path="/panel" noindex />
       <Box sx={{ width: SIDEBAR, flexShrink: 0, display: { xs: 'none', md: 'block' }, position: 'sticky', top: 0, height: '100vh' }}>
         {sidebar}
       </Box>

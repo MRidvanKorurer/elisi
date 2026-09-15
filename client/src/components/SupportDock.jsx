@@ -65,7 +65,7 @@ export default function SupportDock() {
   const location = useLocation();
   const { t } = useTranslation('support');
   const navigate = useLocaleNavigate();
-  const lift = location.pathname.startsWith('/product/') || location.pathname.startsWith('/checkout');
+  const lift = location.pathname.startsWith('/urun/') || location.pathname.startsWith('/sepet');
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);

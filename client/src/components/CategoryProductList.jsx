@@ -1,19 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Box, Button, Container, Skeleton, Typography } from '@mui/material';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Button, Skeleton, Typography } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import { categoryLabel } from '../utils/categories';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { categoryService } from '../api/categoryService';
 import { productService } from '../api/productService';
 import ProductCard, { productCardGridSx } from './ProductCard';
+import LoadingButton, { ProductGridSkeleton } from './LoadingButton';
 import { scrollPageTo } from '../hooks/useSmoothScroll';
-import allCover from '../assets/banner1.jpeg';
+import useProductGridPageSize, { nextVisibleCount } from '../hooks/useProductGridPageSize';
+import { imgBanner1Tile as allCover } from '../assets/media';
 
-const PAGE_SIZE = 8;
+const MAX_TILES = 9;
 const tileRadius = { xs: '18px', md: '22px' };
 
 function tileLayout(index) {
@@ -48,15 +51,16 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
         fontFamily: 'inherit',
         textAlign: 'left',
         borderRadius: tileRadius,
-        isolation: 'isolate',
+        contain: 'paint',
+        contentVisibility: 'auto',
+        containIntrinsicSize: '124px',
         background: item.bgGradient || 'linear-gradient(135deg, #A290B7 0%, #946D6D 100%)',
         boxShadow: selected
-          ? '0 0 0 3px #FDF4D2, 0 0 0 6px #946D6D, 0 18px 36px -22px rgba(46,59,85,0.45)'
-          : '0 18px 40px -28px rgba(46,59,85,0.45)',
-        transform: selected ? 'translateY(-2px)' : 'none',
-        transition: 'box-shadow 220ms ease, transform 220ms ease',
-        '&:focus-visible': { outline: '3px solid #A290B7', outlineOffset: 3 },
-        '&:hover img': reduced ? {} : { transform: 'scale(1.08)' }
+          ? '0 0 0 2px #FDF4D2, 0 0 0 4px #946D6D'
+          : '0 8px 20px -14px rgba(46,59,85,0.35)',
+        transform: selected ? 'translateY(-1px)' : 'none',
+        transition: reduced ? 'none' : 'box-shadow 180ms ease, transform 180ms ease',
+        '&:focus-visible': { outline: '3px solid #A290B7', outlineOffset: 3 }
       }}
     >
       {item.image ? (
@@ -64,7 +68,9 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
           component="img"
           src={item.image}
           alt=""
-          loading="lazy"
+          loading={index < 3 ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchPriority={index === 0 ? 'high' : 'low'}
           onError={(event) => { event.currentTarget.style.opacity = '0'; }}
           sx={{
             position: 'absolute',
@@ -72,9 +78,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            display: 'block',
-            transform: 'scale(1.02)',
-            transition: 'transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1)'
+            display: 'block'
           }}
         />
       ) : null}
@@ -152,18 +156,29 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
 export default function CategoryProductList() {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
+  const sectionRef = useRef(null);
   const productsAnchor = useRef(null);
 
   const [categories, setCategories] = useState([]);
   const [totalProducts, setTotalProducts] = useState(0);
   const [catsLoading, setCatsLoading] = useState(true);
+  const [productsReady, setProductsReady] = useState(false);
 
   const [selected, setSelected] = useState('all');
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleCount, setVisibleCount] = useState(0);
   const [products, setProducts] = useState([]);
   const [totalInCategory, setTotalInCategory] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { gridRef, pageSize } = useProductGridPageSize({
+    enabled: productsReady,
+    deps: [selected, productsReady]
+  });
+
+  useEffect(() => {
+    if (!productsReady || pageSize < 1) return;
+    setVisibleCount((prev) => nextVisibleCount(prev, pageSize));
+  }, [productsReady, pageSize, selected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,7 +197,29 @@ export default function CategoryProductList() {
     return () => { cancelled = true; };
   }, []);
 
+  // Ürün ızgarasını bölüm yakına gelmeden yükleme; ilk kaydırmayı boğmasın
   useEffect(() => {
+    const node = sectionRef.current;
+    if (!node || productsReady) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setProductsReady(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setProductsReady(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '280px 0px', threshold: 0.01 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [productsReady]);
+
+  useEffect(() => {
+    if (!productsReady || visibleCount < 1) return undefined;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -210,11 +247,15 @@ export default function CategoryProductList() {
       });
 
     return () => { cancelled = true; };
-  }, [selected, visibleCount]);
+  }, [productsReady, selected, visibleCount, t]);
 
-  const sortedCats = [...categories]
-    .filter((cat) => (cat.productCount || 0) > 0)
-    .sort((a, b) => (b.productCount || 0) - (a.productCount || 0));
+  const sortedCats = useMemo(
+    () => [...categories]
+      .filter((cat) => (cat.productCount || 0) > 0)
+      .sort((a, b) => (b.productCount || 0) - (a.productCount || 0)),
+    [categories]
+  );
+
   const active = selected === 'all'
     ? {
         categoryId: 'all',
@@ -227,7 +268,7 @@ export default function CategoryProductList() {
         name: categoryLabel(selected, t)
       };
 
-  const tiles = [
+  const tiles = useMemo(() => ([
     {
       categoryId: 'all',
       name: t('categories.allName', { ns: 'home' }),
@@ -237,7 +278,7 @@ export default function CategoryProductList() {
         : t('categories.allCount', { ns: 'home' }),
       bgGradient: 'linear-gradient(135deg, #946D6D 0%, #2E3B55 100%)'
     },
-    ...sortedCats.map((cat) => ({
+    ...sortedCats.slice(0, MAX_TILES - 1).map((cat) => ({
       categoryId: cat.categoryId,
       name: categoryLabel(cat.categoryId, t),
       image: cat.image,
@@ -246,19 +287,22 @@ export default function CategoryProductList() {
         : t('categories.soon', { ns: 'home' }),
       bgGradient: cat.bgGradient
     }))
-  ];
+  ]), [sortedCats, t, totalProducts]);
 
   const collectionPath = selected === 'all'
-    ? '/products'
-    : `/products?category=${encodeURIComponent(selected)}`;
+    ? '/urunler'
+    : `/urunler?category=${encodeURIComponent(selected)}`;
 
   const hasMore = products.length < totalInCategory;
   const remaining = Math.max(0, totalInCategory - products.length);
+  const initialLoading = Boolean(productsReady && loading && products.length === 0);
+  const loadingMore = Boolean(loading && products.length > 0);
 
   const selectCategory = (id) => {
     if (id !== selected) {
+      setProductsReady(true);
       setSelected(id);
-      setVisibleCount(PAGE_SIZE);
+      setVisibleCount(0);
       setProducts([]);
       setTotalInCategory(0);
     }
@@ -274,13 +318,16 @@ export default function CategoryProductList() {
 
   return (
     <Box
+      ref={sectionRef}
       component="section"
       sx={{
         py: { xs: 5, md: 8 },
-        background: 'linear-gradient(180deg, rgba(253,244,210,0) 0%, rgba(176,205,230,0.18) 38%, rgba(253,244,210,0) 100%)'
+        background: 'linear-gradient(180deg, rgba(253,244,210,0) 0%, rgba(176,205,230,0.14) 38%, rgba(253,244,210,0) 100%)',
+        contentVisibility: 'auto',
+        containIntrinsicSize: '1200px'
       }}
     >
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
         <Box
           sx={{
             display: 'flex',
@@ -360,7 +407,8 @@ export default function CategoryProductList() {
               display: 'grid',
               gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
               gridAutoRows: { xs: 108, sm: 118, md: 124 },
-              gap: { xs: 1.05, md: 1.3 }
+              gap: { xs: 1.05, md: 1.3 },
+              contain: 'layout paint'
             }}
           >
             {tiles.map((item, index) => (
@@ -388,8 +436,7 @@ export default function CategoryProductList() {
               p: { xs: 1.4, md: 1.7 },
               borderRadius: '22px',
               backgroundColor: '#FFFFFF',
-              border: '1px solid rgba(148,109,109,0.14)',
-              boxShadow: '0 16px 36px -26px rgba(46,59,85,0.4)'
+              border: '1px solid rgba(148,109,109,0.14)'
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
@@ -404,7 +451,14 @@ export default function CategoryProductList() {
                 }}
               >
                 {active?.image ? (
-                  <Box component="img" src={active.image} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <Box
+                    component="img"
+                    src={active.image}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
                 ) : null}
               </Box>
               <Box sx={{ minWidth: 0 }}>
@@ -438,71 +492,63 @@ export default function CategoryProductList() {
             </Button>
           </Box>
 
-          {error && (
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <Typography sx={{ color: '#946D6D', fontWeight: 700 }}>{error}</Typography>
-            </Box>
-          )}
+          {!productsReady ? (
+            <ProductGridSkeleton count={4} />
+          ) : (
+            <>
+              {(initialLoading || visibleCount < 1) && (
+                <ProductGridSkeleton count={Math.max(pageSize, 4)} />
+              )}
 
-          {loading && products.length === 0 ? (
-            <Box sx={productCardGridSx}>
-              {Array.from({ length: 4 }).map((_, index) => (
-                <Box key={index} sx={{ width: 260 }}>
-                  <Skeleton variant="rounded" height={248} sx={{ borderRadius: '22px' }} />
-                  <Skeleton width="70%" sx={{ mt: 1.5 }} />
-                  <Skeleton width="40%" />
+              {error && !initialLoading ? (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <Typography sx={{ color: '#946D6D', fontWeight: 700 }}>{error}</Typography>
                 </Box>
-              ))}
-            </Box>
-          ) : products.length > 0 ? (
-            <AnimatePresence mode="wait">
+              ) : null}
+
+              {!error && !initialLoading && products.length === 0 && visibleCount > 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8, px: 2, borderRadius: '24px', backgroundColor: 'rgba(255,255,255,0.7)', border: '1px dashed rgba(148,109,109,0.22)' }}>
+                  <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>{t('categories.emptyTitle', { ns: 'home' })}</Typography>
+                  <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.6 }}>{t('categories.emptyText', { ns: 'home' })}</Typography>
+                </Box>
+              ) : null}
+
               <Box
                 key={selected}
-                component={motion.div}
-                initial={reduced ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduced ? { opacity: 1 } : { opacity: 0, y: -8 }}
-                transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-                sx={productCardGridSx}
+                ref={gridRef}
+                sx={{
+                  ...productCardGridSx,
+                  ...((initialLoading || error || products.length === 0)
+                    ? { height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none', mb: 0 }
+                    : {})
+                }}
               >
                 {products.map((product) => (
                   <Box key={product._id || product.id}>
-                    <ProductCard
-                      product={product}
-                    />
+                    <ProductCard product={product} fullWidth />
                   </Box>
                 ))}
               </Box>
-            </AnimatePresence>
-          ) : !error ? (
-            <Box sx={{ textAlign: 'center', py: 8, px: 2, borderRadius: '24px', backgroundColor: 'rgba(255,255,255,0.7)', border: '1px dashed rgba(148,109,109,0.22)' }}>
-              <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>{t('categories.emptyTitle', { ns: 'home' })}</Typography>
-              <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.6 }}>{t('categories.emptyText', { ns: 'home' })}</Typography>
-            </Box>
-          ) : null}
 
-          {!loading && hasMore && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4.5 }}>
-              <Button
-                variant="outlined"
-                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                endIcon={<ExpandMoreIcon />}
-                sx={{
-                  px: { xs: 2.5, sm: 4 },
-                  py: 1.25,
-                  borderRadius: '999px',
-                  borderColor: 'rgba(148,109,109,0.35)',
-                  color: '#946D6D',
-                  fontWeight: 800,
-                  '&:hover': { borderColor: '#946D6D', backgroundColor: '#946D6D', color: '#FFFFFF' }
-                }}
-              >
-                {t('actions.showMoreCount', { count: remaining })}
-              </Button>
-            </Box>
+              {hasMore ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4.5 }}>
+                  <LoadingButton
+                    tone="outline"
+                    loading={loadingMore}
+                    onClick={() => {
+                      if (pageSize < 1) return;
+                      setVisibleCount((prev) => prev + pageSize);
+                    }}
+                    endIcon={<ExpandMoreIcon />}
+                  >
+                    {t('actions.showMoreCount', { count: remaining })}
+                  </LoadingButton>
+                </Box>
+              ) : null}
+            </>
           )}
         </Box>
-      </Container>
+      </SiteContainer>
     </Box>
   );
 }

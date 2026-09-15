@@ -4,6 +4,7 @@ import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRound
 import { scrollPageTop } from '../hooks/useSmoothScroll';
 import HeroBanner from '../components/HeroBanner';
 import WeeklyAteliers from '../components/WeeklyAteliers';
+import FeaturedShelf from '../components/FeaturedShelf';
 import BestSellers from '../components/BestSellers';
 import CategoryProductList from '../components/CategoryProductList';
 import NewArrivals from '../components/NewArrivals';
@@ -28,7 +29,7 @@ export default function HomePage({ user, onNavigateAuth }) {
     }, []);
 
     return (
-        <Box sx={{ width: '100%', overflowX: 'hidden', pb: { xs: 2, md: 0 } }}>
+        <Box sx={{ width: '100%', pb: { xs: 2, md: 0 } }}>
             <Seo
                 path="/"
                 description={t('homeDescription')}
@@ -37,6 +38,10 @@ export default function HomePage({ user, onNavigateAuth }) {
             <HeroBanner user={user} onNavigateAuth={onNavigateAuth} />
 
             <CategoryProductList />
+
+            <Reveal>
+                <FeaturedShelf />
+            </Reveal>
 
             <WeeklyAteliers />
 

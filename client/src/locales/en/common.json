@@ -15,7 +15,8 @@
     "profile": "My profile",
     "logout": "Log out",
     "login": "Log in",
-    "register": "Sign up"
+    "register": "Sign up",
+    "ateliers": "Ateliers"
   },
   "footer": {
     "homeAria": "Nik Bag home",
@@ -24,6 +25,7 @@
     "explore": "Explore",
     "home": "Home",
     "allProducts": "All products",
+    "ateliers": "Ateliers",
     "becomeSeller": "Sell on Nik Bag",
     "loginRegister": "Log in / Sign up",
     "help": "Help",

@@ -37,7 +37,7 @@ export default function ProductReviews({ productId, user, onSummaryChange }) {
   const [deletingId, setDeletingId] = useState('');
   const [error, setError] = useState('');
   const [composerOpen, setComposerOpen] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
   const [lightbox, setLightbox] = useState('');
 
   const refreshEligibility = async () => {
@@ -83,6 +83,10 @@ export default function ProductReviews({ productId, user, onSummaryChange }) {
       });
 
     return () => { cancelled = true; };
+  }, [productId]);
+
+  useEffect(() => {
+    setVisibleCount(3);
   }, [productId]);
 
   useEffect(() => {
@@ -151,7 +155,8 @@ export default function ProductReviews({ productId, user, onSummaryChange }) {
     if (next.length) setPhotos((prev) => [...prev, ...next].slice(0, 4));
   };
 
-  const visibleReviews = showAll ? reviews : reviews.slice(0, 3);
+  const visibleReviews = reviews.slice(0, visibleCount);
+  const remainingReviews = Math.max(0, reviews.length - visibleCount);
 
   return (
     <Box sx={{ mt: { xs: 4, md: 5 }, pt: { xs: 2.4, md: 3 }, borderTop: '1px solid rgba(148,109,109,0.16)' }}>
@@ -177,7 +182,7 @@ export default function ProductReviews({ productId, user, onSummaryChange }) {
         )}
         {!user && (
           <Button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/giris')}
             sx={{ flexShrink: 0, borderRadius: '999px', px: 1.8, py: 0.7, fontWeight: 800, fontSize: '0.82rem', color: '#2E3B55', backgroundColor: '#FFFFFF', border: '1px solid rgba(148,109,109,0.22)', textTransform: 'none' }}
           >
             Giriş yap
@@ -324,9 +329,12 @@ export default function ProductReviews({ productId, user, onSummaryChange }) {
               </Box>
             </Box>
           ))}
-          {reviews.length > 3 && (
-            <Button onClick={() => setShowAll((prev) => !prev)} sx={{ alignSelf: 'flex-start', fontWeight: 800, fontSize: '0.82rem', color: '#946D6D', px: 0, textTransform: 'none' }}>
-              {showAll ? 'Daha az göster' : `${reviews.length - 3} yorum daha`}
+          {remainingReviews > 0 && (
+            <Button
+              onClick={() => setVisibleCount((prev) => prev + 3)}
+              sx={{ alignSelf: 'flex-start', fontWeight: 800, fontSize: '0.82rem', color: '#946D6D', px: 0, textTransform: 'none' }}
+            >
+              Daha fazla göster ({remainingReviews})
             </Button>
           )}
         </Box>

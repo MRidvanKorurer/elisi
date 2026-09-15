@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
   Box,
-  Container,
   Typography,
   TextField,
   Button,
@@ -15,6 +14,7 @@ import {
   Stack,
   Link as MuiLink
 } from '@mui/material';
+import SiteContainer from '../components/SiteContainer';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import EmailOutlined from '@mui/icons-material/EmailOutlined';
@@ -227,7 +227,7 @@ export default function AuthPage({ onLoginSuccess }) {
         boxSizing: 'border-box'
       }}
     >
-      <Seo title={t('seoTitle')} path="/auth" noindex />
+      <Seo title={t('seoTitle')} path="/giris" noindex />
 
       {/* Ambient backdrop */}
       <Box
@@ -261,8 +261,7 @@ export default function AuthPage({ onLoginSuccess }) {
         }}
       />
 
-      <Container
-        maxWidth="lg"
+      <SiteContainer
         disableGutters
         sx={{ position: 'relative', zIndex: 1, width: '100%' }}
       >
@@ -772,7 +771,7 @@ export default function AuthPage({ onLoginSuccess }) {
             </Box>
           </Box>
         </motion.div>
-      </Container>
+      </SiteContainer>
     </Box>
   );
 }

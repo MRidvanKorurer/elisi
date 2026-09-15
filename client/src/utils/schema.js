@@ -83,7 +83,7 @@ export const itemListSchema = (products = [], { path, limit = 24, locale = 'tr' 
     '@type': 'ListItem',
     position: index + 1,
     name: product.title || product.name,
-    url: absoluteUrl(withLocale(`/product/${product._id || product.id}`, locale))
+    url: absoluteUrl(withLocale(`/urun/${product._id || product.id}`, locale))
   }))
 });
 

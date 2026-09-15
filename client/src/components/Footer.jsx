@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import { categoryLabel } from '../utils/categories';
 import {
-  Box, Container, Typography, IconButton,
+  Box, Typography, IconButton,
   Link, TextField, Button, Divider, SvgIcon, Snackbar, Alert
 } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
@@ -73,7 +74,7 @@ export default function Footer() {
         borderTop: '1px solid rgba(148, 109, 109, 0.18)'
       }}
     >
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
         <Box
           sx={{
             display: 'grid',
@@ -126,9 +127,10 @@ export default function Footer() {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <Link component={LocaleLink} to="/" sx={footerLinkSx}>{t('footer.home')}</Link>
-              <Link component={LocaleLink} to="/products" sx={footerLinkSx}>{t('footer.allProducts')}</Link>
+              <Link component={LocaleLink} to="/urunler" sx={footerLinkSx}>{t('footer.allProducts')}</Link>
+              <Link component={LocaleLink} to="/atolyeler" sx={footerLinkSx}>{t('footer.ateliers')}</Link>
               <Link component={LocaleLink} to="/satici-ol" sx={footerLinkSx}>{t('footer.becomeSeller')}</Link>
-              <Link component={LocaleLink} to="/auth" rel="nofollow" sx={footerLinkSx}>{t('footer.loginRegister')}</Link>
+              <Link component={LocaleLink} to="/giris" rel="nofollow" sx={footerLinkSx}>{t('footer.loginRegister')}</Link>
             </Box>
           </Box>
 
@@ -218,7 +220,7 @@ export default function Footer() {
               <Link
                 key={item.value}
                 component={LocaleLink}
-                to={`/products?category=${encodeURIComponent(item.value)}`}
+                to={`/urunler?category=${encodeURIComponent(item.value)}`}
                 sx={{
                   color: '#6E5252',
                   textDecoration: 'none',
@@ -279,7 +281,7 @@ export default function Footer() {
             ))}
           </Box>
         </Box>
-      </Container>
+      </SiteContainer>
 
       <Snackbar
         open={toast.open}

@@ -25,14 +25,15 @@ import { formatTRY, salePriceOf } from '../utils/price';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
-export const PRODUCT_CARD_WIDTH = 260;
-export const PRODUCT_CARD_HEIGHT = 440;
+export const PRODUCT_CARD_WIDTH = 280;
+export const PRODUCT_CARD_HEIGHT = 460;
 
 export const productCardGridSx = {
   display: 'grid',
-  gridTemplateColumns: `repeat(auto-fill, ${PRODUCT_CARD_WIDTH}px)`,
-  justifyContent: 'center',
-  gap: { xs: 2, md: 3 }
+  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+  justifyContent: 'stretch',
+  gap: { xs: 2, md: 3 },
+  '& > *': { minWidth: 0 }
 };
 
 export default function ProductCard({ product, fullWidth = false }) {
@@ -80,7 +81,7 @@ export default function ProductCard({ product, fullWidth = false }) {
       product: id,
       seller: product?.seller
     });
-    navigate(`/product/${id}`);
+    navigate(`/urun/${id}`);
   };
 
   const handleAddToCart = async (e) => {
@@ -285,7 +286,7 @@ export default function ProductCard({ product, fullWidth = false }) {
               <Tooltip title={title} arrow placement="top" enterDelay={200}>
                 <Box
                   component={LocaleLink}
-                  to={id ? `/product/${id}` : '/products'}
+                  to={id ? `/urun/${id}` : '/urunler'}
                   onClick={(e) => e.stopPropagation()}
                   sx={{
                     color: '#2E3B55',
@@ -369,9 +370,9 @@ export default function ProductCard({ product, fullWidth = false }) {
             <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.7rem', whiteSpace: 'nowrap' }}>{t('card.specialPrice', { ns: 'catalog' })}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0 }}>
               {product?.discountPercentage > 0 && (
-                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap' }}>â‚º{formatTRY(price)}</Typography>
+                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap' }}>₺{formatTRY(price)}</Typography>
               )}
-              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: '1.15rem', whiteSpace: 'nowrap' }}>â‚º{formatTRY(finalPrice)}</Typography>
+              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: '1.15rem', whiteSpace: 'nowrap' }}>₺{formatTRY(finalPrice)}</Typography>
             </Box>
           </Box>
         </CardContent>

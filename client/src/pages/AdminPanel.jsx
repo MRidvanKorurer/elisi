@@ -40,6 +40,7 @@ import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
+import { PageSpinner } from '../components/LoadingButton';
 import AdminPlatformReport from '../components/AdminPlatformReport';
 import ImageUploader from '../components/ImageUploader';
 import { adminService } from '../api/adminService';
@@ -112,6 +113,7 @@ export default function AdminPanel({ user, handleLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [overview, setOverview] = useState(null);
+  const [bootLoading, setBootLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [sellers, setSellers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -162,6 +164,7 @@ export default function AdminPanel({ user, handleLogout }) {
   const [report, setReport] = useState(null);
 
   const load = async () => {
+    setBootLoading(true);
     try {
       const [ov, us, se, pr, lb, or, pm, ft, wk, rp] = await Promise.all([
         adminService.overview(),
@@ -194,6 +197,8 @@ export default function AdminPanel({ user, handleLogout }) {
       setError('');
     } catch (err) {
       setError(err.response?.data?.mesaj || 'Admin verileri yüklenemedi.');
+    } finally {
+      setBootLoading(false);
     }
   };
 
@@ -240,7 +245,7 @@ export default function AdminPanel({ user, handleLogout }) {
     [sellers, q]
   );
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/giris" replace />;
   if (!isSuperAdmin(user.rol)) return <Navigate to="/" replace />;
 
   const flash = (text) => {
@@ -559,7 +564,9 @@ export default function AdminPanel({ user, handleLogout }) {
       {error ? <Alert severity="error" sx={{ mb: 2, borderRadius: '14px' }}>{error}</Alert> : null}
       {message ? <Alert severity="success" sx={{ mb: 2, borderRadius: '14px' }} onClose={() => setMessage('')}>{message}</Alert> : null}
 
-      {view === 'dashboard' && overview && (
+      {bootLoading ? <PageSpinner minHeight="50vh" /> : null}
+
+      {view === 'dashboard' && overview && !bootLoading && (
         <Box>
           <SectionTitle
             overline="SÜPER ADMİN"

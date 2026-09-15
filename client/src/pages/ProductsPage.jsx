@@ -4,8 +4,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
-    Container,
     Divider,
     Drawer,
     FormControl,
@@ -22,6 +20,7 @@ import {
     useMediaQuery,
     useTheme
 } from '@mui/material';
+import SiteContainer from '../components/SiteContainer';
 import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -31,18 +30,35 @@ import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
+import HandymanOutlined from '@mui/icons-material/HandymanOutlined';
 import StarBorderRounded from '@mui/icons-material/StarBorderRounded';
 
 import ProductCard from '../components/ProductCard';
+import LoadingButton from '../components/LoadingButton';
 import productService from '../api/productService';
 import useDebounce from '../hooks/useDebounce';
+import useProductGridPageSize, { nextVisibleCount } from '../hooks/useProductGridPageSize';
 import { imgMood4 } from '../assets/media';
 import Seo from '../components/Seo';
 import { breadcrumbSchema, itemListSchema } from '../utils/schema';
 import { useTranslation } from 'react-i18next';
 import { categoryLabel, mergeCatalogCategories } from '../utils/categories';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
-const ITEMS_PER_PAGE = 8;
+const LIST_CARD_MIN = 220;
+
+const productsGridSx = {
+    display: 'grid',
+    gridTemplateColumns: {
+        xs: 'repeat(auto-fill, minmax(160px, 1fr))',
+        sm: `repeat(auto-fill, minmax(${LIST_CARD_MIN}px, 1fr))`
+    },
+    justifyContent: 'stretch',
+    columnGap: { xs: 1.5, md: 2.5 },
+    rowGap: { xs: 1.5, md: 2.5 },
+    '& > *': { minWidth: 0 }
+};
+
 const DEFAULT_MAX_PRICE = 10000;
 
 const SORT_OPTIONS = [
@@ -76,6 +92,7 @@ function buildQueryParams({
     onSale,
     isNew,
     immediateDelivery,
+    madeToOrder,
     minRating
 }) {
     const next = new URLSearchParams();
@@ -89,6 +106,7 @@ function buildQueryParams({
     if (onSale) next.set('sale', '1');
     if (isNew) next.set('new', '1');
     if (immediateDelivery) next.set('ship', '1');
+    if (madeToOrder) next.set('custom', '1');
     if (minRating) next.set('rating', String(minRating));
     return next;
 }
@@ -98,6 +116,7 @@ const QUICK_FILTERS = [
     { key: 'onSale', label: 'İndirim', Icon: LocalOfferOutlined },
     { key: 'isNew', label: 'Yeni', Icon: AutoAwesomeOutlined },
     { key: 'immediateDelivery', label: 'Hızlı kargo', Icon: LocalShippingOutlined },
+    { key: 'madeToOrder', label: 'Sipariş üzerine', Icon: HandymanOutlined },
     { key: 'minRating', label: '4+ puan', Icon: StarBorderRounded }
 ];
 
@@ -360,13 +379,14 @@ function FilterPanel({
     onSale,
     isNew,
     immediateDelivery,
+    madeToOrder,
     minRating,
     onToggleFlag,
     onClear,
     resultCount = 0
 }) {
     const { t } = useTranslation();
-    const flagState = { inStock, onSale, isNew, immediateDelivery, minRating: minRating >= 4 };
+    const flagState = { inStock, onSale, isNew, immediateDelivery, madeToOrder, minRating: minRating >= 4 };
     const activeCount = [
         searchTerm.trim(),
         ...selectedCategories,
@@ -375,6 +395,7 @@ function FilterPanel({
         onSale,
         isNew,
         immediateDelivery,
+        madeToOrder,
         minRating >= 4,
         priceRange[0] > priceBounds[0] || priceRange[1] < priceBounds[1]
     ].filter(Boolean).length;
@@ -610,10 +631,144 @@ function FilterAside({ children }) {
     );
 }
 
+function FilterWaitPanel({ count = 6, reduced }) {
+    const { t } = useTranslation();
+    return (
+        <Box
+            component={motion.div}
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
+            sx={{ position: 'relative', minHeight: 320 }}
+            aria-busy="true"
+            aria-live="polite"
+        >
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: 'repeat(auto-fill, minmax(160px, 1fr))',
+                        sm: `repeat(auto-fill, minmax(${LIST_CARD_MIN}px, 1fr))`
+                    },
+                    gap: { xs: 1.25, md: 2.5 },
+                    '& > *': { minWidth: 0 }
+                }}
+            >
+                {Array.from({ length: count }).map((_, index) => (
+                    <Box
+                        key={index}
+                        component={motion.div}
+                        initial={reduced ? false : { opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: reduced ? 0 : Math.min(index, 8) * 0.05, duration: 0.35 }}
+                        sx={{ minWidth: 0 }}
+                    >
+                        <Box
+                            sx={{
+                                height: 200,
+                                width: '100%',
+                                borderRadius: '22px',
+                                background: 'linear-gradient(135deg, rgba(253,244,210,0.9) 0%, rgba(176,205,230,0.35) 48%, rgba(162,144,183,0.28) 100%)',
+                                backgroundSize: '200% 200%',
+                                animation: reduced ? 'none' : 'filterShimmer 2.2s ease infinite',
+                                animationDelay: `${index * 0.08}s`
+                            }}
+                        />
+                        <Box
+                            sx={{
+                                mt: 1.4,
+                                height: 12,
+                                width: '72%',
+                                borderRadius: '8px',
+                                bgcolor: 'rgba(148,109,109,0.14)',
+                                animation: reduced ? 'none' : 'softPulse 1.6s ease infinite',
+                                animationDelay: `${index * 0.08}s`
+                            }}
+                        />
+                        <Box
+                            sx={{
+                                mt: 1,
+                                height: 10,
+                                width: '42%',
+                                borderRadius: '8px',
+                                bgcolor: 'rgba(148,109,109,0.1)',
+                                animation: reduced ? 'none' : 'softPulse 1.6s ease infinite',
+                                animationDelay: `${0.1 + index * 0.08}s`
+                            }}
+                        />
+                    </Box>
+                ))}
+            </Box>
+
+            <Box
+                sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    background: 'radial-gradient(ellipse at center, rgba(253,244,210,0.72) 0%, rgba(253,244,210,0.18) 55%, transparent 78%)'
+                }}
+            >
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 1.2,
+                        px: 3,
+                        py: 2.2,
+                        borderRadius: '22px',
+                        backgroundColor: 'rgba(255,255,255,0.82)',
+                        border: '1px solid rgba(148,109,109,0.16)',
+                        boxShadow: '0 18px 40px -28px rgba(46,59,85,0.55)',
+                        backdropFilter: 'blur(10px)'
+                    }}
+                >
+                    <Box
+                        component={motion.div}
+                        animate={reduced ? undefined : { rotate: [0, 12, -8, 0], scale: [1, 1.06, 1] }}
+                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                        sx={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: '50%',
+                            display: 'grid',
+                            placeItems: 'center',
+                            background: 'linear-gradient(145deg, #A290B7 0%, #946D6D 100%)',
+                            color: '#fff',
+                            boxShadow: '0 10px 24px -14px rgba(148,109,109,0.8)'
+                        }}
+                    >
+                        <AutoAwesomeOutlined sx={{ fontSize: 22 }} />
+                    </Box>
+                    <Typography sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.2px' }}>
+                        {t('list.filtering', { ns: 'catalog' })}
+                    </Typography>
+                    <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center', maxWidth: 260, mb: 0.4 }}>
+                        {t('list.filteringHint', { ns: 'catalog' })}
+                    </Typography>
+                    <LoadingButton
+                        tone="navy"
+                        loading
+                        loadingLabel={t('actions.loading')}
+                        sx={{ pointerEvents: 'none', mt: 0.4, minWidth: 168 }}
+                    >
+                        {t('actions.loading')}
+                    </LoadingButton>
+                </Box>
+            </Box>
+        </Box>
+    );
+}
+
 export default function ProductsPage() {
     const { t, i18n } = useTranslation();
     const locale = i18n.language === 'en' ? 'en' : 'tr';
     const theme = useTheme();
+    const reducedMotion = useReducedMotion();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
     const [searchParams, setSearchParams] = useSearchParams();
     const lastWrittenQuery = useRef(null);
@@ -622,6 +777,7 @@ export default function ProductsPage() {
     const [categories, setCategories] = useState([]);
     const [colors, setColors] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [filtering, setFiltering] = useState(true);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
     const [pagination, setPagination] = useState({ totalProducts: 0, totalPages: 1 });
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -639,8 +795,9 @@ export default function ProductsPage() {
     const [onSale, setOnSale] = useState(searchParams.get('sale') === '1');
     const [isNew, setIsNew] = useState(searchParams.get('new') === '1');
     const [immediateDelivery, setImmediateDelivery] = useState(searchParams.get('ship') === '1');
+    const [madeToOrder, setMadeToOrder] = useState(searchParams.get('custom') === '1');
     const [minRating, setMinRating] = useState(searchParams.get('rating') ? Number(searchParams.get('rating')) : 0);
-    const [limit, setLimit] = useState(ITEMS_PER_PAGE);
+    const [limit, setLimit] = useState(0);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 400);
     const debouncedPriceRange = useDebounce(priceRange, 400);
@@ -656,6 +813,7 @@ export default function ProductsPage() {
         onSale,
         isNew,
         immediateDelivery,
+        madeToOrder,
         minRating
     }), [
         debouncedSearchTerm,
@@ -668,6 +826,7 @@ export default function ProductsPage() {
         onSale,
         isNew,
         immediateDelivery,
+        madeToOrder,
         minRating
     ]);
 
@@ -691,6 +850,7 @@ export default function ProductsPage() {
         const nextSale = params.get('sale') === '1';
         const nextNew = params.get('new') === '1';
         const nextShip = params.get('ship') === '1';
+        const nextCustom = params.get('custom') === '1';
         const nextRating = params.get('rating') ? Number(params.get('rating')) : 0;
 
         setSearchTerm((prev) => (prev === nextSearch ? prev : nextSearch));
@@ -702,6 +862,7 @@ export default function ProductsPage() {
         setOnSale((prev) => (prev === nextSale ? prev : nextSale));
         setIsNew((prev) => (prev === nextNew ? prev : nextNew));
         setImmediateDelivery((prev) => (prev === nextShip ? prev : nextShip));
+        setMadeToOrder((prev) => (prev === nextCustom ? prev : nextCustom));
         setMinRating((prev) => (prev === nextRating ? prev : nextRating));
     }, [priceBounds]);
 
@@ -776,22 +937,39 @@ export default function ProductsPage() {
         onSale: committedFilters.onSale,
         isNew: committedFilters.isNew,
         immediateDelivery: committedFilters.immediateDelivery,
+        madeToOrder: committedFilters.madeToOrder,
         minRating: committedFilters.minRating
     }), [committedFilters]);
 
-    const prevFilterKey = useRef(filterKey);
-    const filtersRef = useRef(committedFilters);
-    filtersRef.current = committedFilters;
+    const { gridRef, pageSize } = useProductGridPageSize({
+        deps: [filterKey],
+        fillViewport: true,
+        minRows: 3,
+        maxRows: 4,
+        minCard: LIST_CARD_MIN,
+        cardHeight: 420
+    });
+    const rowSize = Math.max(0, pageSize);
 
     useEffect(() => {
-        if (prevFilterKey.current !== filterKey) {
+        setLimit((prev) => nextVisibleCount(prev, rowSize));
+    }, [rowSize]);
+
+    const filtersRef = useRef(committedFilters);
+    filtersRef.current = committedFilters;
+    const prevFilterKey = useRef(filterKey);
+
+    useEffect(() => {
+        const filtersChanged = prevFilterKey.current !== filterKey;
+        if (filtersChanged) {
             prevFilterKey.current = filterKey;
+            setLimit(rowSize);
+            setFiltering(true);
             setProducts([]);
-            if (limit !== ITEMS_PER_PAGE) {
-                setLimit(ITEMS_PER_PAGE);
-                return;
-            }
         }
+
+        const requestLimit = filtersChanged ? rowSize : limit;
+        if (requestLimit < 1) return undefined;
 
         let cancelled = false;
         const fetchFilteredProducts = async () => {
@@ -806,19 +984,21 @@ export default function ProductsPage() {
                     maxPrice: current.priceRange[1],
                     sort: current.sortBy,
                     page: 1,
-                    limit,
+                    limit: requestLimit,
                     inStock: current.inStock || undefined,
                     onSale: current.onSale || undefined,
                     isNew: current.isNew || undefined,
                     immediateDelivery: current.immediateDelivery || undefined,
+                    custom: current.madeToOrder ? '1' : undefined,
                     minRating: current.minRating || undefined
                 };
 
                 const response = await productService.getFilteredProducts(params);
                 if (cancelled) return;
-                if (response?.success) {
-                    setProducts(response.products || []);
-                    setPagination(response.pagination || { totalProducts: response.products?.length || 0 });
+                const list = response?.products || (Array.isArray(response) ? response : []);
+                if (response?.success || list.length > 0 || Array.isArray(response?.products)) {
+                    setProducts(list);
+                    setPagination(response?.pagination || { totalProducts: list.length });
                 } else {
                     setProducts([]);
                     setPagination({ totalProducts: 0, totalPages: 1 });
@@ -830,13 +1010,18 @@ export default function ProductsPage() {
                     setPagination({ totalProducts: 0, totalPages: 1 });
                 }
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                    setFiltering(false);
+                }
             }
         };
 
         fetchFilteredProducts();
         return () => { cancelled = true; };
-    }, [filterKey, limit]); // eslint-disable-line react-hooks/exhaustive-deps -- committedFilters is represented by filterKey
+        // rowSize is read when filters change; resize expands via limit + nextVisibleCount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filterKey, limit]);
 
     const handleToggle = (list, value, setter) => {
         setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -846,7 +1031,14 @@ export default function ProductsPage() {
         if (flag === 'inStock') setInStock((v) => !v);
         if (flag === 'onSale') setOnSale((v) => !v);
         if (flag === 'isNew') setIsNew((v) => !v);
-        if (flag === 'immediateDelivery') setImmediateDelivery((v) => !v);
+        if (flag === 'immediateDelivery') {
+            setImmediateDelivery((v) => !v);
+            setMadeToOrder(false);
+        }
+        if (flag === 'madeToOrder') {
+            setMadeToOrder((v) => !v);
+            setImmediateDelivery(false);
+        }
         if (flag === 'minRating') setMinRating((v) => (v >= 4 ? 0 : 4));
     };
 
@@ -860,8 +1052,8 @@ export default function ProductsPage() {
         setOnSale(false);
         setIsNew(false);
         setImmediateDelivery(false);
+        setMadeToOrder(false);
         setMinRating(0);
-        setLimit(ITEMS_PER_PAGE);
         setDrawerOpen(false);
     };
 
@@ -874,6 +1066,7 @@ export default function ProductsPage() {
         if (onSale) chips.push({ key: 'sale', label: 'İndirimli', onDelete: () => setOnSale(false) });
         if (isNew) chips.push({ key: 'new', label: 'Yeni', onDelete: () => setIsNew(false) });
         if (immediateDelivery) chips.push({ key: 'ship', label: 'Hemen kargo', onDelete: () => setImmediateDelivery(false) });
+        if (madeToOrder) chips.push({ key: 'custom', label: 'Sipariş üzerine', onDelete: () => setMadeToOrder(false) });
         if (minRating >= 4) chips.push({ key: 'rating', label: '4+ puan', onDelete: () => setMinRating(0) });
         if (debouncedPriceRange[0] > priceBounds[0] || debouncedPriceRange[1] < priceBounds[1]) {
             chips.push({
@@ -891,9 +1084,11 @@ export default function ProductsPage() {
         onSale,
         isNew,
         immediateDelivery,
+        madeToOrder,
         minRating,
         debouncedPriceRange,
-        priceBounds
+        priceBounds,
+        t
     ]);
 
     const filterPanelProps = {
@@ -913,6 +1108,7 @@ export default function ProductsPage() {
         onSale,
         isNew,
         immediateDelivery,
+        madeToOrder,
         minRating,
         onToggleFlag: handleToggleFlag,
         onClear: clearFilters,
@@ -942,18 +1138,18 @@ export default function ProductsPage() {
             <Seo
                 title={seoTitle}
                 description={seoDescription}
-                path="/products"
+                path="/urunler"
                 noindex={Boolean(searchTerm)}
                 type="website"
                 jsonLd={[
                     breadcrumbSchema([
                         { name: t('list.home', { ns: 'catalog' }), path: '/' },
-                        { name: t('list.products', { ns: 'catalog' }), path: '/products' }
+                        { name: t('list.products', { ns: 'catalog' }), path: '/urunler' }
                     ], locale),
-                    products.length > 0 && !isFilteredView ? itemListSchema(products, { path: '/products', locale }) : null
+                    products.length > 0 && !isFilteredView ? itemListSchema(products, { path: '/urunler', locale }) : null
                 ]}
             />
-            <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 4 } }}>
+            <SiteContainer sx={{ px: { xs: 1.5, sm: 2, md: 4 } }}>
                 <Box sx={{ display: 'flex', gap: { md: 3, lg: 3.5 }, alignItems: 'flex-start', position: 'relative' }}>
                     {isDesktop && (
                         <FilterAside>
@@ -1070,96 +1266,110 @@ export default function ProductsPage() {
                     )}
                 </Paper>
 
-                        {loading && products.length === 0 ? (
-                            <Box
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: {
-                                        xs: 'repeat(2, minmax(0, 1fr))',
-                                        sm: 'repeat(2, minmax(0, 1fr))',
-                                        md: 'repeat(4, minmax(0, 1fr))'
-                                    },
-                                    gap: { xs: 1.25, md: 2.5 }
-                                }}
-                            >
-                                {Array.from({ length: 8 }).map((_, index) => (
-                                    <Skeleton key={index} variant="rounded" height={360} sx={{ borderRadius: '22px' }} />
-                                ))}
-                            </Box>
-                        ) : products.length === 0 ? (
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    textAlign: 'center',
-                                    py: { xs: 6, md: 8 },
-                                    px: 3,
-                                    borderRadius: '24px',
-                                    backgroundColor: '#FFFFFF',
-                                    border: '1px solid rgba(148, 109, 109, 0.1)'
-                                }}
-                            >
-                                <Typography variant="h6" fontWeight={800} sx={{ color: '#2E3B55', mb: 1 }}>
-                                    Sonuç bulunamadı
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#6E5252', mb: 2.5 }}>
-                                    Seçtiğiniz filtrelere uygun ürün yok. Filtreleri gevşetmeyi deneyin.
-                                </Typography>
-                                <Button
-                                    onClick={clearFilters}
-                                    variant="contained"
-                                    sx={{ backgroundColor: '#946D6D', color: '#FFF', borderRadius: '12px', px: 3, fontWeight: 700 }}
-                                >
-                                    Filtreleri temizle
-                                </Button>
-                            </Paper>
-                        ) : (
-                            <>
-                                <Box
-                                    key={filterKey}
+                        {/* Genişlik + viewport ölçümü — liste üstünde */}
+                        <Box
+                            ref={gridRef}
+                            aria-hidden
+                            sx={{
+                                ...productsGridSx,
+                                height: 0,
+                                overflow: 'hidden',
+                                opacity: 0,
+                                pointerEvents: 'none',
+                                m: 0,
+                                p: 0,
+                                border: 0
+                            }}
+                        />
+
+                        <AnimatePresence mode="wait">
+                            {(filtering || (loading && products.length === 0) || limit < 1) ? (
+                                <FilterWaitPanel
+                                    key="filter-wait"
+                                    count={Math.max(rowSize, 6)}
+                                    reduced={Boolean(reducedMotion)}
+                                />
+                            ) : products.length === 0 ? (
+                                <Paper
+                                    key="empty"
+                                    component={motion.div}
+                                    initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={reducedMotion ? undefined : { opacity: 0 }}
+                                    elevation={0}
                                     sx={{
-                                        display: 'grid',
-                                        gridTemplateColumns: {
-                                            xs: 'repeat(2, minmax(0, 1fr))',
-                                            sm: 'repeat(2, minmax(0, 1fr))',
-                                            md: 'repeat(4, minmax(0, 1fr))'
-                                        },
-                                        gap: { xs: 1.25, md: 2.5 }
+                                        textAlign: 'center',
+                                        py: { xs: 6, md: 8 },
+                                        px: 3,
+                                        borderRadius: '24px',
+                                        backgroundColor: '#FFFFFF',
+                                        border: '1px solid rgba(148, 109, 109, 0.1)'
                                     }}
                                 >
-                                    {products.map((product) => (
-                                        <Box key={product._id || product.id} sx={{ minWidth: 0 }}>
-                                            <ProductCard product={product} fullWidth />
-                                        </Box>
-                                    ))}
-                                </Box>
-
-                                {remaining > 0 && (
-                                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-                                        <Button
-                                            variant="contained"
-                                            onClick={() => setLimit((prev) => prev + ITEMS_PER_PAGE)}
-                                            disabled={loading}
-                                            endIcon={loading ? <CircularProgress size={16} color="inherit" /> : <KeyboardArrowDownIcon />}
-                                            sx={{
-                                                backgroundColor: '#2E3B55',
-                                                color: '#FFFFFF',
-                                                borderRadius: '16px',
-                                                px: { xs: 3, md: 4 },
-                                                py: 1.4,
-                                                fontWeight: 700,
-                                                boxShadow: '0 8px 20px rgba(46, 59, 85, 0.16)',
-                                                '&:hover': { backgroundColor: '#946D6D' }
-                                            }}
-                                        >
-                                            {loading ? t('actions.loading') : t('actions.showMoreRemaining', { count: remaining })}
-                                        </Button>
+                                    <Typography variant="h6" fontWeight={800} sx={{ color: '#2E3B55', mb: 1 }}>
+                                        Sonuç bulunamadı
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#6E5252', mb: 2.5 }}>
+                                        Seçtiğiniz filtrelere uygun ürün yok. Filtreleri gevşetmeyi deneyin.
+                                    </Typography>
+                                    <Button
+                                        onClick={clearFilters}
+                                        variant="contained"
+                                        sx={{ backgroundColor: '#946D6D', color: '#FFF', borderRadius: '12px', px: 3, fontWeight: 700 }}
+                                    >
+                                        Filtreleri temizle
+                                    </Button>
+                                </Paper>
+                            ) : (
+                                <Box
+                                    key={filterKey}
+                                    component={motion.div}
+                                    initial={reducedMotion ? false : { opacity: 0, y: 14 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={reducedMotion ? undefined : { opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
+                                >
+                                    <Box sx={productsGridSx}>
+                                        {products.map((product, index) => (
+                                            <Box
+                                                key={product._id || product.id}
+                                                component={motion.div}
+                                                initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{
+                                                    duration: 0.3,
+                                                    delay: reducedMotion ? 0 : Math.min(index, 11) * 0.035,
+                                                    ease: [0.22, 0.61, 0.36, 1]
+                                                }}
+                                                sx={{ minWidth: 0 }}
+                                            >
+                                                <ProductCard product={product} fullWidth />
+                                            </Box>
+                                        ))}
                                     </Box>
-                                )}
-                            </>
-                        )}
+
+                                    {remaining > 0 && (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+                                            <LoadingButton
+                                                tone="navy"
+                                                loading={loading && !filtering}
+                                                onClick={() => {
+                                                    if (rowSize < 1) return;
+                                                    setLimit((prev) => prev + rowSize);
+                                                }}
+                                                endIcon={<KeyboardArrowDownIcon />}
+                                                sx={{ borderRadius: '16px', px: { xs: 3, md: 4 }, py: 1.4 }}
+                                            >
+                                                {t('actions.showMoreRemaining', { count: remaining })}
+                                            </LoadingButton>
+                                        </Box>
+                                    )}
+                                </Box>
+                            )}
+                        </AnimatePresence>
                     </Box>
                 </Box>
-            </Container>
+            </SiteContainer>
 
             <Drawer
                 anchor="bottom"

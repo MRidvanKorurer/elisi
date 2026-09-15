@@ -25,7 +25,7 @@ export default function NotFoundPage() {
           <Button
             variant="contained"
             endIcon={<ArrowForwardRounded />}
-            onClick={() => navigate('/products')}
+            onClick={() => navigate('/urunler')}
             sx={{ bgcolor: '#946D6D', borderRadius: '14px', px: 3, py: 1.2, fontWeight: 800, '&:hover': { bgcolor: '#7c5a5a' } }}
           >
             {t('actions.seeAllProducts')}

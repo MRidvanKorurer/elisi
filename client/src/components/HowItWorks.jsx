@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Container, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import TravelExploreOutlined from '@mui/icons-material/TravelExploreOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
@@ -84,9 +85,8 @@ export default function HowItWorks() {
   const { t } = useTranslation('home');
   const steps = STEP_META.map((step) => ({ ...step, title: t(step.titleKey), text: t(step.textKey) }));
   return (
-    <Container
+    <SiteContainer
       component="section"
-      maxWidth="lg"
       aria-labelledby="how-it-works-title"
       sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}
     >
@@ -135,6 +135,6 @@ export default function HowItWorks() {
           </React.Fragment>
         ))}
       </Box>
-    </Container>
+    </SiteContainer>
   );
 }

@@ -470,10 +470,158 @@ const removeWeek = async (req, res) => {
   }
 };
 
+const listPublicAteliers = async (req, res) => {
+  try {
+    await expireWeeklyAteliers();
+
+    const q = String(req.query.q || '').trim().toLocaleLowerCase('tr');
+    const sehir = String(req.query.sehir || '').trim();
+    const tur = String(req.query.tur || '').trim().toLowerCase();
+    const sort = String(req.query.sort || 'popular');
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(48, Math.max(1, Number(req.query.limit) || 12));
+    const skip = (page - 1) * limit;
+
+    const shops = await Seller.find({
+      durum: 'approved',
+      slug: { $exists: true, $nin: [null, ''] }
+    }).lean();
+    const userIds = shops.map((shop) => shop.user).filter(Boolean);
+    const makers = await User.find({ _id: { $in: userIds } }).select('adSoyad avatarUrl').lean();
+    const makerMap = new Map(makers.map((user) => [String(user._id), user]));
+
+    const publicProductMatch = {
+      seller: { $in: userIds },
+      isActive: true,
+      approvalStatus: { $nin: ['pending', 'rejected'] }
+    };
+
+    const [stats, coverDocs] = await Promise.all([
+      Product.aggregate([
+        { $match: publicProductMatch },
+        {
+          $group: {
+            _id: '$seller',
+            productCount: { $sum: 1 },
+            soldCount: { $sum: { $ifNull: ['$soldCount', 0] } },
+            reviewCount: { $sum: { $ifNull: ['$numReviews', 0] } },
+            ratingWeight: { $sum: { $ifNull: ['$numReviews', 0] } },
+            ratingSum: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$rating', 0] },
+                  { $ifNull: ['$numReviews', 0] }
+                ]
+              }
+            }
+          }
+        }
+      ]),
+      Product.find(publicProductMatch)
+        .sort({ soldCount: -1, createdAt: -1 })
+        .select('seller image additionalImages')
+        .lean()
+    ]);
+
+    const statsMap = new Map(stats.map((row) => [String(row._id), row]));
+    const coversBySeller = new Map();
+    coverDocs.forEach((doc) => {
+      const key = String(doc.seller);
+      const bucket = coversBySeller.get(key) || [];
+      if (bucket.length >= 4) return;
+      const src = doc.image || (Array.isArray(doc.additionalImages) ? doc.additionalImages[0] : '');
+      if (!src || bucket.includes(src)) return;
+      bucket.push(src);
+      coversBySeller.set(key, bucket);
+    });
+
+    const catalog = shops
+      .filter((shop) => shop.slug)
+      .map((shop) => {
+        const key = String(shop.user);
+        const summary = statsMap.get(key) || {};
+        const reviewCount = summary.reviewCount || 0;
+        const rating = reviewCount > 0 && summary.ratingWeight
+          ? Math.round((summary.ratingSum / summary.ratingWeight) * 10) / 10
+          : 0;
+        return serializePublicAtelier(shop, makerMap.get(key), {
+          productCount: summary.productCount || 0,
+          soldCount: summary.soldCount || 0,
+          reviewCount,
+          rating,
+          coverImages: coversBySeller.get(key) || []
+        });
+      })
+      .filter((item) => item.productCount > 0);
+
+    // Facetler filtrelerden bağımsız — seçili şehir/alan diğer seçenekleri silmesin
+    const cityCounts = new Map();
+    const turCounts = new Map();
+    catalog.forEach((item) => {
+      if (item.sehir) cityCounts.set(item.sehir, (cityCounts.get(item.sehir) || 0) + 1);
+      (item.magazaTuru || []).forEach((id) => {
+        turCounts.set(id, (turCounts.get(id) || 0) + 1);
+      });
+    });
+
+    let ateliers = catalog.filter((item) => {
+      if (sehir && String(item.sehir || '').toLocaleLowerCase('tr') !== sehir.toLocaleLowerCase('tr')) return false;
+      if (tur && !(item.magazaTuru || []).map((id) => String(id).toLowerCase()).includes(tur)) return false;
+      if (q) {
+        const hay = [item.magazaAdi, item.aciklama, item.sehir, item.ilce, item.magazaTuruEtiket]
+          .filter(Boolean)
+          .join(' ')
+          .toLocaleLowerCase('tr');
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (sort === 'rating') {
+      ateliers.sort((a, b) => (b.rating - a.rating) || (b.reviewCount - a.reviewCount) || (b.productCount - a.productCount));
+    } else if (sort === 'newest') {
+      ateliers.sort((a, b) => (b.sinceYear || 0) - (a.sinceYear || 0) || a.magazaAdi.localeCompare(b.magazaAdi, 'tr'));
+    } else if (sort === 'name') {
+      ateliers.sort((a, b) => a.magazaAdi.localeCompare(b.magazaAdi, 'tr'));
+    } else {
+      ateliers.sort((a, b) => {
+        if (b.isWeeklyAtelier !== a.isWeeklyAtelier) return b.isWeeklyAtelier ? 1 : -1;
+        return (b.soldCount - a.soldCount) || (b.productCount - a.productCount) || (b.rating - a.rating);
+      });
+    }
+
+    const total = ateliers.length;
+    const pageItems = ateliers.slice(skip, skip + limit);
+
+    return res.json({
+      success: true,
+      ateliers: pageItems,
+      facets: {
+        cities: [...cityCounts.entries()]
+          .map(([label, count]) => ({ label, count }))
+          .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'tr')),
+        crafts: [...turCounts.entries()]
+          .map(([id, count]) => ({ id, count }))
+          .sort((a, b) => b.count - a.count)
+      },
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+        hasMore: skip + pageItems.length < total
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, mesaj: 'Atölyeler alınamadı.', hata: error.message });
+  }
+};
+
 module.exports = {
   expireWeeklyAteliers,
   slotsOf,
   listPublicWeek,
+  listPublicAteliers,
   listMyWeek,
   createWeek,
   cancelWeek,

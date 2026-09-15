@@ -7,7 +7,6 @@ import {
   Button,
   CircularProgress,
   Collapse,
-  Container,
   Divider,
   IconButton,
   Paper,
@@ -18,6 +17,7 @@ import {
   FormControlLabel,
   Checkbox
 } from '@mui/material';
+import SiteContainer from '../components/SiteContainer';
 import AddIcon from '@mui/icons-material/Add';
 import AddCardOutlinedIcon from '@mui/icons-material/AddCardOutlined';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
@@ -229,6 +229,7 @@ export default function CheckoutPage({ user }) {
   const navigate = useLocaleNavigate();
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [loading, setLoading] = useState(false);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [cartLoading, setCartLoading] = useState(true);
@@ -384,7 +385,7 @@ export default function CheckoutPage({ user }) {
   const applyCoupon = async () => {
     if (!user) {
       showToast('İndirim kodu için giriş yap.', 'warning');
-      navigate('/auth');
+      navigate('/giris');
       return;
     }
     const kod = couponInput.trim();
@@ -585,7 +586,7 @@ export default function CheckoutPage({ user }) {
   const handleSaveAddress = async () => {
     if (!user) {
       showToast('Adresi kaydetmek için giriş yapın.', 'warning');
-      navigate('/auth');
+      navigate('/giris');
       return;
     }
     if (!formData.address.trim() || !formData.city.trim() || !formData.district.trim()) {
@@ -729,6 +730,7 @@ export default function CheckoutPage({ user }) {
       showToast('WhatsApp numarası henüz tanımlanmamış.', 'warning');
       return;
     }
+    setWhatsappLoading(true);
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank');
 
     try {
@@ -737,6 +739,8 @@ export default function CheckoutPage({ user }) {
       window.dispatchEvent(new Event('cartUpdated'));
     } catch {
       /* WhatsApp opened even if order record fails */
+    } finally {
+      setWhatsappLoading(false);
     }
   };
 
@@ -746,12 +750,12 @@ export default function CheckoutPage({ user }) {
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FDF4D2 0%, #F4E7C4 100%)', pt: { xs: 10, md: 13 }, pb: { xs: 14, md: 8 } }}>
-      <Seo title={t('seoTitle')} path="/checkout" noindex />
+      <Seo title={t('seoTitle')} path="/sepet" noindex />
       <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} sx={{ mt: 8 }}>
         <Alert severity={toast.severity} variant="filled" sx={{ borderRadius: '12px', fontWeight: 700 }}>{toast.message}</Alert>
       </Snackbar>
 
-      <Container maxWidth="lg" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+      <SiteContainer sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
           <Button startIcon={<ArrowBackIosNewRoundedIcon sx={{ fontSize: 16 }} />} onClick={() => navigate(-1)} sx={{ color: '#6E5252', fontWeight: 700 }}>
             Geri
@@ -786,7 +790,7 @@ export default function CheckoutPage({ user }) {
               {!user && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
                   Adresi profilinize kaydetmek için{' '}
-                  <Box component="span" onClick={() => navigate('/auth')} sx={{ fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>giriş yapın</Box>.
+                  <Box component="span" onClick={() => navigate('/giris')} sx={{ fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>giriş yapın</Box>.
                 </Alert>
               )}
               {addresses.length > 0 && (
@@ -911,12 +915,12 @@ export default function CheckoutPage({ user }) {
               <Button
                 fullWidth
                 variant="outlined"
-                startIcon={<WhatsAppIcon />}
-                disabled={!cartItems.length}
+                startIcon={whatsappLoading ? <CircularProgress size={16} color="inherit" /> : <WhatsAppIcon />}
+                disabled={!cartItems.length || whatsappLoading || loading}
                 onClick={handleWhatsAppOrder}
                 sx={{ mt: 1, py: 1.2, borderRadius: '14px', borderColor: '#25D366', color: '#1B8F47', fontWeight: 800, backgroundColor: 'rgba(37,211,102,0.08)', '&:hover': { backgroundColor: '#25D366', color: '#FFFFFF', borderColor: '#25D366' } }}
               >
-                WhatsApp ile sipariş
+                {whatsappLoading ? t('actions.loading', { ns: 'common' }) : 'WhatsApp ile sipariş'}
               </Button>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: 2, color: '#6E5252' }}>
                 <LocalShippingOutlinedIcon fontSize="small" />
@@ -932,7 +936,7 @@ export default function CheckoutPage({ user }) {
             ) : cartItems.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 3 }}>
                 <Typography sx={{ color: '#6E5252', mb: 2 }}>Sepetiniz boş.</Typography>
-                <Button variant="contained" onClick={() => navigate('/products')} sx={{ ...darkBtnSx }}>Ürünlere git</Button>
+                <Button variant="contained" onClick={() => navigate('/urunler')} sx={{ ...darkBtnSx }}>Ürünlere git</Button>
               </Box>
             ) : (
               <Stack spacing={1.5} sx={{ mb: 2 }}>
@@ -1099,7 +1103,7 @@ export default function CheckoutPage({ user }) {
             </Button>
           </Paper>
         </Box>
-      </Container>
+      </SiteContainer>
 
       <Paper
         elevation={8}

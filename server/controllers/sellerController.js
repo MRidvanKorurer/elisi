@@ -1151,7 +1151,7 @@ const getPublicSeller = async (req, res) => {
         }
 
         const page = Math.max(1, Number(req.query.page) || 1);
-        const limit = Math.min(24, Math.max(1, Number(req.query.limit) || 8));
+        const limit = Math.min(48, Math.max(1, Number(req.query.limit) || 12));
         const skip = (page - 1) * limit;
         const sortKey = String(req.query.sort || 'newest');
         const category = String(req.query.category || '').trim().toLowerCase();

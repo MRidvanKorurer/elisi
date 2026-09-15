@@ -144,6 +144,13 @@ const getFilteredProducts = async (req, res) => {
         }
         if (immediateDelivery === 'true' || immediateDelivery === '1') {
             matchStage.immediateDelivery = true;
+        } else if (
+            immediateDelivery === 'false'
+            || immediateDelivery === '0'
+            || req.query.custom === '1'
+            || req.query.custom === 'true'
+        ) {
+            matchStage.immediateDelivery = false;
         }
 
         if (minRating !== undefined && minRating !== '') {
@@ -284,7 +291,7 @@ const getBestSellers = async (req, res) => {
         const bestSellers = await Product.find(publicMatch())
             .select(LIST_SELECT)
             .sort({ soldCount: -1 })
-            .limit(12)
+            .limit(10)
             .lean();
 
         res.status(200).json(bestSellers);

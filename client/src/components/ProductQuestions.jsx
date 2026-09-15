@@ -37,7 +37,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
   const [answeringId, setAnsweringId] = useState('');
   const [deletingId, setDeletingId] = useState('');
   const [error, setError] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(4);
   const [canAnswerApi, setCanAnswerApi] = useState(false);
 
   const sellerId = String(productSellerId?._id || productSellerId || '');
@@ -61,6 +61,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
     setError('');
     setDraft('');
     setComposerOpen(false);
+    setVisibleCount(4);
     questionService.getQuestions(productId, { limit: 20 })
       .then((data) => {
         if (cancelled) return;
@@ -123,7 +124,8 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
     }
   };
 
-  const visible = showAll ? questions : questions.slice(0, 4);
+  const visible = questions.slice(0, visibleCount);
+  const remainingQuestions = Math.max(0, questions.length - visibleCount);
 
   return (
     <Box sx={{ mt: { xs: 4, md: 5 }, pt: { xs: 2.4, md: 3 }, borderTop: '1px solid rgba(148,109,109,0.16)' }}>
@@ -291,9 +293,12 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
               </Box>
             );
           })}
-          {questions.length > 4 && (
-            <Button onClick={() => setShowAll((value) => !value)} sx={{ alignSelf: 'flex-start', fontWeight: 800, color: '#946D6D', textTransform: 'none' }}>
-              {showAll ? 'Daha az göster' : `Tüm soruları gör (${questions.length})`}
+          {remainingQuestions > 0 && (
+            <Button
+              onClick={() => setVisibleCount((prev) => prev + 4)}
+              sx={{ alignSelf: 'flex-start', fontWeight: 800, color: '#946D6D', textTransform: 'none' }}
+            >
+              Daha fazla göster ({remainingQuestions})
             </Button>
           )}
         </Box>

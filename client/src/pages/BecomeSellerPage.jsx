@@ -16,6 +16,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import SiteContainer from '../components/SiteContainer';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import PersonOutlineOutlined from '@mui/icons-material/PersonOutlineOutlined';
 import EmailOutlined from '@mui/icons-material/EmailOutlined';
@@ -419,7 +420,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
   }
 
   if (seller?.durum === 'approved') {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/panel" replace />;
   }
 
   if (seller) {
@@ -510,7 +511,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
       />
       <PageBackdrop />
 
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+      <SiteContainer sx={{ position: 'relative', zIndex: 1 }}>
         <Box
           sx={{
             display: 'grid',
@@ -918,7 +919,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
               {!loggedIn && (
                 <Typography variant="body2" sx={{ mt: 2.2, textAlign: 'center', color: '#6E5252', fontWeight: 600 }}>
                   Zaten hesabın var mı?{' '}
-                  <Box component={LocaleLink} to="/auth" sx={{ color: '#946D6D', fontWeight: 800, textDecoration: 'none' }}>
+                  <Box component={LocaleLink} to="/giris" sx={{ color: '#946D6D', fontWeight: 800, textDecoration: 'none' }}>
                     Giriş yap
                   </Box>
                 </Typography>
@@ -926,7 +927,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
             </Box>
           </motion.div>
         </Box>
-      </Container>
+      </SiteContainer>
     </Box>
   );
 }

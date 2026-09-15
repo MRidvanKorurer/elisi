@@ -1,11 +1,26 @@
 import React, { useState, useEffect, Suspense, lazy, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress } from '@mui/material';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
+import { PageSpinner } from './components/LoadingButton';
 import { trTR, enUS } from '@mui/material/locale';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import LocaleLayout from './i18n/LocaleLayout';
 import { localeFromPath, withLocale } from './i18n/locale';
+import { PATHS, isPanelPath } from './i18n/paths';
+
+function LocaleRedirect({ to }) {
+  const location = useLocation();
+  const locale = localeFromPath(location.pathname);
+  return <Navigate to={withLocale(to, locale)} replace />;
+}
+
+function LegacyProductRedirect() {
+  const { id } = useParams();
+  const location = useLocation();
+  const locale = localeFromPath(location.pathname);
+  return <Navigate to={withLocale(PATHS.product(id), locale)} replace />;
+}
 
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
@@ -26,6 +41,7 @@ const ProfileDashboard = lazy(() => import('./components/ProfileDashboard'));
 const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'));
 const AtelierPage = lazy(() => import('./pages/AtelierPage'));
+const AteliersPage = lazy(() => import('./pages/AteliersPage'));
 const OrderResultPage = lazy(() => import('./pages/OrderResultPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
@@ -43,6 +59,16 @@ const themeOptions = {
   typography: { fontFamily: '"Plus Jakarta Sans", sans-serif', button: { textTransform: 'none' } },
   shape: { borderRadius: 16 },
   components: {
+    MuiContainer: {
+      styleOverrides: {
+        root: ({ ownerState }) => {
+          if (ownerState.maxWidth === 'md') return { '&.MuiContainer-maxWidthMd': { maxWidth: 1080 } };
+          if (ownerState.maxWidth === 'lg') return { '&.MuiContainer-maxWidthLg': { maxWidth: 1480 } };
+          if (ownerState.maxWidth === 'xl') return { '&.MuiContainer-maxWidthXl': { maxWidth: 1560 } };
+          return {};
+        }
+      }
+    },
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
@@ -78,11 +104,7 @@ const PageFade = ({ children, reduced }) => {
   );
 };
 
-const RouteFallback = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-    <CircularProgress sx={{ color: '#946D6D' }} />
-  </Box>
-);
+const RouteFallback = () => <PageSpinner minHeight="60vh" />;
 
 export default function App() {
   const navigate = useNavigate();
@@ -90,13 +112,13 @@ export default function App() {
   const { i18n } = useTranslation();
   const reduced = useReducedMotion();
   const locale = localeFromPath(location.pathname);
-  const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const isAdminRoute = isPanelPath(location.pathname);
   const theme = useMemo(
     () => createTheme(themeOptions, i18n.language === 'en' ? enUS : trTR),
     [i18n.language]
   );
 
-  useSmoothScroll(!isAdminRoute);
+  useSmoothScroll(false);
 
   // Oturum ve Yükleme Stateleri
   const [user, setUser] = useState(() => readCachedUser());
@@ -155,8 +177,9 @@ export default function App() {
   };
 
   const handleSetPage = (pageName) => {
-    if (pageName === 'home') navigate(withLocale('/', locale));
-    else if (pageName === 'admin') navigate('/admin');
+    if (pageName === 'home' || pageName === PATHS.home) navigate(withLocale('/', locale));
+    else if (pageName === 'admin' || pageName === 'panel' || pageName === PATHS.panel) navigate(PATHS.panel);
+    else if (pageName.startsWith('/')) navigate(withLocale(pageName, locale));
     else navigate(withLocale(`/${pageName}`, locale));
   };
 
@@ -164,13 +187,14 @@ export default function App() {
     <>
       <Route
         index
-        element={<HomePage onNavigateAuth={() => navigate(withLocale('/auth', locale))} user={user} />}
+        element={<HomePage onNavigateAuth={() => navigate(withLocale(PATHS.auth, locale))} user={user} />}
       />
-      <Route path="auth" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
-      <Route path="checkout" element={<CheckoutPage user={user} />} />
-      <Route path="product/:id" element={<ProductDetailPage user={user} />} />
-      <Route path="profile" element={<ProfileDashboard />} />
-      <Route path="products" element={<ProductsPage />} />
+      <Route path="giris" element={<AuthPage onLoginSuccess={handleLoginSuccess} />} />
+      <Route path="sepet" element={<CheckoutPage user={user} />} />
+      <Route path="urun/:id" element={<ProductDetailPage user={user} />} />
+      <Route path="hesabim" element={<ProfileDashboard />} />
+      <Route path="urunler" element={<ProductsPage />} />
+      <Route path="atolyeler" element={<AteliersPage />} />
       <Route
         path="satici-ol"
         element={<BecomeSellerPage user={user} onLoginSuccess={handleLoginSuccess} />}
@@ -184,6 +208,14 @@ export default function App() {
       <Route path="on-bilgilendirme" element={<LegalPage />} />
       <Route path="iade" element={<LegalPage />} />
       <Route path="kargo" element={<LegalPage />} />
+
+      {/* Eski İngilizce yollar */}
+      <Route path="auth" element={<LocaleRedirect to={PATHS.auth} />} />
+      <Route path="checkout" element={<LocaleRedirect to={PATHS.checkout} />} />
+      <Route path="profile" element={<LocaleRedirect to={PATHS.profile} />} />
+      <Route path="products" element={<LocaleRedirect to={PATHS.products} />} />
+      <Route path="product/:id" element={<LegacyProductRedirect />} />
+
       <Route path="*" element={<NotFoundPage />} />
     </>
   );
@@ -191,13 +223,14 @@ export default function App() {
   const routes = useMemo(() => (
     <Routes location={location}>
       <Route
-        path="admin"
+        path="panel"
         element={
           isSuperAdmin(user?.rol)
             ? <AdminPanel user={user} handleLogout={handleLogout} />
             : <SellerPanel user={user} handleLogout={handleLogout} />
         }
       />
+      <Route path="admin" element={<Navigate to={PATHS.panel} replace />} />
       <Route path="en" element={<LocaleLayout />}>
         {storefrontRoutes()}
       </Route>

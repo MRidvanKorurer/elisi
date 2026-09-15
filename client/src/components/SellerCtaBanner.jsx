@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Button, Container, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +37,7 @@ export default function SellerCtaBanner({ user }) {
   }, []);
 
   return (
-    <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
       <Box
         sx={{
           position: 'relative',
@@ -90,7 +91,7 @@ export default function SellerCtaBanner({ user }) {
           </Typography>
         </Box>
         <Button
-          onClick={() => navigate(isSeller ? '/admin' : '/satici-ol')}
+          onClick={() => navigate(isSeller ? '/panel' : '/satici-ol')}
           startIcon={<StorefrontOutlined />}
           endIcon={<ArrowForwardRounded />}
           sx={{
@@ -111,6 +112,6 @@ export default function SellerCtaBanner({ user }) {
           {isSeller ? t('sellerCta.sellerButton') : t('sellerCta.guestButton')}
         </Button>
       </Box>
-    </Container>
+    </SiteContainer>
   );
 }

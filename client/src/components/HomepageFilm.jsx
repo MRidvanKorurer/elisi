@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Container, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
 import { SITE_CLIPS } from '../utils/siteVideos';
 
@@ -112,8 +113,8 @@ export default function HomepageFilm({ embedded = false }) {
   if (embedded) return film;
 
   return (
-    <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
       {film}
-    </Container>
+    </SiteContainer>
   );
 }

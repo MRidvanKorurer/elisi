@@ -15,7 +15,8 @@
     "profile": "Profilim",
     "logout": "Çıkış Yap",
     "login": "Giriş",
-    "register": "Kayıt Ol"
+    "register": "Kayıt Ol",
+    "ateliers": "Atölyeler"
   },
   "footer": {
     "homeAria": "Nik Bag anasayfa",
@@ -24,6 +25,7 @@
     "explore": "Keşfet",
     "home": "Anasayfa",
     "allProducts": "Tüm Ürünler",
+    "ateliers": "Atölyeler",
     "becomeSeller": "Satıcı Ol",
     "loginRegister": "Giriş / Kayıt",
     "help": "Yardım",

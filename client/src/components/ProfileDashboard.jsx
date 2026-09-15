@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert, Avatar, Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions,
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogContentText, DialogTitle, Divider, IconButton, Paper, Snackbar,
   TextField, Typography, useMediaQuery
 } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import { useTheme } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -11,10 +12,13 @@ import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import userService from '../api/userService';
 import { orderService } from '../api/orderServices';
 import OrderMakerThread from './OrderMakerThread';
+import LoadingButton, { PageSpinner } from './LoadingButton';
 import { setFavoriteIds, setProductFavorite } from '../utils/favoritesStore';
 import { imgBagOrange } from '../assets/media';
 import Seo from './Seo';
 import { formatTRY, lineTotalOf, orderChargeRows, salePriceOf } from '../utils/price';
+import { nextVisibleCount } from '../hooks/useProductGridPageSize';
+import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
 
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -81,6 +85,9 @@ export default function ProfileDashboard() {
   const navigate = useLocaleNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isLg = useMediaQuery(theme.breakpoints.up('lg'));
+  const isSm = useMediaQuery(theme.breakpoints.up('sm'));
+  const favoritesPageSize = isLg ? 3 : isSm ? 2 : 1;
 
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
@@ -95,6 +102,7 @@ export default function ProfileDashboard() {
   const [savedCards, setSavedCards] = useState([]);
   const [orders, setOrders] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [favoritesVisible, setFavoritesVisible] = useState(0);
 
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [addressForm, setAddressForm] = useState({ baslik: '', adSoyad: '', telefon: '', il: '', ilce: '', adres: '' });
@@ -106,6 +114,14 @@ export default function ProfileDashboard() {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, id: null, title: '', message: '' });
 
   const showAlert = (message, severity = 'success') => setAlertConfig({ open: true, message, severity });
+
+  useEffect(() => {
+    if (!favorites.length) {
+      setFavoritesVisible(0);
+      return;
+    }
+    setFavoritesVisible((prev) => nextVisibleCount(prev, favoritesPageSize));
+  }, [favorites.length, favoritesPageSize]);
 
   useEffect(() => {
     const load = async () => {
@@ -141,7 +157,7 @@ export default function ProfileDashboard() {
         }
       } catch (error) {
         if (error?.response?.status === 401) {
-          navigate('/auth');
+          navigate('/giris');
           return;
         }
         showAlert('Veriler alınırken hata oluştu.', 'error');
@@ -275,23 +291,19 @@ export default function ProfileDashboard() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress sx={{ color: '#946D6D' }} />
-      </Box>
-    );
+    return <PageSpinner minHeight="70vh" />;
   }
 
   const initials = formData.name ? formData.name.trim().charAt(0).toUpperCase() : 'N';
 
   return (
     <Box sx={{ minHeight: '100vh', pt: { xs: 10, md: 13 }, pb: 8 }}>
-      <Seo title={t('seoTitle', { ns: 'account' })} path="/profile" noindex />
+      <Seo title={t('seoTitle', { ns: 'account' })} path="/hesabim" noindex />
       <Snackbar open={alertConfig.open} autoHideDuration={3600} onClose={() => setAlertConfig((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={alertConfig.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>{alertConfig.message}</Alert>
       </Snackbar>
 
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: { xs: 3, md: 4 } }}>
           <Typography sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.08em', fontSize: '0.75rem', textTransform: 'uppercase' }}>Hesap</Typography>
           <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', letterSpacing: '-0.03em', fontSize: { xs: '1.7rem', md: '2.1rem' } }}>
@@ -503,7 +515,7 @@ export default function ProfileDashboard() {
                   <Box>
                     <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>Siparişlerim</Typography>
                     {orders.length === 0 ? (
-                      <EmptyState text="Henüz siparişiniz yok." action="Alışverişe başla" onAction={() => navigate('/products')} />
+                      <EmptyState text="Henüz siparişiniz yok." action="Alışverişe başla" onAction={() => navigate('/urunler')} />
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         {orders.map((order) => {
@@ -539,78 +551,92 @@ export default function ProfileDashboard() {
                   <Box sx={{ minWidth: 0 }}>
                     <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>Favorilerim</Typography>
                     {favorites.length === 0 ? (
-                      <EmptyState text="Favori listeniz boş." action="Ürünlere git" onAction={() => navigate('/products')} />
+                      <EmptyState text="Favori listeniz boş." action="Ürünlere git" onAction={() => navigate('/urunler')} />
                     ) : (
-                      <Box
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
-                          gap: 2,
-                          alignItems: 'stretch'
-                        }}
-                      >
-                        {favorites.map((fav) => {
-                          const id = fav._id || fav.id;
-                          const price = salePriceOf(fav);
-                          return (
-                            <Paper
-                              key={id}
-                              elevation={0}
-                              onClick={() => id && navigate(`/product/${id}`)}
-                              sx={{
-                                ...cardSx,
-                                p: 0,
-                                minWidth: 0,
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden',
-                                cursor: 'pointer',
-                                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                                '&:hover': { borderColor: 'rgba(148,109,109,0.35)', boxShadow: '0 10px 24px -16px rgba(46,59,85,0.35)' }
-                              }}
-                            >
-                              <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: '#F8F5F0', overflow: 'hidden', flexShrink: 0 }}>
-                                <Box
-                                  component="img"
-                                  src={fav.image || fav.gorsel || FALLBACK_IMAGE}
-                                  alt={fav.title || fav.name || ''}
-                                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
-                                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                />
-                              </Box>
-                              <Box sx={{ p: 1.6, display: 'flex', flexDirection: 'column', gap: 0.8, flex: 1, minWidth: 0 }}>
-                                <Typography
-                                  fontWeight={800}
-                                  sx={{
-                                    color: '#2E3B55',
-                                    fontSize: '0.92rem',
-                                    lineHeight: 1.35,
-                                    minHeight: '2.7em',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                    wordBreak: 'break-word'
-                                  }}
-                                >
-                                  {fav.title || fav.name || fav.isim}
-                                </Typography>
-                                <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-                                  <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap' }}>{formatPrice(price)} ₺</Typography>
-                                  <IconButton
-                                    aria-label="Favorilerden çıkar"
-                                    onClick={(e) => { e.stopPropagation(); handleRemoveFavorite(id); }}
-                                    sx={{ bgcolor: 'rgba(148,109,109,0.1)', color: '#946D6D', flexShrink: 0, width: 36, height: 36 }}
-                                  >
-                                    <DeleteOutlinedIcon fontSize="small" />
-                                  </IconButton>
+                      <>
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
+                            gap: 2,
+                            alignItems: 'stretch'
+                          }}
+                        >
+                          {favorites.slice(0, favoritesVisible || favoritesPageSize).map((fav) => {
+                            const id = fav._id || fav.id;
+                            const price = salePriceOf(fav);
+                            return (
+                              <Paper
+                                key={id}
+                                elevation={0}
+                                onClick={() => id && navigate(`/urun/${id}`)}
+                                sx={{
+                                  ...cardSx,
+                                  p: 0,
+                                  minWidth: 0,
+                                  height: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  overflow: 'hidden',
+                                  cursor: 'pointer',
+                                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                                  '&:hover': { borderColor: 'rgba(148,109,109,0.35)', boxShadow: '0 10px 24px -16px rgba(46,59,85,0.35)' }
+                                }}
+                              >
+                                <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: '#F8F5F0', overflow: 'hidden', flexShrink: 0 }}>
+                                  <Box
+                                    component="img"
+                                    src={fav.image || fav.gorsel || FALLBACK_IMAGE}
+                                    alt={fav.title || fav.name || ''}
+                                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                  />
                                 </Box>
-                              </Box>
-                            </Paper>
-                          );
-                        })}
-                      </Box>
+                                <Box sx={{ p: 1.6, display: 'flex', flexDirection: 'column', gap: 0.8, flex: 1, minWidth: 0 }}>
+                                  <Typography
+                                    fontWeight={800}
+                                    sx={{
+                                      color: '#2E3B55',
+                                      fontSize: '0.92rem',
+                                      lineHeight: 1.35,
+                                      minHeight: '2.7em',
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      wordBreak: 'break-word'
+                                    }}
+                                  >
+                                    {fav.title || fav.name || fav.isim}
+                                  </Typography>
+                                  <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
+                                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap' }}>{formatPrice(price)} ₺</Typography>
+                                    <IconButton
+                                      aria-label="Favorilerden çıkar"
+                                      onClick={(e) => { e.stopPropagation(); handleRemoveFavorite(id); }}
+                                      sx={{ bgcolor: 'rgba(148,109,109,0.1)', color: '#946D6D', flexShrink: 0, width: 36, height: 36 }}
+                                    >
+                                      <DeleteOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                              </Paper>
+                            );
+                          })}
+                        </Box>
+                        {(favoritesVisible || favoritesPageSize) < favorites.length ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                            <LoadingButton
+                              tone="outline"
+                              onClick={() => setFavoritesVisible((prev) => (prev || favoritesPageSize) + favoritesPageSize)}
+                              endIcon={<KeyboardArrowDownOutlined />}
+                              sx={{ borderRadius: '16px', px: 3, py: 1.2 }}
+                            >
+                              {t('actions.showMoreCount', { count: favorites.length - (favoritesVisible || favoritesPageSize) })}
+                            </LoadingButton>
+                          </Box>
+                        ) : null}
+                      </>
                     )}
                   </Box>
                 )}
@@ -618,7 +644,7 @@ export default function ProfileDashboard() {
             </AnimatePresence>
           </Paper>
         </Box>
-      </Container>
+      </SiteContainer>
 
       <Dialog open={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)} fullScreen={isMobile} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: { xs: 0, sm: '24px' } } }}>
         <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>Yeni adres</DialogTitle>

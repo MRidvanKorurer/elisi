@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import SiteContainer from './SiteContainer';
 import { useReducedMotion } from 'framer-motion';
-import LocalFireDepartmentOutlined from '@mui/icons-material/LocalFireDepartmentOutlined';
+import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
 import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
 import { useTranslation } from 'react-i18next';
 import ProductCard, { PRODUCT_CARD_WIDTH } from './ProductCard';
 import { SectionSpinner } from './LoadingButton';
 import { productService } from '../api/productService';
+import { adsService } from '../api/adsService';
 
-const BESTSELLER_LIMIT = 10;
 const GAP = 24;
 
 const arrowSx = (disabled) => ({
@@ -26,25 +26,26 @@ const arrowSx = (disabled) => ({
   '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(148,109,109,0.12)' }
 });
 
-export default function BestSellers() {
+export default function FeaturedShelf() {
   const { t } = useTranslation('home');
+  const tracked = useRef(false);
   const trackRef = useRef(null);
   const progressRef = useRef(null);
   const reduced = useReducedMotion();
   const [edges, setEdges] = useState({ start: true, end: true });
-  const [fetchedProducts, setFetchedProducts] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    productService.getBestSellers()
+    productService.getSponsoredProducts()
       .then((data) => {
         if (cancelled) return;
-        setFetchedProducts(Array.isArray(data) ? data : data?.products || []);
+        const list = data?.products || (Array.isArray(data) ? data : []);
+        setProducts(list);
       })
       .catch(() => {
-        if (!cancelled) setError(true);
+        if (!cancelled) setProducts([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -52,16 +53,16 @@ export default function BestSellers() {
     return () => { cancelled = true; };
   }, []);
 
-  const products = useMemo(() => {
-    const list = Array.isArray(fetchedProducts) ? [...fetchedProducts] : [];
-    return list
-      .sort((a, b) => {
-        const sold = (b.soldCount || 0) - (a.soldCount || 0);
-        if (sold !== 0) return sold;
-        return (b.rating || 0) - (a.rating || 0);
-      })
-      .slice(0, BESTSELLER_LIMIT);
-  }, [fetchedProducts]);
+  useEffect(() => {
+    if (tracked.current || !products.length) return;
+    tracked.current = true;
+    adsService.track(products.map((product) => ({
+      type: 'impression',
+      surface: 'featured',
+      product: product._id || product.id,
+      seller: product.seller
+    })));
+  }, [products]);
 
   const syncEdges = useCallback(() => {
     const node = trackRef.current;
@@ -121,7 +122,7 @@ export default function BestSellers() {
     );
   }
 
-  if (error || products.length === 0) return null;
+  if (!products.length) return null;
 
   const scrollable = !(edges.start && edges.end);
 
@@ -139,11 +140,19 @@ export default function BestSellers() {
             gap: 0.5
           }}
         >
-          <LocalFireDepartmentOutlined sx={{ fontSize: '18px', color: '#946D6D' }} />
-          {t('bestsellers.eyebrow')}
+          <AutoAwesomeOutlined sx={{ fontSize: 18 }} />
+          {t('featured.eyebrow')}
         </Typography>
-        <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>
-          {t('bestsellers.title')}
+        <Typography
+          component="h2"
+          variant="h4"
+          fontWeight="800"
+          sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}
+        >
+          {t('featured.title')}
+        </Typography>
+        <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.6, maxWidth: 520 }}>
+          {t('featured.subtitle')}
         </Typography>
       </Box>
 
@@ -151,7 +160,7 @@ export default function BestSellers() {
         <Box
           ref={trackRef}
           role="region"
-          aria-label={t('bestsellers.region')}
+          aria-label={t('featured.region')}
           tabIndex={0}
           onKeyDown={(event) => {
             if (event.key === 'ArrowLeft') { event.preventDefault(); scrollByPage(-1); }
@@ -172,7 +181,7 @@ export default function BestSellers() {
         >
           {products.map((product) => (
             <Box
-              key={product._id}
+              key={product._id || product.id}
               sx={{ flex: `0 0 ${PRODUCT_CARD_WIDTH}px`, scrollSnapAlign: 'start' }}
             >
               <ProductCard product={product} />
@@ -190,7 +199,7 @@ export default function BestSellers() {
         {scrollable && (
           <>
             <IconButton
-              aria-label={t('bestsellers.prev')}
+              aria-label={t('featured.prev')}
               disabled={edges.start}
               onClick={() => scrollByPage(-1)}
               sx={{ ...arrowSx(edges.start), position: 'absolute', top: '38%', left: { xs: -6, md: -18 }, zIndex: 2 }}
@@ -198,7 +207,7 @@ export default function BestSellers() {
               <ArrowBackIosNewRounded sx={{ fontSize: 16, ml: 0.4 }} />
             </IconButton>
             <IconButton
-              aria-label={t('bestsellers.next')}
+              aria-label={t('featured.next')}
               disabled={edges.end}
               onClick={() => scrollByPage(1)}
               sx={{ ...arrowSx(edges.end), position: 'absolute', top: '38%', right: { xs: -6, md: -18 }, zIndex: 2 }}

@@ -5,9 +5,10 @@ import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { isLocaleHome } from '../i18n/locale';
 import LanguageSwitch from '../i18n/LanguageSwitch';
 import {
-  AppBar, Toolbar, Button, Box, Badge, Container,
+  AppBar, Toolbar, Button, Box, Badge,
   Menu, MenuItem, Avatar, IconButton, ClickAwayListener
 } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PersonOutlineOutlined from '@mui/icons-material/PersonOutlineOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
@@ -92,7 +93,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
 
   const go = (path) => {
     if (path === '/' || path === 'home') navigate('/');
-    else if (path === 'admin' || path === '/admin') navigate('/admin');
+    else if (path === 'admin' || path === '/admin' || path === 'panel' || path === '/panel') navigate('/panel');
     else if (path.startsWith('/')) navigate(path);
     else if (setPage) setPage(path);
     else navigate(`/${path}`);
@@ -109,16 +110,15 @@ export default function Navbar({ setPage, user, handleLogout }) {
       elevation={0}
       sx={{
         background: solid
-          ? 'rgba(253, 244, 210, 0.88)'
+          ? '#FDF4D2'
           : 'linear-gradient(to bottom, rgba(20,24,32,0.55) 0%, rgba(20,24,32,0) 100%)',
-        backdropFilter: solid ? 'blur(18px) saturate(160%)' : 'none',
         borderBottom: solid ? '1px solid rgba(148,109,109,0.12)' : '1px solid transparent',
         boxShadow: solid ? '0 10px 30px -22px rgba(46,59,85,0.45)' : 'none',
-        transition: 'background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
+        transition: 'background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
         top: 0, left: 0, right: 0, zIndex: 1100
       }}
     >
-      <Container maxWidth="lg">
+      <SiteContainer>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 0 }, minHeight: { xs: '64px !important', md: '76px !important' }, gap: { xs: 1, md: 2 } }}>
           <Box
             onClick={() => go('/')}
@@ -156,7 +156,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
 
             {isSuperAdmin(user?.rol) ? (
               <Button
-                onClick={() => go('admin')}
+                onClick={() => go('panel')}
                 startIcon={<AdminPanelSettingsOutlined />}
                 sx={{
                   display: { xs: 'none', lg: 'inline-flex' },
@@ -171,7 +171,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
               </Button>
             ) : (
               <Button
-                onClick={() => go(isSellerRole(user?.rol) ? 'admin' : 'satici-ol')}
+                onClick={() => go(isSellerRole(user?.rol) ? 'panel' : 'satici-ol')}
                 startIcon={<StorefrontOutlined />}
                 sx={{
                   display: { xs: 'none', lg: 'inline-flex' },
@@ -186,7 +186,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
               </Button>
             )}
 
-            <IconButton aria-label={t('nav.cart')} onClick={() => go('checkout')} sx={iconBtn(solid)}>
+            <IconButton aria-label={t('nav.cart')} onClick={() => go('sepet')} sx={iconBtn(solid)}>
               <Badge badgeContent={cartCount} color="error" sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}>
                 <ShoppingBagOutlined />
               </Badge>
@@ -218,15 +218,15 @@ export default function Navbar({ setPage, user, handleLogout }) {
                   onClose={() => setAnchorEl(null)}
                   slotProps={{ paper: { sx: { mt: 1.4, borderRadius: '16px', minWidth: 200, boxShadow: '0 16px 40px rgba(46,59,85,0.16)', border: '1px solid rgba(148,109,109,0.12)' } } }}
                 >
-                  <MenuItem onClick={() => { setAnchorEl(null); go('profile'); }} sx={{ fontWeight: 600, gap: 1 }}><AccountCircleOutlined sx={{ color: '#946D6D' }} /> {t('nav.profile')}</MenuItem>
+                  <MenuItem onClick={() => { setAnchorEl(null); go('hesabim'); }} sx={{ fontWeight: 600, gap: 1 }}><AccountCircleOutlined sx={{ color: '#946D6D' }} /> {t('nav.profile')}</MenuItem>
                   {isSuperAdmin(user?.rol) && (
-                    <MenuItem onClick={() => { setAnchorEl(null); go('admin'); }} sx={{ fontWeight: 600, gap: 1 }}>
+                    <MenuItem onClick={() => { setAnchorEl(null); go('panel'); }} sx={{ fontWeight: 600, gap: 1 }}>
                       <AdminPanelSettingsOutlined sx={{ color: '#946D6D' }} /> {t('nav.adminPanel')}
                     </MenuItem>
                   )}
                   {!isSuperAdmin(user?.rol) && (
                     <MenuItem
-                      onClick={() => { setAnchorEl(null); go(isSellerRole(user?.rol) ? 'admin' : 'satici-ol'); }}
+                      onClick={() => { setAnchorEl(null); go(isSellerRole(user?.rol) ? 'panel' : 'satici-ol'); }}
                       sx={{ fontWeight: 600, gap: 1 }}
                     >
                       <StorefrontOutlined sx={{ color: '#946D6D' }} /> {isSellerRole(user?.rol) ? t('nav.myShop') : t('nav.becomeSeller')}
@@ -239,7 +239,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
               <>
                 <Button
                   variant="outlined"
-                  onClick={() => go('auth')}
+                  onClick={() => go('giris')}
                   sx={{
                     display: { xs: 'none', sm: 'flex' },
                     borderColor: solid ? 'rgba(46,59,85,0.22)' : 'rgba(255,255,255,0.55)',
@@ -255,7 +255,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
                 <Button
                   variant="contained"
                   startIcon={<PersonOutlineOutlined sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />}
-                  onClick={() => go('auth')}
+                  onClick={() => go('giris')}
                   sx={{
                     backgroundColor: '#B0CDE6',
                     color: '#2E3B55',
@@ -272,7 +272,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
             )}
           </Box>
         </Toolbar>
-      </Container>
+      </SiteContainer>
 
       {mobileOpen && (
         <ClickAwayListener onClickAway={() => setMobileOpen(false)}>

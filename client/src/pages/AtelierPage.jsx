@@ -5,12 +5,12 @@ import {
   Breadcrumbs,
   Button,
   Chip,
-  Container,
   Link,
   Rating,
   Skeleton,
   Typography
 } from '@mui/material';
+import SiteContainer from '../components/SiteContainer';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
@@ -22,14 +22,15 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import PlaceOutlined from '@mui/icons-material/PlaceOutlined';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import VerifiedOutlined from '@mui/icons-material/VerifiedOutlined';
-import ProductCard from '../components/ProductCard';
+import ProductCard, { productCardGridSx } from '../components/ProductCard';
+import LoadingButton from '../components/LoadingButton';
 import Seo from '../components/Seo';
 import { sellerService } from '../api/sellerService';
 import { mediaUrl } from '../api/lookbookService';
 import { instagramHref, websiteHref } from '../utils/atelierLinks';
 import { scrollPageTo } from '../hooks/useSmoothScroll';
+import useProductGridPageSize, { nextVisibleCount } from '../hooks/useProductGridPageSize';
 
-const PAGE_SIZE = 8;
 const PAGE_PT = { xs: '96px', md: '120px' };
 
 const SORTS = [
@@ -168,9 +169,27 @@ export default function AtelierPage() {
   const [atelier, setAtelier] = useState(null);
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, hasMore: false, total: 0 });
+  const [limit, setLimit] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const { gridRef, pageSize } = useProductGridPageSize({
+    deps: [slug, category, sort],
+    fillViewport: true,
+    minRows: 2,
+    maxRows: 3
+  });
+  const rowSize = Math.max(0, pageSize);
+
+  useEffect(() => {
+    setProducts([]);
+    setLoading(true);
+    setLimit(0);
+  }, [slug, category, sort]);
+
+  useEffect(() => {
+    setLimit((prev) => nextVisibleCount(prev, rowSize));
+  }, [rowSize, slug, category, sort]);
 
   const setFilter = (next) => {
     const params = new URLSearchParams(searchParams);
@@ -186,10 +205,13 @@ export default function AtelierPage() {
   };
 
   useEffect(() => {
+    if (limit < 1) return undefined;
     let cancelled = false;
-    setLoading(true);
+    const refreshing = products.length > 0;
+    if (refreshing) setLoadingMore(true);
+    else setLoading(true);
     setError('');
-    sellerService.getPublic(slug, { category, sort, page: 1, limit: PAGE_SIZE })
+    sellerService.getPublic(slug, { category, sort, page: 1, limit })
       .then((data) => {
         if (cancelled) return;
         setAtelier(data.atelier || null);
@@ -204,28 +226,19 @@ export default function AtelierPage() {
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       });
     return () => { cancelled = true; };
-  }, [slug, category, sort]);
+    // products.length intentionally omitted — only used to choose spinner vs soft refresh
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, category, sort, limit]);
 
-  const loadMore = async () => {
-    if (loadingMore || !pagination.hasMore) return;
-    setLoadingMore(true);
-    try {
-      const data = await sellerService.getPublic(slug, {
-        category,
-        sort,
-        page: (pagination.page || 1) + 1,
-        limit: PAGE_SIZE
-      });
-      setProducts((prev) => [...prev, ...(data.products || [])]);
-      setPagination(data.pagination || pagination);
-    } catch {
-      setPagination((prev) => ({ ...prev, hasMore: false }));
-    } finally {
-      setLoadingMore(false);
-    }
+  const loadMore = () => {
+    if (loadingMore || !pagination.hasMore || rowSize < 1) return;
+    setLimit((prev) => prev + rowSize);
   };
 
   const locationLabel = useMemo(
@@ -247,15 +260,20 @@ export default function AtelierPage() {
   if (loading && !atelier) {
     return (
       <Box sx={{ pt: PAGE_PT, pb: 10, overflowX: 'hidden' }}>
-        <Container maxWidth="lg">
+        <SiteContainer>
+          <Box
+            ref={gridRef}
+            aria-hidden
+            sx={{ ...productCardGridSx, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none', m: 0, p: 0 }}
+          />
           <Skeleton variant="text" width={220} sx={{ mb: 2 }} />
           <Skeleton variant="rounded" height={360} sx={{ borderRadius: '28px', mb: 4 }} />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }, gap: 2 }}>
-            {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+          <Box sx={productCardGridSx}>
+            {Array.from({ length: Math.max(rowSize, 6) }).map((_, index) => (
               <Skeleton key={index} variant="rounded" height={360} sx={{ borderRadius: '22px' }} />
             ))}
           </Box>
-        </Container>
+        </SiteContainer>
       </Box>
     );
   }
@@ -267,7 +285,7 @@ export default function AtelierPage() {
         <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '1.4rem', mb: 1 }}>{t('atelier.notFoundTitle')}</Typography>
         <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 3 }}>{error || 'Bu vitrin yayında değil.'}</Typography>
         <Button
-          onClick={() => navigate('/products')}
+          onClick={() => navigate('/urunler')}
           endIcon={<ArrowForwardRounded />}
           sx={{ bgcolor: '#946D6D', color: '#fff', borderRadius: '14px', px: 3, fontWeight: 800, '&:hover': { bgcolor: '#7c5a5a' } }}
         >
@@ -292,7 +310,7 @@ export default function AtelierPage() {
         path={`/atolye/${atelier.slug}`}
         image={covers[0]}
       />
-      <Container maxWidth="lg" sx={{ minWidth: 0 }}>
+      <SiteContainer sx={{ minWidth: 0 }}>
         <Breadcrumbs
           separator={<NavigateNextIcon fontSize="small" />}
           sx={{
@@ -303,7 +321,7 @@ export default function AtelierPage() {
           }}
         >
           <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>{t('atelier.home')}</Link>
-          <Link underline="hover" color="inherit" onClick={() => navigate('/products')} sx={{ cursor: 'pointer' }}>Ürünler</Link>
+          <Link underline="hover" color="inherit" onClick={() => navigate('/urunler')} sx={{ cursor: 'pointer' }}>Ürünler</Link>
           <Typography sx={{ color: '#2E3B55', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 180, sm: 320 } }}>
             {atelier.magazaAdi}
           </Typography>
@@ -472,21 +490,21 @@ export default function AtelierPage() {
           ))}
         </Box>
 
-        {loading ? (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }, gap: { xs: 1.5, md: 2.5 } }}>
-            {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+        <Box
+          ref={gridRef}
+          aria-hidden
+          sx={{ ...productCardGridSx, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none', m: 0, p: 0, mb: 0 }}
+        />
+
+        {loading && products.length === 0 ? (
+          <Box sx={productCardGridSx}>
+            {Array.from({ length: Math.max(rowSize, 6) }).map((_, index) => (
               <Skeleton key={index} variant="rounded" height={360} sx={{ borderRadius: '22px' }} />
             ))}
           </Box>
         ) : products.length > 0 ? (
           <>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-                gap: { xs: 1.5, md: 2.5 }
-              }}
-            >
+            <Box sx={productCardGridSx}>
               {products.map((product) => (
                 <Box key={product._id || product.id} sx={{ minWidth: 0 }}>
                   <ProductCard product={product} fullWidth />
@@ -495,14 +513,14 @@ export default function AtelierPage() {
             </Box>
             {pagination.hasMore ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                <Button
+                <LoadingButton
+                  tone="soft"
+                  loading={loadingMore}
                   onClick={loadMore}
-                  disabled={loadingMore}
                   endIcon={<ExpandMoreIcon />}
-                  sx={{ borderRadius: '999px', px: 3, py: 1.1, fontWeight: 800, color: '#2E3B55', bgcolor: '#FFFFFF', border: '1px solid rgba(148,109,109,0.2)', '&:hover': { bgcolor: '#946D6D', color: '#FFFFFF' } }}
                 >
-                  {loadingMore ? 'Yükleniyor' : `Daha fazla göster (${Math.max(0, (pagination.total || 0) - products.length)})`}
-                </Button>
+                  {t('actions.showMoreRemaining', { ns: 'common', count: Math.max(0, (pagination.total || 0) - products.length) })}
+                </LoadingButton>
               </Box>
             ) : null}
           </>
@@ -515,7 +533,7 @@ export default function AtelierPage() {
             </Button>
           </Box>
         )}
-      </Container>
+      </SiteContainer>
     </Box>
   );
 }

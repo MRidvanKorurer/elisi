@@ -10,12 +10,15 @@ import {
   Modal,
   Skeleton,
   Snackbar,
-  Typography
+  Typography,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowForward from '@mui/icons-material/ArrowForward';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
 import { motion, useReducedMotion } from 'framer-motion';
 import { productService } from '../api/productService';
 import { adsService } from '../api/adsService';
@@ -23,20 +26,28 @@ import { cartService } from '../api/cartServices';
 import { imgBagOrange } from '../assets/media';
 import { formatTRY, salePriceOf } from '../utils/price';
 import { FEATURED_SLOTS } from '../utils/featured';
+import LoadingButton from './LoadingButton';
+import { nextVisibleCount } from '../hooks/useProductGridPageSize';
 
 export default function FeaturedModal({ open, onClose }) {
   const { t } = useTranslation();
   const navigate = useLocaleNavigate();
+  const theme = useTheme();
+  const isMd = useMediaQuery(theme.breakpoints.up('md'));
+  const isSm = useMediaQuery(theme.breakpoints.up('sm'));
+  const pageSize = isMd ? 3 : isSm ? 2 : 1;
   const reducedMotion = useReducedMotion();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addingId, setAddingId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(0);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     if (!open) return undefined;
     let active = true;
     setLoading(true);
+    setVisibleCount(0);
     productService.getSponsoredProducts()
       .then((data) => {
         if (!active) return;
@@ -59,6 +70,11 @@ export default function FeaturedModal({ open, onClose }) {
       });
     return () => { active = false; };
   }, [open]);
+
+  useEffect(() => {
+    if (!open || loading || !products.length) return;
+    setVisibleCount((prev) => nextVisibleCount(prev, pageSize));
+  }, [open, loading, products.length, pageSize]);
 
   const handleQuickAdd = async (event, product) => {
     event.stopPropagation();
@@ -98,8 +114,12 @@ export default function FeaturedModal({ open, onClose }) {
       seller: product.seller
     });
     onClose();
-    navigate(`/product/${productId}`);
+    navigate(`/urun/${productId}`);
   };
+
+  const shown = visibleCount || pageSize;
+  const visibleProducts = products.slice(0, shown);
+  const hasMore = shown < products.length;
 
   return (
     <>
@@ -231,7 +251,7 @@ export default function FeaturedModal({ open, onClose }) {
                       </Box>
                     </Box>
                   ))
-                : products.map((product, index) => {
+                : visibleProducts.map((product, index) => {
                     const productId = product._id || product.id;
                     const productTitle = product.title || product.name;
                     const discount = Number(product.discountPercentage || 0);
@@ -245,7 +265,7 @@ export default function FeaturedModal({ open, onClose }) {
                         component={motion.div}
                         initial={reducedMotion ? false : { opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.34, delay: 0.06 * index, ease: [0.22, 0.61, 0.36, 1] }}
+                        transition={{ duration: 0.34, delay: 0.06 * Math.min(index, 5), ease: [0.22, 0.61, 0.36, 1] }}
                         onClick={() => openProduct(product)}
                         sx={{
                           position: 'relative',
@@ -380,6 +400,19 @@ export default function FeaturedModal({ open, onClose }) {
                   })}
             </Box>
 
+            {hasMore ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2.5 }}>
+                <LoadingButton
+                  tone="outline"
+                  onClick={() => setVisibleCount((prev) => (prev || pageSize) + pageSize)}
+                  endIcon={<KeyboardArrowDownOutlined />}
+                  sx={{ borderRadius: '16px', px: 3, py: 1.1 }}
+                >
+                  {t('actions.showMoreCount', { count: products.length - shown })}
+                </LoadingButton>
+              </Box>
+            ) : null}
+
             {!loading && products.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
                 <Typography sx={{ color: '#2E3B55', fontWeight: 800, mb: 0.6 }}>{t('featured.emptyTitle', { ns: 'catalog' })}</Typography>
@@ -409,7 +442,7 @@ export default function FeaturedModal({ open, onClose }) {
               endIcon={<ArrowForward />}
               onClick={() => {
                 onClose();
-                navigate('/products');
+                navigate('/urunler');
               }}
               sx={{
                 fontWeight: 800,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Container, Skeleton, Typography } from '@mui/material';
+import { Box, Skeleton, Typography } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
@@ -125,12 +126,13 @@ export default function AtelierLookbook() {
       label: slot.labelKey
     }))
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
+      setLoading(true);
       try {
         const lookbookRes = await lookbookService.list(false, 'lookbook');
         if (cancelled) return;
@@ -168,6 +170,8 @@ export default function AtelierLookbook() {
         );
       } catch (error) {
         console.error('Lookbook yüklenemedi:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -178,7 +182,7 @@ export default function AtelierLookbook() {
   }, []);
 
   return (
-    <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
       <Box sx={{ mb: 3 }}>
         <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#A290B7' }}>
           {t('lookbook.eyebrow')}
@@ -191,7 +195,7 @@ export default function AtelierLookbook() {
         </Typography>
       </Box>
 
-      {loading && !clips.length ? (
+      {loading ? (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
           <Skeleton variant="rounded" height={360} sx={{ borderRadius: '28px' }} />
           <Skeleton variant="rounded" height={360} sx={{ borderRadius: '28px' }} />
@@ -209,7 +213,7 @@ export default function AtelierLookbook() {
               <StudioClip
                 {...clip}
                 label={clip.translated === false ? clip.label : t(clip.label)}
-                onClick={clip.id ? () => navigate(`/product/${clip.id}`) : undefined}
+                onClick={clip.id ? () => navigate(`/urun/${clip.id}`) : undefined}
               />
             </Reveal>
           ))}
@@ -218,6 +222,6 @@ export default function AtelierLookbook() {
       <Box sx={{ mt: { xs: 1.5, md: 2 } }}>
         <HomepageFilm embedded />
       </Box>
-    </Container>
+    </SiteContainer>
   );
 }

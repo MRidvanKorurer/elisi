@@ -16,7 +16,7 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
   const { t } = useTranslation('catalog');
   if (!atelier) return null;
 
-  const storePath = atelier.slug && !atelier.isHouse ? `/atolye/${atelier.slug}` : '/products';
+  const storePath = atelier.slug && !atelier.isHouse ? `/atolye/${atelier.slug}` : '/urunler';
   const location = [atelier.ilce, atelier.sehir].filter(Boolean).join(', ');
   const ig = instagramHref(atelier.instagram);
   const site = websiteHref(atelier.website);

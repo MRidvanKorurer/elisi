@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Typography, Container, IconButton } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import { useReducedMotion } from 'framer-motion';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
 import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
 import { useTranslation } from 'react-i18next';
 import ProductCard, { PRODUCT_CARD_WIDTH } from './ProductCard';
+import { SectionSpinner } from './LoadingButton';
 import { productService } from '../api/productService';
 
 const VISIBLE_LIMIT = 12;
@@ -31,16 +33,23 @@ export default function NewArrivals() {
   const reduced = useReducedMotion();
   const [edges, setEdges] = useState({ start: true, end: true });
   const [arrivals, setArrivals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     productService.getFilteredProducts({ sort: 'created', limit: VISIBLE_LIMIT, page: 1 })
       .then((data) => {
         if (cancelled) return;
         const list = data?.products || (Array.isArray(data) ? data : []);
         setArrivals(list.slice(0, VISIBLE_LIMIT));
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setArrivals([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -94,12 +103,20 @@ export default function NewArrivals() {
     node.scrollBy({ left: direction * perPage * step, behavior: reduced ? 'auto' : 'smooth' });
   };
 
+  if (loading) {
+    return (
+      <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
+        <SectionSpinner />
+      </SiteContainer>
+    );
+  }
+
   if (arrivals.length === 0) return null;
 
   const scrollable = !(edges.start && edges.end);
 
   return (
-    <Container maxWidth="lg" sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
       <Box sx={{ textAlign: 'left', mb: 3 }}>
         <Typography
           variant="overline"
@@ -198,6 +215,6 @@ export default function NewArrivals() {
           />
         </Box>
       )}
-    </Container>
+    </SiteContainer>
   );
 }

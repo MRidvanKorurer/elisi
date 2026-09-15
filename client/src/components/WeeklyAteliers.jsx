@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Avatar, Box, Container, Typography } from '@mui/material';
+import { Avatar, Box, Typography } from '@mui/material';
+import SiteContainer from './SiteContainer';
 import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import PlaceOutlined from '@mui/icons-material/PlaceOutlined';
 import Reveal from './Reveal';
+import { SectionSpinner } from './LoadingButton';
 import { atelierWeekService } from '../api/atelierWeekService';
 import { adsService } from '../api/adsService';
 import { mediaUrl } from '../api/lookbookService';
@@ -55,7 +57,7 @@ function ProductTiles({ images = [] }) {
 }
 
 function WeekShopCard({ atelier, onVisit, t }) {
-  const storePath = atelier.slug ? `/atolye/${atelier.slug}` : '/products';
+  const storePath = atelier.slug ? `/atolye/${atelier.slug}` : '/urunler';
   const location = [atelier.ilce, atelier.sehir].filter(Boolean).join(', ');
   const avatar = mediaUrl(atelier.avatarUrl);
   const countLabel = atelier.productCount > 0
@@ -178,9 +180,11 @@ function WeekShopCard({ atelier, onVisit, t }) {
 export default function WeeklyAteliers() {
   const { t } = useTranslation('home');
   const [ateliers, setAteliers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
     atelierWeekService.list()
       .then((data) => {
         if (!active) return;
@@ -188,6 +192,9 @@ export default function WeeklyAteliers() {
       })
       .catch(() => {
         if (active) setAteliers([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
     return () => { active = false; };
   }, []);
@@ -201,12 +208,22 @@ export default function WeeklyAteliers() {
     })));
   }, [ateliers]);
 
+  if (loading) {
+    return (
+      <Box component="section" sx={{ py: { xs: 5, md: 7 } }}>
+        <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
+          <SectionSpinner />
+        </SiteContainer>
+      </Box>
+    );
+  }
+
   if (!ateliers.length) return null;
 
   return (
     <Reveal>
       <Box component="section" sx={{ py: { xs: 5, md: 7 } }}>
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
           <Box
             sx={{
               display: 'flex',
@@ -247,6 +264,26 @@ export default function WeeklyAteliers() {
             </Typography>
           </Box>
 
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.6 }}>
+            <Box
+              component={LocaleLink}
+              to="/atolyeler"
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                color: '#2E3B55',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                textDecoration: 'none',
+                '&:hover': { color: '#946D6D' }
+              }}
+            >
+              {t('weekly.seeAll')}
+              <ArrowForwardRounded sx={{ fontSize: 18 }} />
+            </Box>
+          </Box>
+
           <Box
             sx={{
               display: 'grid',
@@ -271,7 +308,7 @@ export default function WeeklyAteliers() {
               />
             ))}
           </Box>
-        </Container>
+        </SiteContainer>
       </Box>
     </Reveal>
   );

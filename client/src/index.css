@@ -35,8 +35,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Sabit arka plan her kaydırma karesinde yeniden boyanıyordu.
-   Aynı görünüm, kompozit katmanda duran tek bir katmanla veriliyor. */
+/* Sabit arka plan katmanı — blur yok, kaydırma sırasında yeniden boyanmaz */
 body::before {
   content: '';
   position: fixed;
@@ -110,6 +109,12 @@ img, video {
 }
 .soft-pulse {
   animation: softPulse 1.6s var(--ease-soft) infinite;
+}
+
+@keyframes filterShimmer {
+  0% { background-position: 0% 50%; opacity: 0.85; }
+  50% { background-position: 100% 50%; opacity: 1; }
+  100% { background-position: 0% 50%; opacity: 0.85; }
 }
 
 @media (prefers-reduced-motion: reduce) {

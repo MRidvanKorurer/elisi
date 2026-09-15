@@ -29,7 +29,7 @@ SATICI
 - Satıcının kendi kampanya kodu o mağazanın komisyon matrahını düşürür. Site kampanyası ve hoş geldin kuponunu platform karşılar; satıcının tahsilatı düşmez.
 
 HESAP
-- Kayıt/giriş /auth sayfasındadır.
+- Kayıt/giriş /giris sayfasındadır.
 - Adres ve kart profilde saklanır.
 - Kayıt olan herkese kişisel %10 hoş geldin kodu verilir (NIK10-xxxxxx). Kod yalnızca o hesaba aittir, ilk siparişte ürün tutarına uygulanır, bir kez kullanılır. Profil ve ödeme sayfasında görünür.
 - Süper adminin tanımladığı kampanya kodları (ör. 5.000 ₺ üzeri %5) tüm sepette geçerlidir. Satıcılar kendi panelinden yalnızca kendi ürünlerinde geçerli kod açabilir. Her iki tür de checkout’taki kampanya alanına yazılır.
@@ -62,7 +62,7 @@ const FAQS = [
   },
   {
     keys: ['hesap', 'üye', 'uye', 'giriş', 'giris', 'kayıt', 'kayit', 'şifre', 'sifre'],
-    answer: 'Giriş ve kayıt /auth sayfasında. Adres ve kartlarını Profil’den yönetirsin. Şifre için profildeki şifre alanını kullan.'
+    answer: 'Giriş ve kayıt /giris sayfasında. Adres ve kartlarını Hesabım’dan yönetirsin. Şifre için profildeki şifre alanını kullan.'
   },
   {
     keys: ['kupon', 'indirim', 'kampanya', 'kod', 'yüzde 10', 'yuzde 10', '%10', 'nik10', 'hoş geldin', 'hos geldin'],

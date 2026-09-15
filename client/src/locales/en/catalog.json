@@ -57,6 +57,7 @@
       "onSale": "On sale",
       "isNew": "New",
       "immediateDelivery": "Faster shipping",
+      "madeToOrder": "Made to order",
       "minRating": "4+ rating"
     },
     "chips": {
@@ -67,6 +68,8 @@
       "ship": "Ready to ship"
     },
     "filters": "Filters",
+    "filtering": "Refreshing the collection",
+    "filteringHint": "Gathering pieces that match your filters.",
     "colorPlaceholder": "Type a color",
     "searchPlaceholder": "Piece, color, or material"
   },
@@ -98,7 +101,13 @@
     "favFailed": "Couldn’t update favorites.",
     "addFailed": "Couldn’t add this to your bag.",
     "addError": "Something went wrong adding this to your bag.",
-    "keywordHandmade": "handmade"
+    "keywordHandmade": "handmade",
+    "giftNoteTitle": "Gift or special note",
+    "giftNoteText": "At checkout you can say who it’s for and which day; the atelier gets the note with the order.",
+    "customNoteTitle": "Made to order",
+    "customNoteText": "This piece is prepared with your order ({{time}}). Leave measure, color, and delivery notes at checkout.",
+    "measureNoteTitle": "Fit & use",
+    "measureNoteText": "See size options below; add an extra note for the atelier at checkout."
   },
   "atelier": {
     "notFoundTitle": "Atelier not found",

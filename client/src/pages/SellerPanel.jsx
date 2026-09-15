@@ -26,18 +26,15 @@ import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import QuestionAnswerOutlined from '@mui/icons-material/QuestionAnswerOutlined';
 import Inventory2Rounded from '@mui/icons-material/Inventory2Rounded';
-import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
-import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
-import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
 import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
-import CalculateOutlined from '@mui/icons-material/CalculateOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton, panelButton } from '../components/PanelShell';
+import { PageSpinner } from '../components/LoadingButton';
 import SellerProductEditor, { emptyProductForm, formFromProduct } from '../components/SellerProductEditor';
 import ProductMarginCalculator from '../components/ProductMarginCalculator';
 import SellerPerformanceReport from '../components/SellerPerformanceReport';
@@ -85,6 +82,7 @@ function StatCard({ icon: Icon, title, value, hint, tone = T.rose }) {
 
 export default function SellerPanel({ user, handleLogout }) {
   const [view, setView] = useState('dashboard');
+  const [growTab, setGrowTab] = useState('featured');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -268,13 +266,13 @@ export default function SellerPanel({ user, handleLogout }) {
     [products]
   );
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/giris" replace />;
   if (!isSellerRole(user.rol)) return <Navigate to="/" replace />;
 
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: `linear-gradient(180deg, ${T.cream} 0%, ${T.creamDeep} 100%)` }}>
-        <CircularProgress sx={{ color: T.rose }} />
+        <PageSpinner minHeight="auto" />
       </Box>
     );
   }
@@ -583,6 +581,20 @@ export default function SellerPanel({ user, handleLogout }) {
   };
 
   const goView = (id) => {
+    const growIds = ['featured', 'week', 'promos', 'ads', 'margin'];
+    if (growIds.includes(id)) {
+      setGrowTab(id);
+      setView('grow');
+      setQuery('');
+      setMobileOpen(false);
+      if (id !== 'editor') {
+        setEditing(null);
+        setMainImage(null);
+        setGallery([]);
+        setRemovedImages([]);
+      }
+      return;
+    }
     setView(id);
     setQuery('');
     setQuestionFilter('all');
@@ -595,6 +607,41 @@ export default function SellerPanel({ user, handleLogout }) {
       setRemovedImages([]);
     }
   };
+
+  const nav = [
+    { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
+    { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.openOrders || 0 },
+    { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
+    { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
+    {
+      id: 'grow',
+      label: 'Vitrin',
+      icon: AutoAwesomeOutlined,
+      badge: (overview?.pendingFeatured || 0) + (overview?.pendingAtelierWeek || 0)
+    },
+    { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
+    { id: 'store', label: 'Mağaza', icon: StorefrontOutlined }
+  ];
+
+  const growTabs = [
+    { id: 'featured', label: 'Öne çıkanlar' },
+    { id: 'week', label: 'Haftanın atölyesi' },
+    { id: 'promos', label: 'Kampanyalar' },
+    { id: 'ads', label: 'Reklam' },
+    { id: 'margin', label: 'Kar marjı' }
+  ];
+
+  const shellView = view === 'editor' ? 'products' : view === 'grow' ? 'grow' : view;
+  const searchPlaceholder =
+    view === 'orders' ? 'Müşteri, sipariş no veya ürün ara'
+      : view === 'questions' ? 'Soru, ürün veya müşteri ara'
+        : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara'
+          : view === 'grow' && growTab === 'ads' ? 'Ürün veya kategori ara'
+            : view === 'grow' && growTab === 'featured' ? 'Öne çıkan taleplerde ara'
+              : view === 'grow' && growTab === 'week' ? 'Haftanın atölyesi taleplerinde ara'
+                : view === 'grow' && growTab === 'promos' ? 'Kampanya kodu ara'
+                  : view === 'reports' ? 'Raporlarda ara'
+                    : 'Kendi ürün ve siparişlerinde ara';
 
   const openAnswer = (item) => {
     setActiveQuestion(item);
@@ -628,31 +675,17 @@ export default function SellerPanel({ user, handleLogout }) {
     }
   };
 
-  const nav = [
-    { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
-    { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.openOrders || 0 },
-    { id: 'questions', label: 'Sorular', icon: QuestionAnswerOutlined, badge: overview?.unansweredQuestions || 0 },
-    { id: 'products', label: 'Ürünlerim', icon: Inventory2Outlined, badge: overview?.pendingApproval || 0 },
-    { id: 'margin', label: 'Kar marjı', icon: CalculateOutlined },
-    { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || 0 },
-    { id: 'ads', label: 'Reklam asistanı', icon: CampaignOutlined },
-    { id: 'week', label: 'Haftanın atölyesi', icon: CelebrationOutlined, badge: overview?.pendingAtelierWeek || 0 },
-    { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
-    { id: 'promos', label: 'Kampanyalar', icon: LocalOfferOutlined },
-    { id: 'store', label: 'Mağaza bilgileri', icon: StorefrontOutlined }
-  ];
-
   return (
     <PanelShell
       nav={nav}
-      view={view === 'editor' ? 'products' : view}
+      view={shellView}
       onView={goView}
       user={user}
       roleLabel="Satıcı paneli"
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'orders' ? 'Müşteri, sipariş no veya ürün ara' : view === 'questions' ? 'Soru, ürün veya müşteri ara' : view === 'products' || view === 'editor' ? 'Ürün, kategori veya kod ara' : view === 'ads' ? 'Ürün veya kategori ara' : view === 'featured' ? 'Öne çıkan taleplerde ara' : view === 'week' ? 'Haftanın atölyesi taleplerinde ara' : view === 'reports' ? 'Raporlarda ara' : view === 'promos' ? 'Kampanya kodu ara' : view === 'margin' ? 'Kar marjında ara' : 'Kendi ürün ve siparişlerinde ara'}
+      searchPlaceholder={searchPlaceholder}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
       siteHref={seller.slug ? `/atolye/${seller.slug}` : '/'}
@@ -695,54 +728,12 @@ export default function SellerPanel({ user, handleLogout }) {
         />
       )}
 
-      {view === 'margin' && (
-        <Box>
-          <SectionTitle
-            overline="FİYATLAMA"
-            title="Kar marjı hesapla"
-            subtitle="Maliyet ve varsa kendi kargo masrafını yaz. Site payı kart ücretini içerir; 500 ₺ üstü bedava kargo senin komisyonuna girmez."
-            action={
-              <Button
-                startIcon={<AddRounded />}
-                onClick={() => {
-                  setEditing(null);
-                  setForm({
-                    ...emptyProductForm,
-                    costPrice: form.costPrice,
-                    shippingCost: form.shippingCost,
-                    extraCost: form.extraCost,
-                    price: form.price
-                  });
-                  setMainImage(null);
-                  setGallery([]);
-                  setRemovedImages([]);
-                  setView('editor');
-                }}
-                sx={primaryButton}
-              >
-                Bu fiyatla ürün ekle
-              </Button>
-            }
-          />
-          <PanelCard>
-            <ProductMarginCalculator
-              commissionPercent={seller?.komisyonOrani ?? 10}
-              costPrice={form.costPrice}
-              shippingCost={form.shippingCost}
-              extraCost={form.extraCost}
-              price={form.price}
-              onChange={setForm}
-            />
-          </PanelCard>
-        </Box>
-      )}
-
       {view === 'dashboard' && overview && (
         <Box>
           <SectionTitle
             overline="MAĞAZAM"
             title={seller.magazaAdi}
-            subtitle="Vitrininizi yönetin, siparişleri kargoya verin, ürünlerinizi baştan sona düzenleyin."
+            subtitle="Sipariş, soru ve ürünlerinizi buradan yönetin."
             action={
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {seller.slug ? (
@@ -759,104 +750,128 @@ export default function SellerPanel({ user, handleLogout }) {
             }
           />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, 1fr)' }, gap: 1.8, mb: 2 }}>
-            <Box onClick={() => goView('products')} sx={{ cursor: 'pointer' }}>
-              <StatCard icon={Inventory2Rounded} title="Yayındaki ürün" value={overview.published} hint={`${overview.products} toplam`} tone={T.navy} />
-            </Box>
-            <Box onClick={() => goView('products')} sx={{ cursor: 'pointer' }}>
-              <StatCard icon={PendingActionsOutlined} title="Onay bekleyen" value={overview.pendingApproval} hint="Süper admin onayı" tone="#C08A4A" />
-            </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 1.8, mb: 2 }}>
             <Box onClick={() => goView('orders')} sx={{ cursor: 'pointer' }}>
-              <StatCard icon={ShoppingBagOutlined} title="Siparişlerim" value={overview.orders} hint={`${overview.openOrders} hazırlanıyor`} tone={T.lavender} />
+              <StatCard icon={ShoppingBagOutlined} title="Açık sipariş" value={overview.openOrders} hint={`${overview.orders} toplam`} tone={T.lavender} />
             </Box>
             <Box onClick={() => goView('questions')} sx={{ cursor: 'pointer' }}>
-              <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint={overview.overdueQuestions ? `${overview.overdueQuestions} tanesi süre aşımı` : '3 gün içinde yanıtlayın'} tone={overview.overdueQuestions ? '#C08A4A' : T.blue} />
+              <StatCard icon={QuestionAnswerOutlined} title="Yanıtsız soru" value={overview.unansweredQuestions || 0} hint={overview.overdueQuestions ? `${overview.overdueQuestions} süre aşımı` : '3 gün içinde yanıtlayın'} tone={overview.overdueQuestions ? '#C08A4A' : T.blue} />
             </Box>
-            <StatCard
-              icon={PaymentsOutlined}
-              title="Tahsil edilen"
-              value={money(overview.revenue)}
-              hint={
-                seller?.komisyonManuel
-                  ? `Manuel pay %${seller.komisyonOrani} · satışın %${100 - Number(seller.komisyonOrani)}’ı size`
-                  : seller?.komisyonHacim?.qualifies
-                    ? `Hacim indirimi %${seller.komisyonOrani} (kart ücreti dahil)`
-                    : `Satışın %${100 - Number(seller?.komisyonOrani ?? 10)}’ı size · 50.000 ₺ üzeri %8`
-              }
-              tone={T.rose}
-            />
+            <Box onClick={() => goView('products')} sx={{ cursor: 'pointer' }}>
+              <StatCard icon={Inventory2Rounded} title="Yayında" value={overview.published} hint={overview.pendingApproval ? `${overview.pendingApproval} onayda` : `${overview.products} toplam`} tone={T.navy} />
+            </Box>
+            <Box onClick={() => goView('reports')} sx={{ cursor: 'pointer' }}>
+              <StatCard icon={PaymentsOutlined} title="Tahsilat" value={money(overview.revenue)} hint={`Pay %${seller?.komisyonOrani ?? 10}`} tone={T.rose} />
+            </Box>
           </Box>
 
           {overview.pendingApproval > 0 && (
             <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
-              {overview.pendingApproval} ürününüz süper admin onayında. Onaylandığında otomatik yayına alınır.
+              {overview.pendingApproval} ürününüz onayda. Onaylanınca yayına alınır.
             </Alert>
           )}
 
-          {!seller?.komisyonManuel && seller?.komisyonHacim ? (
-            <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
-              {seller.komisyonHacim.qualifies
-                ? `Son ${seller.komisyonHacim.windowDays} günde ${money(seller.komisyonHacim.gmv)} ciro. Platform payın %${seller.komisyonOrani} (kart ücreti dahil).`
-                : `Platform payı %${seller.komisyonOrani} (kart ücreti dahil). %${seller.komisyonHacim.volumeRate} için son ${seller.komisyonHacim.windowDays} günde ${money(seller.komisyonHacim.remaining)} ciro kaldı.`}
-            </Alert>
-          ) : null}
+          <PanelCard sx={{ p: 0, overflow: 'hidden' }}>
+            <Box sx={{ px: 2.6, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography sx={{ fontWeight: 900, color: T.navy }}>Son siparişler</Typography>
+              <Button onClick={() => goView('orders')} sx={{ fontWeight: 800, color: T.rose }}>Tümü</Button>
+            </Box>
+            <Table size="small">
+              <TableBody>
+                {(overview.recentOrders || []).slice(0, 5).map((order) => (
+                  <TableRow key={order._id} hover sx={{ cursor: 'pointer' }} onClick={() => { setOpenOrder(order); goView('orders'); }}>
+                    <TableCell sx={bodyCell}>
+                      <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
+                      <Typography sx={{ fontSize: 12, color: T.muted }}>
+                        #{order.code || String(order._id).slice(-6).toUpperCase()} · {when(order.createdAt)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>
+                      {money(order.sellerNet != null ? order.sellerNet : order.sellerTotal)}
+                    </TableCell>
+                    <TableCell sx={bodyCell}>
+                      <StatusChip map={ORDER_STATUS} value={order.orderStatus} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(overview.recentOrders || []).length === 0 && (
+                  <TableRow><TableCell sx={{ ...bodyCell, color: T.muted }}>Henüz sipariş yok.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </PanelCard>
+        </Box>
+      )}
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.4fr 1fr' }, gap: 1.8 }}>
-            <PanelCard sx={{ p: 0, overflow: 'hidden' }}>
-              <Box sx={{ px: 2.6, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontWeight: 900, color: T.navy }}>Son siparişler</Typography>
-                <Button onClick={() => goView('orders')} sx={{ fontWeight: 800, color: T.rose }}>Tümü</Button>
-              </Box>
-              <Table size="small">
-                <TableBody>
-                  {(overview.recentOrders || []).map((order) => (
-                    <TableRow key={order._id} hover sx={{ cursor: 'pointer' }} onClick={() => { setOpenOrder(order); goView('orders'); }}>
-                      <TableCell sx={bodyCell}>
-                        <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
-                        <Typography sx={{ fontSize: 12, color: T.muted }}>
-                          #{order.code || String(order._id).slice(-6).toUpperCase()} · {when(order.createdAt)}
-                          {order.qty ? ` · ${order.qty} ürün` : ''}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>
-                        {money(order.sellerNet != null ? order.sellerNet : order.sellerTotal)}
-                        <Typography sx={{ fontSize: 11, color: T.muted, fontWeight: 700 }}>net</Typography>
-                      </TableCell>
-                      <TableCell sx={bodyCell}>
-                        <StatusChip map={ORDER_STATUS} value={order.orderStatus} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(overview.recentOrders || []).length === 0 && (
-                    <TableRow><TableCell sx={{ ...bodyCell, color: T.muted }}>Henüz sipariş yok.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </PanelCard>
-
-            <PanelCard>
-              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 1.4 }}>Mağaza durumu</Typography>
-              {[
-                ['Kritik stok', overview.lowStock],
-                ['Reddedilen ürün', overview.rejected],
-                ['Yanıtsız soru', overview.unansweredQuestions || 0],
-                ['Toplam ürün', overview.products]
-              ].map(([labelText, value]) => (
-                <Box key={labelText} sx={{ display: 'flex', justifyContent: 'space-between', py: 1.1, borderBottom: `1px solid ${T.line}` }}>
-                  <Typography sx={{ fontWeight: 700, color: T.navy }}>{labelText}</Typography>
-                  <Chip size="small" label={value} sx={{ fontWeight: 900, bgcolor: value ? T.roseSoft : 'rgba(46,59,85,0.06)' }} />
-                </Box>
-              ))}
-              <Typography sx={{ color: T.muted, fontSize: '0.83rem', mt: 1.8 }}>
-                Ürün adı, görsel, ölçü ve stok dahil tüm kataloğu siz yönetirsiniz.
-              </Typography>
-            </PanelCard>
+      {view === 'grow' && (
+        <Box>
+          <SectionTitle
+            overline="VİTRİN"
+            title="Büyüme araçları"
+            subtitle="Öne çıkarma, kampanya, reklam ve fiyatlandırma."
+          />
+          <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 2.2 }}>
+            {growTabs.map((tab) => (
+              <Chip
+                key={tab.id}
+                clickable
+                label={tab.label}
+                onClick={() => { setGrowTab(tab.id); setQuery(''); }}
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: growTab === tab.id ? T.navy : 'rgba(46,59,85,0.06)',
+                  color: growTab === tab.id ? '#fff' : T.navy
+                }}
+              />
+            ))}
           </Box>
+
+          {growTab === 'margin' && (
+            <Box>
+              <SectionTitle
+                overline="FİYATLAMA"
+                title="Kar marjı hesapla"
+                subtitle="Maliyet ve kargo masrafını yazın; site payı kart ücretini içerir."
+                action={
+                  <Button
+                    startIcon={<AddRounded />}
+                    onClick={() => {
+                      setEditing(null);
+                      setForm({
+                        ...emptyProductForm,
+                        costPrice: form.costPrice,
+                        shippingCost: form.shippingCost,
+                        extraCost: form.extraCost,
+                        price: form.price
+                      });
+                      setMainImage(null);
+                      setGallery([]);
+                      setRemovedImages([]);
+                      setView('editor');
+                    }}
+                    sx={primaryButton}
+                  >
+                    Bu fiyatla ürün ekle
+                  </Button>
+                }
+              />
+              <PanelCard>
+                <ProductMarginCalculator
+                  commissionPercent={seller?.komisyonOrani ?? 10}
+                  costPrice={form.costPrice}
+                  shippingCost={form.shippingCost}
+                  extraCost={form.extraCost}
+                  price={form.price}
+                  onChange={setForm}
+                />
+              </PanelCard>
+            </Box>
+          )}
         </Box>
       )}
 
       {view === 'reports' && (
-        <SellerPerformanceReport report={report} query={query} />
+        <SellerPerformanceReport report={report} />
       )}
 
       {view === 'orders' && (
@@ -1058,7 +1073,7 @@ export default function SellerPanel({ user, handleLogout }) {
                                   : 'Öne çıkar'}
                           </Button>
                         )}
-                        <Button onClick={() => window.open(`/product/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
+                        <Button onClick={() => window.open(`/urun/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
                           <OpenInNewRounded sx={{ fontSize: 18 }} />
                         </Button>
                         <Button color="error" onClick={() => setRemoving(product)} sx={{ ...panelButton, ml: 'auto' }}>Sil</Button>
@@ -1072,12 +1087,12 @@ export default function SellerPanel({ user, handleLogout }) {
         </Box>
       )}
 
-      {view === 'promos' && (
+      {view === 'grow' && growTab === 'promos' && (
         <Box>
           <SectionTitle
             overline="KAMPANYALAR"
             title="Atölye indirim kodları"
-            subtitle="Oluşturduğun kodlar yalnızca senin ürünlerinde geçerlidir. Minimum tutar da o ürünlerin ara toplamına bakılır."
+            subtitle="Kodlar yalnızca senin ürünlerinde geçerlidir."
           />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '0.9fr 1.3fr' }, gap: 1.8 }}>
             <PanelCard>
@@ -1164,12 +1179,12 @@ export default function SellerPanel({ user, handleLogout }) {
         </Box>
       )}
 
-      {view === 'ads' && (
+      {view === 'grow' && growTab === 'ads' && (
         <Box>
           <SectionTitle
             overline="REKLAM"
             title="Reklam asistanı"
-            subtitle="Hangi ürününüzü öne çıkaracağınızı AI ve satış verisiyle seçin. Öneri, havale + dekontlu öne çıkan talebe bağlanır; rakip mağaza verisi gösterilmez."
+            subtitle="Öne çıkarılacak ürünü satış verisiyle seçin."
           />
           <SellerAdsBoard
             query={query}
@@ -1180,12 +1195,12 @@ export default function SellerPanel({ user, handleLogout }) {
         </Box>
       )}
 
-      {view === 'featured' && (
+      {view === 'grow' && growTab === 'featured' && (
         <Box>
           <SectionTitle
             overline="VİTRİN"
             title="Öne çıkan ürün talepleri"
-            subtitle="12 ürünlük açık vitrin. Yeni ürün yalnızca boş yer varken alınır; vitrindeki ürünün süresini uzatmak her zaman mümkün. Havale + dekont, kart yok."
+            subtitle="12 ürünlük vitrin. Havale + dekont; kart yok."
             action={liveFeatureProducts.length ? (
               <Button startIcon={<AutoAwesomeOutlined />} onClick={() => openFeature()} sx={primaryButton}>
                 Yeni talep
@@ -1266,12 +1281,12 @@ export default function SellerPanel({ user, handleLogout }) {
         </Box>
       )}
 
-      {view === 'week' && (
+      {view === 'grow' && growTab === 'week' && (
         <Box>
           <SectionTitle
             overline="VİTRİN"
             title="Haftanın atölyesi"
-            subtitle="3 mağazalık şerit, 7 gün 6.000 ₺. Onaydan itibaren sayılır. Havale + dekont; kart yok. Komisyon ve kargo değişmez."
+            subtitle="3 mağazalık şerit, 7 gün. Havale + dekont."
             action={liveFeatureProducts.length && !hasPendingWeek && !weekLocked ? (
               <Button startIcon={<CelebrationOutlined />} onClick={openWeek} sx={primaryButton}>
                 {shopIsWeekly ? 'Uzat' : 'Talep gönder'}

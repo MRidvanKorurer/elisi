@@ -1,7 +1,7 @@
 export const SUPPORTED_LOCALES = ['tr', 'en'];
 export const DEFAULT_LOCALE = 'tr';
 export const LOCALE_COOKIE = 'nb_lang';
-export const OPERATOR_PREFIXES = ['/admin'];
+export const OPERATOR_PREFIXES = ['/panel', '/admin'];
 
 const EN_PREFIX = /^\/en(?=\/|$)/;
 

@@ -5,6 +5,7 @@
     "guestLead": "Geleneksel el işçiliğiyle modern çizgilerin buluştuğu eşsiz tasarımlar. Kayıt ol, ilk siparişine özel %10 indirim kodunu anında kullan.",
     "memberLead": "Atölyemizin en yeni ve seçkin tasarımlarını hemen inceleyin.",
     "featured": "Öne çıkanlar",
+    "ateliers": "Atölyeler",
     "register": "Kayıt Ol",
     "explore": "Keşfet",
     "alt": "Nik Bag Koleksiyon"
@@ -37,7 +38,8 @@
     "slots": "{{current}}/3 vitrinde",
     "seeShop": "Mağazayı gör",
     "products": "{{count}} ürün",
-    "vitrine": "Vitrin"
+    "vitrine": "Vitrin",
+    "seeAll": "Tüm atölyeler"
   },
   "arrivals": {
     "eyebrow": "ATÖLYEDEN TAZE",
@@ -48,7 +50,54 @@
   },
   "bestsellers": {
     "eyebrow": "HAFTANIN FAVORİLERİ",
-    "title": "En Çok Satan Ürünler"
+    "title": "En Çok Satan Ürünler",
+    "region": "En çok satan ürünler",
+    "prev": "Önceki ürünler",
+    "next": "Sonraki ürünler"
+  },
+  "featured": {
+    "eyebrow": "VİTRİN",
+    "title": "Öne çıkanlar",
+    "subtitle": "Bu hafta vitrine alınan atölye parçaları.",
+    "region": "Öne çıkan ürünler",
+    "prev": "Önceki ürünler",
+    "next": "Sonraki ürünler"
+  },
+  "made": {
+    "eyebrow": "KİŞİYE ÖZEL",
+    "title": "Ölçüye özel ve hediye",
+    "subtitle": "Sipariş üzerine üretimde ölçü notu bırakın; hediye seçiminde atölye tempo ve paketlemeyi bilir.",
+    "customEyebrow": "SİPARİŞ ÜZERİNE",
+    "customTitle": "Ölçüye özel üretim",
+    "customText": "Birçok parça siparişinizle hazırlanır. Checkout’ta ölçü, renk ve teslim notunu atölyeye iletebilirsiniz.",
+    "customCta": "Sipariş üzerine ürünler",
+    "giftEyebrow": "HEDİYE",
+    "giftTitle": "Hediye kutuları ve özel günler",
+    "giftText": "Kime, hangi gün için aldığınızı yazın; atölye notunuzu siparişle birlikte görür.",
+    "giftCta": "Hediye koleksiyonu"
+  },
+  "directory": {
+    "eyebrow": "ÜRETİCİLER",
+    "title": "Atölyeler",
+    "subtitle": "Şehir, üretim alanı ve puana göre bağımsız atölyeleri keşfedin.",
+    "searchPlaceholder": "Atölye veya şehir ara",
+    "sortPopular": "Popüler",
+    "sortRating": "Puan",
+    "sortNewest": "Yeni",
+    "sortName": "İsim",
+    "allCities": "Tüm şehirler",
+    "allCrafts": "Tüm alanlar",
+    "products": "ürün",
+    "open": "Vitrini aç",
+    "count": "{{count}} atölye",
+    "showing": "{{total}} atölyeden {{shown}} tanesi",
+    "loading": "Atölyeler hazırlanıyor…",
+    "clearFilters": "Filtreleri temizle",
+    "newMaker": "Yeni vitrin",
+    "showMore": "Daha fazla göster ({{count}} kaldı)",
+    "emptyTitle": "Atölye bulunamadı",
+    "emptyText": "Filtreleri temizleyip yeniden deneyin.",
+    "loadError": "Atölyeler yüklenemedi."
   },
   "lookbook": {
     "eyebrow": "ATÖLYE",
