@@ -34,14 +34,22 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
-const allowedOrigins = corsOrigins();
+// const allowedOrigins = corsOrigins();
+// app.use(cors({
+//   origin(origin, callback) {
+//     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+//     return callback(new Error('Bu origin için CORS izni yok.'));
+//   },
+//   credentials: true
+// }));
+
 app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Bu origin için CORS izni yok.'));
-  },
-  credentials: true
+  origin: corsOrigins(), // Dizi formatını otomatik destekler
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+app.options('*', cors());
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
