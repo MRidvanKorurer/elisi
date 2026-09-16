@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // 1. Axios Instance Oluşturma
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://elisi-fxey.onrender.com',
   withCredentials: true, // HttpOnly Cookie'lerin (JWT) otomatik gönderilmesini sağlar
   headers: {
     'Content-Type': 'application/json'
