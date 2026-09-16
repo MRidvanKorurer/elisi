@@ -1,0 +1,133 @@
+{
+  "disclaimer": "These texts are filled with the shop operator’s contact details. Have them reviewed before you go live.",
+  "gizlilik": {
+    "title": "Privacy policy",
+    "lead": "{{company}} explains how order, account and support data is used.",
+    "sections": [
+      { "h": "Data we collect", "p": "Name, email, phone, delivery address, order contents and payment result. Card numbers are not stored here. Google sign-in shares the verified email and name." },
+      { "h": "Why", "p": "To fulfill the order, ship it, provide support, meet legal retention duties and, if you opt in, send a newsletter." },
+      { "h": "Sharing", "p": "The payment provider, carrier and host see only what the transaction requires. We do not sell personal data." },
+      { "h": "Retention and cookies", "p": "Order records are kept for the period required by tax and consumer law. Account requests: {{email}}. The session cookie is HttpOnly." }
+    ]
+  },
+  "kvkk": {
+    "title": "Privacy notice (KVKK)",
+    "lead": "Controller: {{company}}. Contact: {{email}} {{phone}} {{address}}",
+    "sections": [
+      { "h": "Purposes", "p": "Contract performance, payment, delivery, support, fraud prevention and legal duties." },
+      { "h": "Legal basis", "p": "Contract, legal obligation and legitimate interest. The newsletter needs a separate opt-in." },
+      { "h": "Your rights", "p": "You may request access, correction or deletion by emailing {{email}}. You may also apply to the Turkish data protection authority." }
+    ]
+  },
+  "mesafeli-satis": {
+    "title": "Distance sales contract",
+    "lead": "This contract applies to sales made on this site with {{company}}.",
+    "sections": [
+      { "h": "Scope", "p": "Sale and delivery of handmade goods. Small differences in handmade pieces are not defects." },
+      { "h": "Price and payment", "p": "The total is shown in the order summary. Cards are charged by the payment provider. Bank transfer is final only after the payment is confirmed. Unpaid orders are not shipped." },
+      { "h": "Withdrawal", "p": "Ready-made goods may be withdrawn within 14 days of delivery. Made-to-order or hygiene-sensitive goods may be excluded when stated on the product page." }
+    ]
+  },
+  "on-bilgilendirme": {
+    "title": "Pre-contract information",
+    "lead": "By placing an order you confirm you have read the seller, price and withdrawal terms.",
+    "sections": [
+      { "h": "Seller", "p": "{{company}}\n{{address}}\n{{email}} {{phone}}" },
+      { "h": "Price and delivery", "p": "Name, quantity, discounts, shipping and total are in the checkout summary. Cards are entered on the payment page. The delivery address is the one you enter." }
+    ]
+  },
+  "iade": {
+    "title": "Returns",
+    "lead": "Ready-stock items can be returned within 14 days of delivery.",
+    "sections": [
+      { "h": "How", "p": "Email {{email}} with the order code and reason. Send the item unused after we confirm." },
+      { "h": "Refund", "p": "After inspection, the amount is returned via the original payment method." }
+    ]
+  },
+  "kargo": {
+    "title": "Shipping",
+    "lead": "Shipping fee and the free-shipping threshold are calculated at checkout.",
+    "sections": [
+      { "h": "Timing", "p": "In-stock items are prepared after payment is confirmed. Made-to-order times are on the product page." },
+      { "h": "Damage", "p": "Check the parcel on delivery and email photos to {{email}} if it is damaged." }
+    ]
+  },
+  "satici-sozlesmesi": {
+    "title": "Seller agreement",
+    "lead": "This agreement is between {{company}} (\"Platform\") and the maker who opens a shop on Nik Bag (\"Seller\"). By submitting an application or ticking the box you confirm you have read and accept these terms. Contact: {{email}} · {{phone}} · {{address}}",
+    "sections": [
+      {
+        "h": "1. Parties and definitions",
+        "p": "Platform: the Nik Bag online marketplace.\nSeller: an approved individual or business atelier.\nBuyer: a customer placing an order.\nProduct: handmade or original design goods listed by the Seller.\nCommission: the Platform’s service fee on product sales.\nOrder total: product price plus shipping, with discounts shown at checkout."
+      },
+      {
+        "h": "2. Subject",
+        "p": "The Platform provides a digital storefront, order tools and access to payment rails. The Platform does not manufacture the goods; each sale is between Seller and Buyer. The Seller remains the merchant of record for their products."
+      },
+      {
+        "h": "3. Application and account accuracy",
+        "p": "The Seller must keep identity, contact, atelier, address and IBAN details accurate. False information may lead to rejection, suspension or closure. Products cannot go live before approval. The Seller is responsible for account security."
+      },
+      {
+        "h": "4. Shop and product rules",
+        "p": "Listings must be handmade, original or goods the Seller is legally entitled to sell. Counterfeits, unsafe or illegal items are forbidden. Photos, titles, stock, price and lead times must be truthful. The Platform may remove or reject non-compliant content."
+      },
+      {
+        "h": "5. Pricing",
+        "p": "The Seller sets prices, taking VAT (if any), packaging and commission into account. Misleading flash discounts or out-of-stock sales are the Seller’s risk; the Platform may correct or cancel obvious errors."
+      },
+      {
+        "h": "6. Orders, production and shipping",
+        "p": "Paid orders appear in the seller panel. The Seller must meet preparation and ship-by times, add tracking and keep buyers informed. Made-to-order lead times must be stated on the product page. Packaging must protect the item in transit."
+      },
+      {
+        "h": "7. Returns and buyer care",
+        "p": "Ready-stock returns follow consumer rules and the Platform’s returns policy. Personalised or hygiene-sensitive goods may be excluded when stated on the page. Buyer questions should be answered promptly (ideally within 72 hours). The Seller bears defect liability under applicable law."
+      },
+      {
+        "h": "8. Commission and settlement",
+        "p": "The default Platform fee is 10% of product sales (card-processing costs are handled within this fee; no separate card fee is charged to the Seller).\nSellers reaching ₺50,000 GMV in the last 90 days may automatically move to 8%. The Platform may lock a manual rate per shop for future sales.\nShipping is outside the commission base. Site-wide and welcome discounts are funded by the Platform; a Seller’s own promo code reduces that Seller’s share only."
+      },
+      {
+        "h": "9. Payouts and IBAN",
+        "p": "The Seller must provide a valid Turkish IBAN in their own name. The Platform is not liable for delays caused by a wrong IBAN. Payouts may wait for return windows, chargebacks or operational cycles and may be held during disputes or policy breaches. Tax and invoicing duties remain with the Seller."
+      },
+      {
+        "h": "10. Featured placement and ads",
+        "p": "Paid featured slots follow separate package and receipt rules. AI / ads insights are informational and do not guarantee sales. Slot capacity and campaign rules may change."
+      },
+      {
+        "h": "11. Intellectual property",
+        "p": "The Seller warrants they own or may use uploaded media and brands, and grants the Platform a non-exclusive licence to display and market the listings. The Seller indemnifies the Platform against third-party IP claims."
+      },
+      {
+        "h": "12. Prohibited conduct",
+        "p": "Fake orders, review manipulation, steering payments off-platform, abuse, discrimination and illegal goods are forbidden and may lead to suspension, termination and withheld funds."
+      },
+      {
+        "h": "13. Suspension and termination",
+        "p": "The Seller may close the shop after open orders are finished. The Platform may suspend or terminate for breaches, chronic delays or legal necessity. Accrued rights and debts survive termination."
+      },
+      {
+        "h": "14. Liability",
+        "p": "The Platform does not warrant uninterrupted service and, except where required by law, is not liable for indirect loss. Product, delivery, tax and consumer duties stay with the Seller. Force majeure may suspend timelines."
+      },
+      {
+        "h": "15. Personal data",
+        "p": "Buyer data shared for an order may be used only to fulfil, ship and meet legal retention duties—not for unrelated marketing or sale. Platform privacy notices also apply. Report suspected breaches to {{email}}."
+      },
+      {
+        "h": "16. Changes",
+        "p": "The Platform may update this agreement and will notify material changes via the panel, email or the site. Continued use after a change means acceptance; otherwise close the account."
+      },
+      {
+        "h": "17. Governing law",
+        "p": "Turkish law applies. Parties will try to settle amicably; otherwise courts at {{address}} have jurisdiction, without prejudice to consumer forums."
+      },
+      {
+        "h": "18. Effective date",
+        "p": "The agreement takes effect when the Seller ticks the box or submits the application. Have counsel review before production use."
+      }
+    ]
+  }
+}

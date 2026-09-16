@@ -1,0 +1,66 @@
+const express = require('express');
+const router = express.Router();
+const {
+  registerSeller,
+  getMySeller,
+  updateMySeller,
+  getMyOrders,
+  updateMyOrder,
+  addMyOrderNote,
+  getMyOverview,
+  getMyReports,
+  getPublicSeller
+} = require('../controllers/sellerController');
+const {
+  getMyProducts,
+  createMyProduct,
+  updateMyProduct,
+  deleteMyProduct
+} = require('../controllers/productController');
+const {
+  listMyPromos,
+  createMyPromo,
+  updateMyPromo,
+  deleteMyPromo
+} = require('../controllers/promoController');
+const {
+  listMyFeatured,
+  createFeatured,
+  cancelFeatured
+} = require('../controllers/featuredController');
+const {
+  listMyWeek,
+  createWeek,
+  cancelWeek
+} = require('../controllers/atelierWeekController');
+const { getMyAdsBoard, refreshMyAdsSuggestions } = require('../controllers/sellerAdsController');
+const { protect, optionalProtect, approvedSeller } = require('../middleware/authMiddleware');
+const { productImages, receiptFile } = require('../middleware/uploadMiddleware');
+
+router.post('/register', optionalProtect, registerSeller);
+router.get('/public/:slug', getPublicSeller);
+router.get('/me', protect, getMySeller);
+router.put('/me', protect, approvedSeller, updateMySeller);
+router.get('/me/overview', protect, approvedSeller, getMyOverview);
+router.get('/me/reports', protect, approvedSeller, getMyReports);
+router.get('/me/ads', protect, approvedSeller, getMyAdsBoard);
+router.post('/me/ads/suggest', protect, approvedSeller, refreshMyAdsSuggestions);
+router.get('/me/orders', protect, approvedSeller, getMyOrders);
+router.put('/me/orders/:id', protect, approvedSeller, updateMyOrder);
+router.post('/me/orders/:id/notes', protect, approvedSeller, addMyOrderNote);
+router.get('/me/products', protect, approvedSeller, getMyProducts);
+router.post('/me/products', protect, approvedSeller, productImages, createMyProduct);
+router.put('/me/products/:id', protect, approvedSeller, productImages, updateMyProduct);
+router.delete('/me/products/:id', protect, approvedSeller, deleteMyProduct);
+router.get('/me/promos', protect, approvedSeller, listMyPromos);
+router.post('/me/promos', protect, approvedSeller, createMyPromo);
+router.put('/me/promos/:id', protect, approvedSeller, updateMyPromo);
+router.delete('/me/promos/:id', protect, approvedSeller, deleteMyPromo);
+router.get('/me/featured', protect, approvedSeller, listMyFeatured);
+router.post('/me/featured', protect, approvedSeller, receiptFile, createFeatured);
+router.delete('/me/featured/:id', protect, approvedSeller, cancelFeatured);
+router.get('/me/atelier-week', protect, approvedSeller, listMyWeek);
+router.post('/me/atelier-week', protect, approvedSeller, receiptFile, createWeek);
+router.delete('/me/atelier-week/:id', protect, approvedSeller, cancelWeek);
+
+module.exports = router;

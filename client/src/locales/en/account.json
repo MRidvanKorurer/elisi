@@ -1,0 +1,26 @@
+{
+  "seoTitle": "My account",
+  "tabs": {
+    "profile": "Profile",
+    "addresses": "Addresses",
+    "cards": "Cards",
+    "orders": "Orders",
+    "favorites": "Favorites"
+  },
+  "status": {
+    "delivered": "Delivered",
+    "shipped": "Shipped",
+    "pending": "Awaiting payment",
+    "failed": "Payment failed",
+    "preparing": "Being prepared"
+  },
+  "emptyOrders": "You don’t have any orders yet.",
+  "emptyFavorites": "Your favorites list is empty.",
+  "goShop": "Start shopping",
+  "goProducts": "Browse products",
+  "name": "Full name",
+  "email": "Email",
+  "phone": "Phone",
+  "welcomeUsed": "Your welcome discount has been used",
+  "welcomeReady": "10% off your first order"
+}

@@ -1,0 +1,38 @@
+import API from './api';
+
+const multipart = { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 };
+
+export const adminService = {
+  overview: async () => (await API.get('/admin/overview')).data,
+  orders: async () => (await API.get('/admin/orders')).data,
+  updateOrder: async (id, payload) => (await API.put(`/admin/orders/${id}`, payload)).data,
+  users: async () => (await API.get('/admin/users')).data,
+  setUserRole: async (id, rol) => (await API.put(`/admin/users/${id}/role`, { rol })).data,
+  sellers: async () => (await API.get('/admin/sellers')).data,
+  setSellerStatus: async (id, payload) => (await API.put(`/admin/sellers/${id}/status`, payload)).data,
+  setSellerCommission: async (id, payload) => (await API.put(`/admin/sellers/${id}/commission`, payload)).data,
+  products: async () => (await API.get('/admin/products')).data,
+  updateProduct: async (id, payload) =>
+    (await API.put(`/admin/products/${id}`, payload, payload instanceof FormData ? multipart : undefined)).data,
+  setProductApproval: async (id, payload) => (await API.put(`/admin/products/${id}/approval`, payload)).data,
+  hideProduct: async (id) => (await API.delete(`/admin/products/${id}`)).data,
+  featured: async (params) => (await API.get('/admin/featured', { params })).data,
+  reviewFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}`, payload)).data,
+  removeFeatured: async (id, payload) => (await API.put(`/admin/featured/${id}/remove`, payload)).data,
+  giftFeatured: async (payload) => (await API.post('/admin/featured/gift', payload)).data,
+  saveFeaturedSettings: async (payload) => (await API.put('/admin/featured/settings', payload)).data,
+  atelierWeek: async (params) => (await API.get('/admin/atelier-week', { params })).data,
+  reviewAtelierWeek: async (id, payload) => (await API.put(`/admin/atelier-week/${id}`, payload)).data,
+  removeAtelierWeek: async (id, payload) => (await API.put(`/admin/atelier-week/${id}/remove`, payload)).data,
+  giftAtelierWeek: async (payload) => (await API.post('/admin/atelier-week/gift', payload)).data,
+  reports: async () => (await API.get('/admin/reports')).data,
+  reportsSeller: async (sellerId) => (await API.get(`/admin/reports/sellers/${sellerId}`)).data,
+  adsBoard: async (params) => (await API.get('/admin/ads', { params })).data,
+  adsSuggest: async () => (await API.post('/admin/ads/suggest')).data,
+  categories: async () => (await API.get('/admin/categories')).data,
+  createCategory: async (payload) =>
+    (await API.post('/admin/categories', payload, payload instanceof FormData ? multipart : undefined)).data,
+  updateCategory: async (id, payload) =>
+    (await API.put(`/admin/categories/${id}`, payload, payload instanceof FormData ? multipart : undefined)).data,
+  deleteCategory: async (id) => (await API.delete(`/admin/categories/${id}`)).data
+};

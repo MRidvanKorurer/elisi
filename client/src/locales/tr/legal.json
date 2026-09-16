@@ -1,0 +1,137 @@
+{
+  "disclaimer": "Bu metinler mağaza işletmecisinin iletişim bilgileriyle doldurulur. Yayına almadan önce hukuk danışmanınızla son halini kontrol edin.",
+  "gizlilik": {
+    "title": "Gizlilik Politikası",
+    "lead": "{{company}} olarak sipariş, hesap ve destek süreçlerinde toplanan kişisel verileri bu metinde açıklıyoruz.",
+    "sections": [
+      { "h": "Toplanan veriler", "p": "Ad soyad, e-posta, telefon, teslimat adresi, sipariş içeriği ve ödeme sonucu (kart numarası bizde saklanmaz). Google ile girişte Google’ın doğruladığı e-posta ve ad." },
+      { "h": "Amaç", "p": "Siparişi hazırlamak, kargoya vermek, destek vermek, yasal saklama yükümlülüklerini yerine getirmek ve — onay verirseniz — bülten göndermek." },
+      { "h": "Aktarım", "p": "Ödeme kuruluşu (İyzico), kargo firması ve barındırma sağlayıcısı, işlemin gerektirdiği kadar veriyi görür. Veriler reklam ağlarına satılmaz." },
+      { "h": "Saklama", "p": "Sipariş kayıtları vergi ve tüketici mevzuatının öngördüğü süre boyunca tutulur. Hesap silme talebi {{email}} adresine yazılabilir." },
+      { "h": "Çerezler", "p": "Oturum çerezi (HttpOnly) girişinizi tutar. Zorunlu olmayan pazarlama çerezi kullanılmaz." }
+    ]
+  },
+  "kvkk": {
+    "title": "KVKK Aydınlatma Metni",
+    "lead": "6698 sayılı Kanun kapsamında veri sorumlusu: {{company}}. İletişim: {{email}} {{phone}} {{address}}",
+    "sections": [
+      { "h": "İşleme amaçları", "p": "Sözleşmenin kurulması ve ifası, ödeme, teslimat, müşteri hizmetleri, dolandırıcılığın önlenmesi ve yasal yükümlülükler." },
+      { "h": "Hukuki sebep", "p": "Bir sözleşmenin kurulması veya ifası, veri sorumlusunun hukuki yükümlülüğü ve meşru menfaat. Bülten için ayrıca açık rıza istenir." },
+      { "h": "Haklarınız", "p": "Kanun’un 11. maddesindeki haklarınız için {{email}} adresine kimliğinizi doğrulayan bir talep gönderebilirsiniz. Şikayet için Kişisel Verileri Koruma Kurulu’na başvurabilirsiniz." }
+    ]
+  },
+  "mesafeli-satis": {
+    "title": "Mesafeli Satış Sözleşmesi",
+    "lead": "Bu sözleşme, {{company}} ile alıcı arasında elektronik ortamda kurulan satışa uygulanır.",
+    "sections": [
+      { "h": "Konu", "p": "Alıcının siteden sipariş verdiği el yapımı ürünlerin satışı ve teslimidir. El emeği parçalarda renk ve ölçü küçük farklılıklar gösterebilir; bu, ürünün ayıplı olduğu anlamına gelmez." },
+      { "h": "Bedel ve ödeme", "p": "Toplam bedel sipariş özetinde gösterilir. Kart ödemesi İyzico üzerinden alınır. Havale, ödemenin hesaba geçmesi ve onaylanmasıyla kesinleşir. Ödeme onaylanmadan ürün kargoya verilmez." },
+      { "h": "Teslimat", "p": "Kargo süresi ürün sayfasında ve kargo koşullarında belirtilir. Siparişe özel üretim süreleri ayrıca gösterilir." },
+      { "h": "Cayma", "p": "Hazır ürünlerde teslimden itibaren 14 gün içinde cayma hakkı vardır. Kişiye özel üretilen veya hijyen gerekçesiyle iadesi uygun olmayan ürünlerde cayma hakkı kullanılamayabilir; bu durum ürün sayfasında belirtilir." }
+    ]
+  },
+  "on-bilgilendirme": {
+    "title": "Ön Bilgilendirme Formu",
+    "lead": "Siparişi tamamlamadan önce satıcı, ürün, fiyat ve cayma koşullarını okuduğunuzu kabul edersiniz.",
+    "sections": [
+      { "h": "Satıcı", "p": "{{company}}\n{{address}}\n{{email}} {{phone}}" },
+      { "h": "Ürün ve fiyat", "p": "Ürün adı, adet, birim fiyat, indirim, kargo ve toplam tutar ödeme adımındaki özette yer alır. Sipariş vererek bu özeti kabul etmiş olursunuz." },
+      { "h": "Ödeme ve teslim", "p": "Kart bilgisi İyzico sayfasında girilir. Havale talimatı, hesap tanımlıysa sipariş sonrası gösterilir. Teslimat adresi sizin yazdığınız adrestir." }
+    ]
+  },
+  "iade": {
+    "title": "İade ve Cayma",
+    "lead": "Hazır stoktaki ürünlerde teslimden itibaren 14 gün içinde iade talebi oluşturabilirsiniz.",
+    "sections": [
+      { "h": "Nasıl", "p": "{{email}} adresine sipariş kodu, ürün ve iade gerekçesini yazın. Onaydan sonra ürünü kullanılmamış ve etiketli halde gönderin." },
+      { "h": "İstisna", "p": "Alıcının talebine göre üretilen, kişiselleştirilen veya hijyen nedeniyle iadesi uygun olmayan parçalar cayma kapsamı dışında olabilir." },
+      { "h": "Bedel iadesi", "p": "Ürün bize ulaşıp kontrol edildikten sonra bedel, ödemenin yapıldığı yolla iade edilir. Havale iadesi yazılı olarak bildirilen hesaba yapılır." }
+    ]
+  },
+  "kargo": {
+    "title": "Kargo Koşulları",
+    "lead": "Kargo ücreti ve ücretsiz kargo eşiği ödeme adımında hesaplanır.",
+    "sections": [
+      { "h": "Süre", "p": "Stoktaki ürünler onaydan sonra hazırlanır. Siparişe özel üretim süreleri ürün sayfasında yazar." },
+      { "h": "Hasar", "p": "Paketi teslim alırken kontrol edin. Hasar varsa tutanak tutturup {{email}} adresine fotoğrafla bildirin." }
+    ]
+  },
+  "satici-sozlesmesi": {
+    "title": "Satıcı Sözleşmesi",
+    "lead": "Bu sözleşme, {{company}} (\"Platform\") ile Nik Bag üzerinde mağaza açan / açmak isteyen satıcı (\"Satıcı\") arasında elektronik ortamda kurulur. Başvuruyu göndererek veya kutuyu işaretleyerek metni okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan edersiniz. İletişim: {{email}} · {{phone}} · {{address}}",
+    "sections": [
+      {
+        "h": "1. Taraflar ve tanımlar",
+        "p": "Platform: Nik Bag markasıyla işletilen çevrimiçi vitrin ve aracılık hizmeti.\nSatıcı: Başvurusu onaylanan bireysel veya kurumsal üretici / atölye.\nAlıcı: Siteden sipariş veren kullanıcı.\nÜrün: Satıcının listelediği el emeği / tasarım ürünleri.\nKomisyon: Platform’un ürün satış bedeli üzerinden aldığı hizmet payı.\nSipariş bedeli: Ürün fiyatı + varsa kargo; indirimler sipariş özetinde gösterilir."
+      },
+      {
+        "h": "2. Sözleşmenin konusu",
+        "p": "Platform, Satıcı’ya dijital vitrin, sipariş yönetimi, ödeme altyapısına erişim ve görünürlük araçları sunar. Platform ürünlerin üreticisi değildir; satış, Satıcı ile Alıcı arasında Platform aracılığıyla kurulur. Satıcı, kendi ürünlerinin satıcısı / sağlayıcısı sıfatıyla sorumludur."
+      },
+      {
+        "h": "3. Başvuru, hesap ve doğruluk",
+        "p": "Satıcı; kimlik, iletişim, atölye, adres ve IBAN bilgilerini doğru ve güncel tutmayı taahhüt eder. Yanlış, eksik veya yanıltıcı bilgi başvuru reddine, askıya alınmaya veya hesabın kapatılmasına yol açabilir.\nBaşvuru onaylanmadan ürün yayını ve satış yapılamaz.\nHesap güvenliği Satıcı’ya aittir; şifre paylaşımı yasaktır. Hesaptan yapılan işlemler Satıcı’ya atfedilir."
+      },
+      {
+        "h": "4. Mağaza ve ürün kuralları",
+        "p": "Listelenen ürünler el emeği, el işçiliği veya Satıcı’nın yasal olarak satış hakkına sahip olduğu orijinal tasarımlar olmalıdır. Sahte marka, izinsiz kopya, tehlikeli / yasadışı / yanıltıcı ürün yasaktır.\nÜrün görseli, başlık, açıklama, stok, fiyat, üretim süresi ve kargo bilgisi gerçeği yansıtmalıdır.\nPlatform, içeriği inceleyebilir; uygunsuz ürünü yayından kaldırabilir, düzenleme isteyebilir veya onayı geri alabilir.\nStok tükenince veya üretim gecikmesinde Satıcı paneli üzerinden güncelleme yapmak Satıcı’nın yükümlülüğüdür."
+      },
+      {
+        "h": "5. Fiyatlandırma",
+        "p": "Satış fiyatını Satıcı belirler. Fiyat; KDV (varsa), paketleme ve Platform komisyonu dikkate alınarak net gelir beklentisine göre ayarlanmalıdır.\nAni yanıltıcı indirimler, stok dışı satış veya fiyat hatasıyla oluşan zarar öncelikle Satıcı’nın sorumluluğundadır; Platform makul düzeltme veya iptal hakkını saklı tutar."
+      },
+      {
+        "h": "6. Sipariş, üretim ve kargo",
+        "p": "Ödemesi tamamlanan / onaylanan siparişler Satıcı paneline düşer. Satıcı; hazırlık, üretim ve kargoya verme sürelerine uymayı, takip numarasını zamanında girmeyi ve Alıcı’yı bilgilendirmeyi taahhüt eder.\nKişiye özel / siparişe özel üretim süreleri ürün sayfasında açık yazılmalıdır.\nGecikme, yanlış adres (Alıcı kaynaklı değilse), eksik ürün veya hasarlı paket konularında Satıcı, Platform ile işbirliği yaparak çözüme katkı sağlar.\nKargo firması seçimi ve paketleme Satıcı’ya aittir; ürünün taşıma sırasında korunması için yeterli ambalaj zorunludur."
+      },
+      {
+        "h": "7. İade, cayma ve müşteri ilişkileri",
+        "p": "Hazır stok ürünlerde yasal cayma / iade kuralları ve Platform’un yayımladığı iade metni uygulanır. Kişiselleştirilmiş veya hijyen nedeniyle iadesi uygun olmayan ürünlerde istisna, ürün sayfasında belirtilmelidir.\nAlıcı soruları panale düşer; Satıcı makul sürede (tercihen 72 saat içinde) yanıt vermelidir.\nİade onayı, yenileme veya kısmi iade süreçlerinde Platform’un talimatlarına uyulur. Kusurlu / ayıplı ürünlerde Satıcı, yasal ayıp sorumluluğunu üstlenir."
+      },
+      {
+        "h": "8. Komisyon ve tahsilat",
+        "p": "Varsayılan Platform payı, ürün satış tutarı üzerinden %10’dur (kart / ödeme kuruluşu maliyetleri bu pay kapsamında Platform tarafından yönetilir; Satıcı’ya ayrıca kart komisyonu yansıtılmaz).\nSon 90 günde Platform üzerinden 50.000 ₺ ve üzeri ciroya ulaşan Satıcı’da otomatik hacim oranı %8 uygulanabilir. Platform, Satıcı bazında manuel sabit oran kilitleyebilir; kilitlenen oran yeni satışlara uygulanır.\nKargo bedeli komisyon matrahına dahil değildir; Alıcı’dan alınan kargo, ilgili siparişin kargo kalemi olarak işlenir.\nSite kampanyası ve hoş geldin indirimini Platform karşılar; Satıcı’nın kendi oluşturduğu kampanya kodu yalnızca kendi ürünlerinde geçerli olup Satıcı payını düşürebilir."
+      },
+      {
+        "h": "9. Ödeme ve IBAN",
+        "p": "Satıcı, Türkiye’de kendi adına / unvanına ait geçerli bir IBAN bildirir. Hatalı IBAN nedeniyle geciken veya yanlış hesaba giden ödemelerden Platform sorumlu tutulamaz.\nHakediş; iade süreleri, chargeback / itiraz riski ve Platform’un operasyonel takvimine göre dönemsel olarak aktarılabilir. Şüpheli işlem, uyuşmazlık veya politika ihlalinde ödeme askıya alınabilir.\nVergi, fatura ve resmi bildirim yükümlülükleri Satıcı’ya aittir (bireysel veya kurumsal statüsüne göre)."
+      },
+      {
+        "h": "10. Öne çıkan vitrin, reklam ve kampanyalar",
+        "p": "Ücretli / paket bazlı vitrin (öne çıkan ürün, haftanın atölyesi vb.) ayrı talep ve ödeme koşullarına tabidir. Dekont veya paket ücreti doğrulanmadan slot garanti edilmez.\nReklam / AI öneri panelleri bilgilendirme amaçlıdır; satış taahhüdü değildir.\nPlatform, kampanya kurallarını ve vitrin kapasitesini değiştirebilir."
+      },
+      {
+        "h": "11. Fikri mülkiyet ve lisans",
+        "p": "Satıcı; yüklediği görsel, metin ve markanın kendisine ait olduğunu veya kullanım hakkına sahip olduğunu beyan eder.\nSatıcı, Platform’a ürünleri sergilemek, pazarlamak ve siparişi yürütmek için dünya çapında, münhasır olmayan, ücretsiz bir kullanım lisansı verir.\nÜçüncü kişi hak ihlali iddiasında Satıcı Platform’u bilgilendirir ve savunmaya yardımcı olur; doğan zararları karşılar."
+      },
+      {
+        "h": "12. Yasaklı davranışlar",
+        "p": "Sahte sipariş, manipülatif değerlendirme, Alıcı’yı Platform dışına yönlendirerek ödemeyi kaçırma, spam, hakaret, ayrımcılık, güvenlik açığı denemesi ve mevzuata aykırı ürün satışı yasaktır. İhlalde hesap askıya alınabilir veya sonlandırılabilir; ödeme tutulabilir."
+      },
+      {
+        "h": "13. Askıya alma ve fesih",
+        "p": "Satıcı hesabını kapatmayı talep edebilir; açık siparişler tamamlanana kadar yükümlülükler devam eder.\nPlatform; ihlal, uzun süreli yanıt vermeme, tekrarlayan gecikme veya yasal zorunluluk halinde mağazayı askıya alabilir veya sözleşmeyi feshedebilir.\nFesih, doğmuş alacak ve borçları ortadan kaldırmaz."
+      },
+      {
+        "h": "14. Sorumluluk sınırı",
+        "p": "Platform; aracılık hizmetinin kesintisiz / hatasız olacağını garanti etmez. Dolaylı zarar, kâr kaybı veya veri kaybından, kanunen zorunlu haller dışında sorumlu tutulamaz.\nSatıcı’nın ürün, teslimat, vergi ve tüketici hukuku yükümlülükleri Satıcı’da kalır.\nMücbir sebep (doğal afet, savaş, salgın, altyapı kesintisi, ödeme kuruluşu kesintisi vb.) süreler boyunca yükümlülükler askıda sayılabilir."
+      },
+      {
+        "h": "15. Kişisel veriler",
+        "p": "Satıcı; sipariş için kendisine aktarılan Alıcı verilerini yalnızca siparişi ifa, kargo ve yasal saklama amacıyla işler; başka amaçla pazarlama veya üçüncü kişilere satamaz.\nPlatform’un gizlilik ve KVKK metinleri ayrıca geçerlidir. Veri ihlali şüphesinde Satıcı derhal {{email}} adresine bildirir."
+      },
+      {
+        "h": "16. Değişiklikler",
+        "p": "Platform bu sözleşmeyi güncelleyebilir. Önemli değişiklikler panel, e-posta veya site üzerinden duyurulur. Değişiklikten sonra mağazayı kullanmaya devam etmek kabul anlamına gelir; kabul etmeyen Satıcı hesabını kapatmalıdır."
+      },
+      {
+        "h": "17. Uygulanacak hukuk ve uyuşmazlık",
+        "p": "Bu sözleşme Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklarda öncelikle dostane çözüm aranır; çözülemezse {{address}} adresinin bağlı olduğu mahkemeler ve icra daireleri yetkilidir (tüketici uyuşmazmaları saklıdır)."
+      },
+      {
+        "h": "18. Yürürlük",
+        "p": "Sözleşme, Satıcı’nın elektronik onayı (onay kutusu / başvuru gönderimi) ile yürürlüğe girer. Başvuru onaylanmasa bile başvuru aşamasındaki beyanlar geçerlidir.\nBu metin bilgilendirme ve sözleşme taslağı niteliğindedir; yayına almadan önce hukuk danışmanınızla son kontrol önerilir."
+      }
+    ]
+  }
+}
