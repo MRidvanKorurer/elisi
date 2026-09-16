@@ -51,7 +51,7 @@ const corsOrigins = () => {
   // Hem lokal hem de canlı Vercel adresiniz (Sonda '/' YOK)
   const defaultOrigins = [
     'http://localhost:5173',
-    'http://localhost:3000',
+    'https://localhost:5000',
     'https://elisi-elisi.vercel.app'
   ];
 
