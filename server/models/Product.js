@@ -177,7 +177,7 @@ const productSchema = new mongoose.Schema(
         },
         sponsoredUntil: {
             type: Date
-        }
+        },
     },
     {
         timestamps: true
