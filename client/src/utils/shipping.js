@@ -1,5 +1,5 @@
-export const FREE_SHIPPING_LIMIT = 500;
-export const SHIPPING_FEE = 49.9;
+export const FREE_SHIPPING_LIMIT = 1000;
+export const SHIPPING_FEE = 100;
 export const RETURN_DAYS = 14;
 
 const formatPrice = (value) =>

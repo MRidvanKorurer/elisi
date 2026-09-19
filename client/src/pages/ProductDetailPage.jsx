@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 // Ürün detay: teslimat / ölçü / iade paneli ProductFulfillment ile gelir.
 import { useParams } from 'react-router-dom';
@@ -26,6 +27,8 @@ import IosShareRounded from '@mui/icons-material/IosShareRounded';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -189,7 +192,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
       image: mainImg,
       quantity,
       color: selectedColor,
-      size: selectedSize
+      size: selectedSize,
     };
 
     try {
