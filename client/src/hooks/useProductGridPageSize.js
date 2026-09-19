@@ -1,13 +1,19 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
+import {
+  PRODUCT_GRID_CARD_HEIGHT,
+  PRODUCT_GRID_MIN_CARD,
+  measureProductGridPageSize
+} from './productGridMeasure';
 
-/** productCardGridSx ile uyumlu: minmax(260px) + gap */
-export const PRODUCT_GRID_MIN_CARD = 260;
-/** fullWidth ProductCard yaklaşık yüksekliği (kare görsel + metin + buton) */
-export const PRODUCT_GRID_CARD_HEIGHT = 480;
+export { PRODUCT_GRID_CARD_HEIGHT, PRODUCT_GRID_MIN_CARD };
+export { resolveFetchLimit } from './productGridMeasure';
 
 /**
  * Grid genişliğine (ve isteğe bağlı olarak viewport’a) göre kaç kart gösterileceğini ölçer.
  * İlk görünür adet = pageSize; “Daha fazla” ile pageSize kadar eklenir.
+ *
+ * Column count follows the node’s live CSS grid (productCardGridSx minmax
+ * 150/200/240/260), not a single 260px guess.
  *
  * pageSize 0 = henüz ölçülmedi (fetch etme).
  */
@@ -20,45 +26,36 @@ export default function useProductGridPageSize({
   minCard = PRODUCT_GRID_MIN_CARD,
   cardHeight = PRODUCT_GRID_CARD_HEIGHT
 } = {}) {
-  const gridRef = useRef(null);
+  const [gridNode, setGridNode] = useState(null);
   const [pageSize, setPageSize] = useState(0);
+  const gridRef = useCallback((node) => {
+    setGridNode((prev) => (prev === node ? prev : node));
+  }, []);
 
   useLayoutEffect(() => {
-    if (!enabled) return undefined;
-    const node = gridRef.current;
-    if (!node) return undefined;
+    if (!enabled || !gridNode) return undefined;
 
     const measure = () => {
-      const width = node.clientWidth;
-      if (!width) return;
-      const styles = getComputedStyle(node);
-      const colGap = Number.parseFloat(styles.columnGap || styles.gap) || 16;
-      const rowGap = Number.parseFloat(styles.rowGap || styles.gap) || colGap;
-      const cardMin = Math.max(1, minCard);
-      const cols = Math.max(1, Math.floor((width + colGap) / (cardMin + colGap)));
-
-      let rows = Math.max(1, minRows);
-      if (fillViewport) {
-        const top = node.getBoundingClientRect().top;
-        const available = Math.max(320, window.innerHeight - top - 72);
-        const fit = Math.floor((available + rowGap) / (cardHeight + rowGap));
-        rows = Math.max(minRows, fit);
-      }
-      rows = Math.min(Math.max(rows, minRows), Math.max(minRows, maxRows));
-
-      setPageSize(cols * rows);
+      const next = measureProductGridPageSize(gridNode, {
+        fillViewport,
+        minRows,
+        maxRows,
+        minCard,
+        cardHeight
+      });
+      if (next > 0) setPageSize((prev) => (prev === next ? prev : next));
     };
 
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(node);
+    observer.observe(gridNode);
     window.addEventListener('resize', measure);
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', measure);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- caller passes explicit deps
-  }, [enabled, fillViewport, minRows, maxRows, minCard, cardHeight, ...deps]);
+  }, [enabled, gridNode, fillViewport, minRows, maxRows, minCard, cardHeight, ...deps]);
 
   return { gridRef, pageSize };
 }

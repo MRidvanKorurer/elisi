@@ -13,7 +13,7 @@ import { productService } from '../api/productService';
 import ProductCard, { productCardGridSx } from './ProductCard';
 import LoadingButton, { ProductGridSkeleton } from './LoadingButton';
 import { scrollPageTo } from '../hooks/useSmoothScroll';
-import useProductGridPageSize from '../hooks/useProductGridPageSize';
+import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGridPageSize';
 import { imgBanner1Tile as allCover } from '../assets/media';
 
 const MAX_TILES = 9;
@@ -176,6 +176,7 @@ export default function CategoryProductList() {
     deps: [selected, productsReady]
   });
   const requestSeq = useRef(0);
+  const fetchLimitRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,6 +219,7 @@ export default function CategoryProductList() {
   useEffect(() => {
     setPage(1);
     setProducts([]);
+    fetchLimitRef.current = 0;
   }, [selected, productsReady]);
 
   useEffect(() => {
@@ -225,6 +227,8 @@ export default function CategoryProductList() {
     let cancelled = false;
     const seq = ++requestSeq.current;
     const requestPage = page;
+    const requestLimit = resolveFetchLimit(requestPage, pageSize, fetchLimitRef);
+    if (requestLimit < 1) return () => { cancelled = true; };
 
     if (requestPage > 1) setLoadingMore(true);
     else setLoading(true);
@@ -233,7 +237,7 @@ export default function CategoryProductList() {
     productService.getFilteredProducts({
       category: selected === 'all' ? undefined : selected,
       page: requestPage,
-      limit: pageSize,
+      limit: requestLimit,
       sort: 'created'
     })
       .then((response) => {
@@ -552,8 +556,22 @@ export default function CategoryProductList() {
               ) : null}
 
               <Box
-                key={selected}
                 ref={gridRef}
+                aria-hidden
+                sx={{
+                  ...productCardGridSx,
+                  height: 0,
+                  overflow: 'hidden',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  m: 0,
+                  p: 0,
+                  border: 0
+                }}
+              />
+
+              <Box
+                key={selected}
                 sx={{
                   ...productCardGridSx,
                   ...((initialLoading || error || products.length === 0)
