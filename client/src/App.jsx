@@ -25,6 +25,7 @@ function LegacyProductRedirect() {
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTopButton from './components/ScrollToTopButton';
 import API from './api/api';
 import './index.css';
 import useSmoothScroll from './hooks/useSmoothScroll';
@@ -272,6 +273,7 @@ export default function App() {
         </Box>
 
         {!isAdminRoute && <Footer />}
+        {!isAdminRoute && <ScrollToTopButton />}
 
       </Box>
     </ThemeProvider>
