@@ -1,7 +1,7 @@
 ﻿
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Box, Typography, Button, IconButton
+  Box, Typography, Button, IconButton, useMediaQuery, useTheme
 } from '@mui/material';
 import CardGiftcard from '@mui/icons-material/CardGiftcard';
 import ArrowForward from '@mui/icons-material/ArrowForward';
@@ -37,6 +37,8 @@ const DEFAULT_SLIDES = [VIDEO_SLIDE, ...IMAGE_SLIDES];
 export default function HeroBanner({ user, onNavigateAuth }) {
   const { t } = useTranslation('home');
   const navigate = useLocaleNavigate();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [heroImages, setHeroImages] = useState(DEFAULT_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
   const videoRef = useRef(null);
@@ -103,33 +105,63 @@ export default function HeroBanner({ user, onNavigateAuth }) {
   const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length);
   const [featuredOpen, setFeaturedOpen] = useState(false);
 
+  const mediaSx = {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: { xs: 'contain', md: 'cover' },
+    objectPosition: 'center center',
+    display: 'block',
+    backgroundColor: '#1E2738'
+  };
+
   return (
     <Box
       ref={stageRef}
       sx={{
         position: 'relative',
         width: '100%',
-        // Altın bölüm + pay; ilk ekranda alttaki bölümün başlığı görünsün
-        height: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 108px))',
-        minHeight: { xs: 520, md: 'unset' },
+        // Mobil: navbar altında slider + kart; masaüstü: tam ekran overlay
+        height: { xs: 'auto', md: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 108px))' },
         mt: 0,
         mb: { xs: 2, md: 3 },
         display: 'flex',
-        alignItems: 'flex-end',
-        overflow: 'hidden',
-        backgroundColor: '#1E2738'
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: { xs: 'stretch', md: 'flex-end' },
+        overflow: { xs: 'visible', md: 'hidden' },
+        backgroundColor: { xs: '#FDF4D2', md: '#1E2738' }
       }}
     >
-      {/* 1. TÜM SAYFAYI KAPLAYAN ARKA PLAN */}
+      <Box
+        sx={{
+          position: { xs: 'relative', md: 'absolute' },
+          inset: { md: 0 },
+          width: '100%',
+          height: { xs: 'auto', md: '100%' },
+          overflow: 'hidden',
+          backgroundColor: '#1E2738',
+          pt: { xs: '64px', md: 0 }
+        }}
+      >
+      <Box
+        sx={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: { xs: '2752 / 1536', md: 'unset' },
+          height: { xs: 'auto', md: '100%' },
+          minHeight: { xs: 168, md: '100%' }
+        }}
+      >
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0, scale: isVideoSlide ? 1 : 1.05 }}
+          initial={{ opacity: 0, scale: isDesktop && !isVideoSlide ? 1.05 : 1 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{
             opacity: { duration: 0.7, ease: 'easeOut' },
-            scale: { duration: isVideoSlide ? 0.7 : 7, ease: isVideoSlide ? 'easeOut' : 'linear' }
+            scale: { duration: isDesktop && !isVideoSlide ? 7 : 0.7, ease: isDesktop && !isVideoSlide ? 'linear' : 'easeOut' }
           }}
           style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, willChange: 'opacity, transform' }}
         >
@@ -145,17 +177,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               disablePictureInPicture
               preload="auto"
               aria-label={t('hero.alt')}
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                minWidth: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-                display: 'block',
-                backgroundColor: '#1E2738'
-              }}
+              sx={mediaSx}
             />
           ) : (
             <Box
@@ -165,17 +187,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               decoding="async"
               loading={currentIndex === 0 ? 'eager' : 'lazy'}
               fetchPriority={currentIndex === 0 ? 'high' : 'low'}
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                minWidth: '100%',
-                minHeight: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-                display: 'block'
-              }}
+              sx={mediaSx}
             />
           )}
           <Box
@@ -183,7 +195,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               position: 'absolute',
               inset: 0,
               background: {
-                xs: 'linear-gradient(180deg, rgba(30, 39, 56, 0.18) 0%, rgba(30, 39, 56, 0.08) 38%, rgba(30, 39, 56, 0.72) 100%)',
+                xs: 'transparent',
                 md: 'linear-gradient(180deg, rgba(30, 39, 56, 0.22) 0%, rgba(30, 39, 56, 0.05) 42%, rgba(30, 39, 56, 0.42) 100%)'
               },
               zIndex: 1,
@@ -193,16 +205,129 @@ export default function HeroBanner({ user, onNavigateAuth }) {
         </motion.div>
       </AnimatePresence>
 
-      {/* 2. SOL KART İÇERİĞİ */}
+      {heroImages.length > 1 && (
+        <Box sx={{ position: 'absolute', bottom: 28, right: 32, display: { xs: 'none', md: 'flex' }, gap: 1, zIndex: 10 }}>
+          <IconButton onClick={handlePrev} sx={{ width: 48, height: 48, backgroundColor: 'rgba(253, 244, 210, 0.95)', color: '#946D6D', transition: 'background-color 0.2s, color 0.2s', '&:hover': { backgroundColor: '#B0CDE6', color: '#1E2738' } }}>
+            <ArrowBackIosNewOutlined sx={{ fontSize: '16px' }} />
+          </IconButton>
+          <IconButton onClick={handleNext} sx={{ width: 48, height: 48, backgroundColor: '#A290B7', color: '#FFFFFF', transition: 'all 0.3s', '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' } }}>
+            <ArrowForwardIosOutlined sx={{ fontSize: '16px' }} />
+          </IconButton>
+        </Box>
+      )}
+
+      {heroImages.length > 1 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 22,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: { xs: 'none', md: 'flex' },
+            alignItems: 'center',
+            gap: 1.2,
+            zIndex: 10,
+            px: 2,
+            py: 1,
+            borderRadius: '50px',
+            backgroundColor: 'rgba(30, 39, 56, 0.88)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+          }}
+        >
+          {heroImages.map((img, idx) => (
+            <Box
+              key={`desk-${img._id || idx}`}
+              component="button"
+              type="button"
+              aria-label={`Slide ${idx + 1}`}
+              onClick={() => setCurrentIndex(idx)}
+              sx={{
+                appearance: 'none',
+                border: 0,
+                p: 0,
+                m: 0,
+                width: 44,
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                bgcolor: 'transparent',
+                '&::after': {
+                  content: '""',
+                  width: currentIndex === idx ? 28 : 10,
+                  height: 7,
+                  borderRadius: '10px',
+                  backgroundColor: currentIndex === idx ? '#FDF4D2' : 'rgba(253, 244, 210, 0.35)',
+                  boxShadow: currentIndex === idx ? '0 0 10px rgba(253, 244, 210, 0.8)' : 'none',
+                  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+                }
+              }}
+            />
+          ))}
+        </Box>
+      )}
+      </Box>
+      {heroImages.length > 1 && (
+        <Box
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1.2,
+            py: 1.1,
+            backgroundColor: '#1E2738'
+          }}
+        >
+          {heroImages.map((img, idx) => (
+            <Box
+              key={`mobi-${img._id || idx}`}
+              component="button"
+              type="button"
+              aria-label={`Slide ${idx + 1}`}
+              onClick={() => setCurrentIndex(idx)}
+              sx={{
+                appearance: 'none',
+                border: 0,
+                p: 0,
+                m: 0,
+                width: 44,
+                height: 36,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                bgcolor: 'transparent',
+                '&::after': {
+                  content: '""',
+                  width: currentIndex === idx ? 28 : 10,
+                  height: 7,
+                  borderRadius: '10px',
+                  backgroundColor: currentIndex === idx ? '#FDF4D2' : 'rgba(253, 244, 210, 0.35)',
+                  boxShadow: currentIndex === idx ? '0 0 10px rgba(253, 244, 210, 0.8)' : 'none',
+                  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+                }
+              }}
+            />
+          ))}
+        </Box>
+      )}
+      </Box>
+
+      {/* 2. SOL KART — mobilde sliderın altında, masaüstünde overlay */}
       <Box
         sx={{
-          position: 'absolute',
-          left: { xs: 16, md: 40 },
-          right: { xs: 16, md: 'auto' },
-          bottom: { xs: 64, md: 44 },
+          position: { xs: 'relative', md: 'absolute' },
+          left: { xs: 0, md: 40 },
+          right: { xs: 0, md: 'auto' },
+          bottom: { xs: 'auto', md: 44 },
           zIndex: 5,
-          width: { xs: 'auto', md: 380 },
-          maxWidth: 400
+          width: { xs: '100%', md: 380 },
+          maxWidth: { xs: 'none', md: 400 },
+          px: { xs: 2, md: 0 },
+          pt: { xs: 2, md: 0 },
+          pb: { xs: 0.5, md: 0 }
         }}
       >
         <motion.div
@@ -380,70 +505,6 @@ export default function HeroBanner({ user, onNavigateAuth }) {
           </Box>
         </motion.div>
       </Box>
-
-      {heroImages.length > 1 && (
-        <Box sx={{ position: 'absolute', bottom: { xs: 18, md: 28 }, right: { xs: 14, md: 32 }, display: { xs: 'none', sm: 'flex' }, gap: 1, zIndex: 10 }}>
-          <IconButton onClick={handlePrev} sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 }, backgroundColor: 'rgba(253, 244, 210, 0.95)', color: '#946D6D', transition: 'background-color 0.2s, color 0.2s', '&:hover': { backgroundColor: '#B0CDE6', color: '#1E2738' } }}>
-            <ArrowBackIosNewOutlined sx={{ fontSize: '16px' }} />
-          </IconButton>
-          <IconButton onClick={handleNext} sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 }, backgroundColor: '#A290B7', color: '#FFFFFF', transition: 'all 0.3s', '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' } }}>
-            <ArrowForwardIosOutlined sx={{ fontSize: '16px' }} />
-          </IconButton>
-        </Box>
-      )}
-
-      {heroImages.length > 1 && (
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: { xs: 16, md: 22 },
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.2,
-            zIndex: 10,
-            px: 2,
-            py: 1,
-            borderRadius: '50px',
-            backgroundColor: 'rgba(30, 39, 56, 0.88)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
-          }}
-        >
-          {heroImages.map((img, idx) => (
-            <Box
-              key={img._id || idx}
-              component="button"
-              type="button"
-              aria-label={`Slide ${idx + 1}`}
-              onClick={() => setCurrentIndex(idx)}
-              sx={{
-                appearance: 'none',
-                border: 0,
-                p: 0,
-                m: 0,
-                width: 44,
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                bgcolor: 'transparent',
-                '&::after': {
-                  content: '""',
-                  width: currentIndex === idx ? 28 : 10,
-                  height: 7,
-                  borderRadius: '10px',
-                  backgroundColor: currentIndex === idx ? '#FDF4D2' : 'rgba(253, 244, 210, 0.35)',
-                  boxShadow: currentIndex === idx ? '0 0 10px rgba(253, 244, 210, 0.8)' : 'none',
-                  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
-                }
-              }}
-            />
-          ))}
-        </Box>
-      )}
 
       <FeaturedModal open={featuredOpen} onClose={() => setFeaturedOpen(false)} />
     </Box>
