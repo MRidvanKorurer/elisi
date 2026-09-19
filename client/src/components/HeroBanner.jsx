@@ -1,7 +1,7 @@
 ﻿
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Box, Typography, Button, IconButton, useMediaQuery, useTheme
+  Box, Typography, Button, IconButton
 } from '@mui/material';
 import CardGiftcard from '@mui/icons-material/CardGiftcard';
 import ArrowForward from '@mui/icons-material/ArrowForward';
@@ -37,10 +37,10 @@ const DEFAULT_SLIDES = [VIDEO_SLIDE, ...IMAGE_SLIDES];
 export default function HeroBanner({ user, onNavigateAuth }) {
   const { t } = useTranslation('home');
   const navigate = useLocaleNavigate();
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [heroImages, setHeroImages] = useState(DEFAULT_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [holding, setHolding] = useState(false);
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -84,14 +84,14 @@ export default function HeroBanner({ user, onNavigateAuth }) {
   }, [isVideoSlide, inView, currentIndex]);
 
   useEffect(() => {
-    if (heroImages.length <= 1 || !inView) return undefined;
-    // Video slaytı biraz daha uzun kalsın
+    if (heroImages.length <= 1 || !inView || holding) return undefined;
     const delay = isVideoSlide ? 12000 : 7000;
     const timer = setInterval(() => {
+      setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % heroImages.length);
     }, delay);
     return () => clearInterval(timer);
-  }, [heroImages.length, currentIndex, inView, isVideoSlide]);
+  }, [heroImages.length, currentIndex, inView, isVideoSlide, holding]);
 
   // Sıradaki görseli sessizce önden indir, geçiş anında bekleme olmasın
   useEffect(() => {
@@ -101,8 +101,26 @@ export default function HeroBanner({ user, onNavigateAuth }) {
     preloader.src = next.url;
   }, [currentIndex, heroImages]);
 
-  const handleNext = () => setCurrentIndex((prev) => (prev + 1) % heroImages.length);
-  const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  const goTo = (index) => {
+    if (index === currentIndex) return;
+    setDirection(index > currentIndex ? 1 : -1);
+    setCurrentIndex(index);
+  };
+  const handleNext = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % heroImages.length);
+  };
+  const handlePrev = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  };
+  const onSlideDragEnd = (_, info) => {
+    const offset = info.offset.x;
+    const velocity = info.velocity.x;
+    if (offset < -56 || velocity < -450) handleNext();
+    else if (offset > 56 || velocity > 450) handlePrev();
+    setHolding(false);
+  };
   const [featuredOpen, setFeaturedOpen] = useState(false);
 
   const mediaSx = {
@@ -113,7 +131,10 @@ export default function HeroBanner({ user, onNavigateAuth }) {
     objectFit: { xs: 'contain', md: 'cover' },
     objectPosition: 'center center',
     display: 'block',
-    backgroundColor: '#1E2738'
+    backgroundColor: '#1E2738',
+    pointerEvents: 'none',
+    userSelect: 'none',
+    WebkitUserDrag: 'none'
   };
 
   return (
@@ -122,7 +143,6 @@ export default function HeroBanner({ user, onNavigateAuth }) {
       sx={{
         position: 'relative',
         width: '100%',
-        // Mobil: navbar altında slider + kart; masaüstü: tam ekran overlay
         height: { xs: 'auto', md: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 108px))' },
         mt: 0,
         mb: { xs: 2, md: 3 },
@@ -140,8 +160,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
           width: '100%',
           height: { xs: 'auto', md: '100%' },
           overflow: 'hidden',
-          backgroundColor: '#1E2738',
-          pt: { xs: '64px', md: 0 }
+          backgroundColor: '#1E2738'
         }}
       >
       <Box
@@ -153,17 +172,35 @@ export default function HeroBanner({ user, onNavigateAuth }) {
           minHeight: { xs: 168, md: '100%' }
         }}
       >
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0, scale: isDesktop && !isVideoSlide ? 1.05 : 1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{
-            opacity: { duration: 0.7, ease: 'easeOut' },
-            scale: { duration: isDesktop && !isVideoSlide ? 7 : 0.7, ease: isDesktop && !isVideoSlide ? 'linear' : 'easeOut' }
+          custom={direction}
+          variants={{
+            enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%' }),
+            center: { x: 0 },
+            exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%' })
           }}
-          style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, willChange: 'opacity, transform' }}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+          drag="x"
+          dragDirectionLock
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.55}
+          onDragStart={() => setHolding(true)}
+          onDragEnd={onSlideDragEnd}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            touchAction: 'pan-y',
+            cursor: 'grab',
+            willChange: 'transform'
+          }}
         >
           {isVideoSlide ? (
             <Box
@@ -195,7 +232,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               position: 'absolute',
               inset: 0,
               background: {
-                xs: 'transparent',
+                xs: 'linear-gradient(180deg, rgba(20, 24, 32, 0.4) 0%, rgba(20, 24, 32, 0) 28%)',
                 md: 'linear-gradient(180deg, rgba(30, 39, 56, 0.22) 0%, rgba(30, 39, 56, 0.05) 42%, rgba(30, 39, 56, 0.42) 100%)'
               },
               zIndex: 1,
@@ -241,7 +278,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               component="button"
               type="button"
               aria-label={`Slide ${idx + 1}`}
-              onClick={() => setCurrentIndex(idx)}
+              onClick={() => goTo(idx)}
               sx={{
                 appearance: 'none',
                 border: 0,
@@ -286,7 +323,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               component="button"
               type="button"
               aria-label={`Slide ${idx + 1}`}
-              onClick={() => setCurrentIndex(idx)}
+              onClick={() => goTo(idx)}
               sx={{
                 appearance: 'none',
                 border: 0,
