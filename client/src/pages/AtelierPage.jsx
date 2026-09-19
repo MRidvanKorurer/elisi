@@ -29,7 +29,7 @@ import { sellerService } from '../api/sellerService';
 import { mediaUrl } from '../api/lookbookService';
 import { instagramHref, websiteHref } from '../utils/atelierLinks';
 import { scrollPageTo } from '../hooks/useSmoothScroll';
-import useProductGridPageSize from '../hooks/useProductGridPageSize';
+import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGridPageSize';
 
 const PAGE_PT = { xs: '96px', md: '120px' };
 
@@ -191,11 +191,13 @@ export default function AtelierPage() {
     maxRows: 3
   });
   const rowSize = Math.max(0, pageSize);
+  const fetchLimitRef = useRef(0);
 
   useEffect(() => {
     setProducts([]);
     setLoading(true);
     setPage(1);
+    fetchLimitRef.current = 0;
   }, [slug, category, sort]);
 
   const requestSeq = useRef(0);
@@ -218,10 +220,12 @@ export default function AtelierPage() {
     let cancelled = false;
     const seq = ++requestSeq.current;
     const requestPage = page;
+    const requestLimit = resolveFetchLimit(requestPage, rowSize, fetchLimitRef);
+    if (requestLimit < 1) return () => { cancelled = true; };
     if (requestPage > 1) setLoadingMore(true);
     else setLoading(true);
     setError('');
-    sellerService.getPublic(slug, { category, sort, page: requestPage, limit: rowSize })
+    sellerService.getPublic(slug, { category, sort, page: requestPage, limit: requestLimit })
       .then((data) => {
         if (cancelled || seq !== requestSeq.current) return;
         setAtelier(data.atelier || null);

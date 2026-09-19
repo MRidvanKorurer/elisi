@@ -37,7 +37,7 @@ import ProductCard from '../components/ProductCard';
 import LoadingButton from '../components/LoadingButton';
 import productService from '../api/productService';
 import useDebounce from '../hooks/useDebounce';
-import useProductGridPageSize from '../hooks/useProductGridPageSize';
+import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGridPageSize';
 import { imgMood4 } from '../assets/media';
 import Seo from '../components/Seo';
 import { breadcrumbSchema, itemListSchema } from '../utils/schema';
@@ -957,11 +957,13 @@ export default function ProductsPage() {
     // Ölçüm gecikirse veya genişlik 0 kalırsa takılmayı önle
     const rowSize = pageSize > 0 ? pageSize : 8;
     const requestSeq = useRef(0);
+    const fetchLimitRef = useRef(0);
     const filtersRef = useRef(committedFilters);
     filtersRef.current = committedFilters;
 
     useEffect(() => {
         setPage(1);
+        fetchLimitRef.current = 0;
     }, [filterKey]);
 
     useEffect(() => {
@@ -970,6 +972,8 @@ export default function ProductsPage() {
         let cancelled = false;
         const seq = ++requestSeq.current;
         const requestPage = page;
+        const requestLimit = resolveFetchLimit(requestPage, rowSize, fetchLimitRef);
+        if (requestLimit < 1) return () => { cancelled = true; };
 
         const fetchFilteredProducts = async () => {
             if (requestPage > 1) setLoadingMore(true);
@@ -987,7 +991,7 @@ export default function ProductsPage() {
                     maxPrice: current.priceRange[1],
                     sort: current.sortBy,
                     page: requestPage,
-                    limit: rowSize,
+                    limit: requestLimit,
                     inStock: current.inStock || undefined,
                     onSale: current.onSale || undefined,
                     isNew: current.isNew || undefined,
@@ -1344,7 +1348,9 @@ export default function ProductsPage() {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{
                                                     duration: 0.3,
-                                                    delay: reducedMotion ? 0 : Math.min(index, 11) * 0.035,
+                                                    delay: reducedMotion || index >= rowSize
+                                                        ? 0
+                                                        : Math.min(index, 11) * 0.035,
                                                     ease: [0.22, 0.61, 0.36, 1]
                                                 }}
                                                 sx={{ minWidth: 0 }}
