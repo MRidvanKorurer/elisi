@@ -21,7 +21,7 @@ const connectDB = require('./config/db');
 // Veritabanına bağlan
 connectDB();
 
-const { corsOrigins, warnProductionConfig } = require('./utils/runtime');
+const { corsOriginDelegate, warnProductionConfig } = require('./utils/runtime');
 const { configured: mediaConfigured } = require('./utils/mediaStore');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -31,25 +31,22 @@ app.set('trust proxy', 1);
 
 app.use(helmet({
   contentSecurityPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false
 }));
 
-// const allowedOrigins = corsOrigins();
-// app.use(cors({
-//   origin(origin, callback) {
-//     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-//     return callback(new Error('Bu origin için CORS izni yok.'));
-//   },
-//   credentials: true
-// }));
-
-app.use(cors({
-  origin: corsOrigins(), // Dizi formatını otomatik destekler
+const corsOptions = {
+  origin: corsOriginDelegate,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-// app.use(cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 204,
+  maxAge: 86400
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));

@@ -24,7 +24,7 @@ API.interceptors.request.use(
 );
 
 // Sunucudan gelen /uploads yolları tarayıcıda API adresine göre çözülür
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'https://elisi-fxey.onrender.com/api').replace(/\/api\/?$/, '');
 
 const resolveUploads = (value) => {
   if (typeof value === 'string') {

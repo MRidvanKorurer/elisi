@@ -130,10 +130,16 @@ const isProd = () => process.env.NODE_ENV === 'production';
 
 const trimSlash = (value = '') => String(value || '').replace(/\/$/, '');
 
-// Canlıda CLIENT_URL tanımlı olmasa bile Vercel adresinizi varsayılan yapar
-const clientUrl = () => trimSlash(process.env.CLIENT_URL) || (isProd() ? 'https://elisi-elisi.vercel.app' : 'http://localhost:5173');
-const serverUrl = () => trimSlash(process.env.SERVER_URL) || (isProd() ? '' : 'http://localhost:5000');
-const siteUrl = () => trimSlash(process.env.SITE_URL || process.env.CLIENT_URL) || 'https://elisi-elisi.vercel.app';
+const STOREFRONT_ORIGINS = [
+  'https://nikbagstore.com',
+  'https://www.nikbagstore.com',
+  'https://elisi-elisi.vercel.app'
+];
+
+// Canlıda CLIENT_URL yoksa mağaza domaini kullanılır
+const clientUrl = () => trimSlash(process.env.CLIENT_URL) || (isProd() ? 'https://nikbagstore.com' : 'http://localhost:5173');
+const serverUrl = () => trimSlash(process.env.SERVER_URL) || (isProd() ? 'https://elisi-fxey.onrender.com' : 'http://localhost:5000');
+const siteUrl = () => trimSlash(process.env.SITE_URL || process.env.CLIENT_URL) || 'https://nikbagstore.com';
 
 // URL ayrıştırma hatası oluşursa canlıda Cross-Site Cookie'lerin engellenmesini önlemek için catch bloğu varsayılan true döner
 const hostsDiffer = () => {
@@ -160,27 +166,55 @@ const cookieOptions = () => {
   };
 };
 
+const normalizeOrigin = (value = '') => String(value || '').trim().replace(/\/$/, '').toLowerCase();
+
+const originAliases = (origin) => {
+  const clean = normalizeOrigin(origin);
+  if (!clean) return [];
+  const aliases = [clean];
+  try {
+    const url = new URL(clean);
+    const host = url.hostname;
+    const altHost = host.startsWith('www.') ? host.slice(4) : `www.${host}`;
+    aliases.push(normalizeOrigin(`${url.protocol}//${altHost}`));
+  } catch {
+    // ignore
+  }
+  return aliases;
+};
+
 const corsOrigins = () => {
   const origins = String(process.env.CORS_ORIGIN || process.env.CLIENT_URL || '')
     .split(',')
-    .map((item) => item.trim().replace(/\/$/, ''))
+    .map((item) => normalizeOrigin(item))
     .filter(Boolean);
 
   const defaultOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5000',
-    'https://elisi-elisi.vercel.app'
+    ...STOREFRONT_ORIGINS
   ];
 
   defaultOrigins.forEach((origin) => {
-    const cleanOrigin = origin.replace(/\/$/, '');
-    if (!origins.includes(cleanOrigin)) {
-      origins.push(cleanOrigin);
-    }
+    originAliases(origin).forEach((alias) => {
+      if (!origins.includes(alias)) origins.push(alias);
+    });
   });
 
   return origins;
+};
+
+const isAllowedCorsOrigin = (origin) => {
+  if (!origin) return true;
+  const allowed = new Set();
+  corsOrigins().forEach((item) => originAliases(item).forEach((alias) => allowed.add(alias)));
+  return originAliases(origin).some((alias) => allowed.has(alias));
+};
+
+const corsOriginDelegate = (origin, callback) => {
+  if (isAllowedCorsOrigin(origin)) return callback(null, true);
+  return callback(null, false);
 };
 
 const bank = () => ({
@@ -231,6 +265,8 @@ module.exports = {
   siteUrl,
   cookieOptions,
   corsOrigins,
+  corsOriginDelegate,
+  isAllowedCorsOrigin,
   bank,
   contact,
   publicSite,
