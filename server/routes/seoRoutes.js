@@ -1,10 +1,9 @@
 const express = require('express');
 const Product = require('../models/Product');
 const { CATEGORY_IDS } = require('../constants/categories');
+const { siteUrl } = require('../utils/runtime');
 
 const router = express.Router();
-
-const SITE_URL = (process.env.SITE_URL || 'https://www.nikbag.com').replace(/\/$/, '');
 
 // Yalnızca yayında olan ürünler dizine eklenir
 const publicMatch = { isActive: true, approvalStatus: { $nin: ['pending', 'rejected'] } };
@@ -31,10 +30,11 @@ const escapeXml = (value = '') =>
     '"': '&quot;'
   })[char]);
 
-const absolute = (value = '') => (value.startsWith('http') ? value : `${SITE_URL}${value}`);
+const absolute = (value = '') => (value.startsWith('http') ? value : `${siteUrl()}${value}`);
 
 router.get('/sitemap.xml', async (req, res) => {
   try {
+    const SITE_URL = siteUrl();
     const today = new Date().toISOString().split('T')[0];
     const products = await Product.find(publicMatch)
       .select('_id image updatedAt createdAt')
@@ -83,7 +83,7 @@ router.get('/robots.txt', (req, res) => {
       `Disallow: /panel\nDisallow: /admin\nDisallow: /giris\nDisallow: /auth\n` +
       `Disallow: /sepet\nDisallow: /checkout\nDisallow: /hesabim\nDisallow: /profile\n` +
       `Disallow: /siparis-basarili\nDisallow: /odeme-basarisiz\nDisallow: /*?search=\n\n` +
-      `Sitemap: ${SITE_URL}/sitemap.xml\n`
+      `Sitemap: ${siteUrl()}/sitemap.xml\n`
   );
 });
 

@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(root, '../dist');
 
-const SITE_URL = (process.env.VITE_SITE_URL || 'https://www.nikbag.com').replace(/\/$/, '');
-const API_BASE = (process.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+const SITE_URL = (process.env.VITE_SITE_URL || 'https://nikbagstore.com').replace(/\/$/, '');
+const API_BASE = (process.env.VITE_API_BASE_URL || 'https://elisi-fxey.onrender.com/api').replace(/\/$/, '');
 
 const STATIC_ROUTES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },

@@ -1,4 +1,6 @@
-export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+import { API_ORIGIN } from './publicUrls';
+
+export { API_ORIGIN };
 
 // Eski kayıtlar /uploads/... ; yeni görseller Cloudinary https adresidir.
 export const toRelativeUpload = (url = '') =>

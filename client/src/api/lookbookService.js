@@ -1,7 +1,6 @@
 import API from './api';
 import { cachedGet } from './cache';
-
-const apiOrigin = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+import { API_ORIGIN as apiOrigin } from '../utils/publicUrls';
 
 export const mediaUrl = (path) => {
   if (!path) return '';

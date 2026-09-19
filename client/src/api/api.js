@@ -1,9 +1,9 @@
-
 import axios from 'axios';
+import { API_BASE_URL, API_ORIGIN } from '../utils/publicUrls';
 
 // 1. Axios Instance Oluşturma
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://elisi-fxey.onrender.com/api',
+  baseURL: API_BASE_URL,
   withCredentials: true, // HttpOnly Cookie'lerin (JWT) otomatik gönderilmesini sağlar
   headers: {
     'Content-Type': 'application/json'
@@ -24,7 +24,6 @@ API.interceptors.request.use(
 );
 
 // Sunucudan gelen /uploads yolları tarayıcıda API adresine göre çözülür
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'https://elisi-fxey.onrender.com/api').replace(/\/api\/?$/, '');
 
 const resolveUploads = (value) => {
   if (typeof value === 'string') {

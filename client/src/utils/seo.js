@@ -1,5 +1,6 @@
-// Yayın adresini .env dosyasında VITE_SITE_URL ile tanımlayın
-export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://www.nikbag.com').replace(/\/$/, '');
+import { SITE_URL } from './publicUrls';
+
+export { SITE_URL };
 
 export const SITE_NAME = 'Nik Bag';
 export const SITE_LOCALE = 'tr_TR';

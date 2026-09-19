@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+Disallow: /panel
+Disallow: /admin
+Disallow: /giris
+Disallow: /auth
+Disallow: /sepet
+Disallow: /checkout
+Disallow: /hesabim
+Disallow: /profile
+Disallow: /siparis-basarili
+Disallow: /odeme-basarisiz
+Disallow: /*?search=
+
+Sitemap: https://nikbagstore.com/sitemap.xml

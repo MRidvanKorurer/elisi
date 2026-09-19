@@ -4,8 +4,7 @@ const trimSlash = (value = '') => String(value || '').replace(/\/$/, '');
 
 const STOREFRONT_ORIGINS = [
   'https://nikbagstore.com',
-  'https://www.nikbagstore.com',
-  'https://elisi-elisi.vercel.app'
+  'https://www.nikbagstore.com'
 ];
 
 const clientUrl = () => trimSlash(process.env.CLIENT_URL) || (isProd() ? 'https://nikbagstore.com' : 'http://localhost:5173');
@@ -93,10 +92,10 @@ const bank = () => ({
 });
 
 const contact = () => ({
-  companyName: process.env.COMPANY_NAME || 'Elişi',
-  legalName: process.env.COMPANY_LEGAL_NAME || process.env.COMPANY_NAME || 'Elişi',
+  companyName: process.env.COMPANY_NAME || 'Nik Bag',
+  legalName: process.env.COMPANY_LEGAL_NAME || process.env.COMPANY_NAME || 'Nik Bag',
   address: process.env.COMPANY_ADDRESS || '',
-  email: process.env.CONTACT_EMAIL || 'info@elisi.com',
+  email: process.env.CONTACT_EMAIL || 'info@nikbag.com',
   phone: process.env.CONTACT_PHONE || '0554 379 32 35',
   whatsapp: String(process.env.WHATSAPP_NUMBER || '905543793235').replace(/\D/g, ''),
   city: process.env.COMPANY_CITY || 'İstanbul',
@@ -121,10 +120,18 @@ const warnProductionConfig = () => {
   const missing = [];
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'degistir') missing.push('JWT_SECRET');
   if (!process.env.CLIENT_URL) missing.push('CLIENT_URL');
+  if (!process.env.SERVER_URL) missing.push('SERVER_URL');
+  if (!process.env.SITE_URL && !process.env.CLIENT_URL) missing.push('SITE_URL');
   if (!process.env.CORS_ORIGIN && !process.env.CLIENT_URL) missing.push('CORS_ORIGIN');
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) missing.push('CLOUDINARY_*');
   if (missing.length) {
     console.error(`Canlı yapılandırma eksik: ${missing.join(', ')}`);
+  }
+  if (hostsDiffer()) {
+    const sameSite = String(process.env.COOKIE_SAMESITE || cookieOptions().sameSite).toLowerCase();
+    if (sameSite !== 'none') {
+      console.error('Mağaza ve API farklı domainde; oturum çerezi için COOKIE_SAMESITE=none (Secure) gerekir.');
+    }
   }
 };
 
