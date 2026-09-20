@@ -40,8 +40,8 @@ export default function OrderResultPage({ success }) {
   }, [success, orderId]);
 
   useEffect(() => {
-    if (isTransfer) getSitePublic().then(setSite);
-  }, [isTransfer]);
+    if (success && (isTransfer || method === 'whatsapp')) getSitePublic().then(setSite);
+  }, [success, isTransfer, method]);
 
   const copy = useMemo(() => {
     if (!success) {
@@ -146,7 +146,7 @@ export default function OrderResultPage({ success }) {
               )}
             </Box>
           )}
-          {success && isTransfer && (
+          {success && (isTransfer || method === 'whatsapp') && (
             <Box sx={{ mt: 2, textAlign: 'left', p: 2, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)' }}>
               <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>{t('bankTitle')}</Typography>
               <BankTransferDetails

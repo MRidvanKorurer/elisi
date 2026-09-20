@@ -7,6 +7,8 @@ const {
   listUsers,
   updateUserRole,
   listSellers,
+  getBankAccounts,
+  updatePlatformBank,
   updateSellerStatus,
   updateSellerCommission,
   listProducts,
@@ -14,7 +16,9 @@ const {
   deleteProduct,
   setProductApproval,
   listOrders,
-  updateOrder
+  updateOrder,
+  markOrderPayout,
+  markSellerPayouts
 } = require('../controllers/adminController');
 const { listPromos, createPromo, updatePromo, deletePromo } = require('../controllers/promoController');
 const { listAdminFeatured, reviewFeatured, removeFeatured, giftFeatured, updateFeaturedSettings } = require('../controllers/featuredController');
@@ -36,10 +40,14 @@ router.get('/reports/sellers/:sellerId', getAdminSellerReport);
 router.get('/ads', getAdsBoard);
 router.post('/ads/suggest', refreshAdsSuggestions);
 router.get('/orders', listOrders);
+router.put('/orders/:id/payout', markOrderPayout);
 router.put('/orders/:id', updateOrder);
+router.put('/sellers/:id/payouts', markSellerPayouts);
 router.get('/users', listUsers);
 router.put('/users/:id/role', updateUserRole);
 router.get('/sellers', listSellers);
+router.get('/bank', getBankAccounts);
+router.put('/bank', updatePlatformBank);
 router.put('/sellers/:id/status', updateSellerStatus);
 router.put('/sellers/:id/commission', updateSellerCommission);
 router.get('/products', listProducts);

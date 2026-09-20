@@ -29,9 +29,10 @@ import ScrollToTopButton from './components/ScrollToTopButton';
 import API from './api/api';
 import './index.css';
 import useSmoothScroll from './hooks/useSmoothScroll';
+import { cartService } from './api/cartServices';
 import { isSuperAdmin } from './utils/roles';
 import { clearFavoriteCache, loadFavoriteIds } from './utils/favoritesStore';
-import { clearSession, hasCachedSession, persistSession, readCachedUser } from './utils/session';
+import { clearSession, persistSession, readCachedUser } from './utils/session';
 
 // Ağır sayfalar yalnızca ziyaret edildiğinde indirilir
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -125,10 +126,6 @@ export default function App() {
   const [user, setUser] = useState(() => readCachedUser());
 
   useEffect(() => {
-    if (!hasCachedSession()) {
-      return undefined;
-    }
-
     let cancelled = false;
     API.get('/auth/me')
       .then((response) => {
@@ -165,13 +162,16 @@ export default function App() {
     } finally {
       setUser(null);
       clearSession();
+      window.dispatchEvent(new Event('cartUpdated'));
       navigate(withLocale('/', locale));
     }
   };
 
-  const handleLoginSuccess = (userData, options = {}) => {
+  const handleLoginSuccess = async (userData, options = {}) => {
+    await cartService.mergeGuestCart().catch(() => {});
     setUser(userData);
     persistSession(userData);
+    window.dispatchEvent(new Event('cartUpdated'));
     if (options.redirect !== false) {
       navigate(withLocale('/', locale));
     }

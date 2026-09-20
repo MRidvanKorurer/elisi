@@ -48,110 +48,99 @@ const resolveCover = (src) => {
   return mediaUrl(src) || (String(src).startsWith('http') ? src : '');
 };
 
-const mosaicPlacement = (count) => {
-  if (count <= 1) {
-    return {
-      columns: '1fr',
-      rows: '1fr',
-      items: [{}]
-    };
-  }
-  if (count === 2) {
-    return {
-      columns: '1.2fr 1fr',
-      rows: '1fr',
-      items: [{}]
-    };
-  }
-  if (count === 3) {
-    return {
-      columns: '1.35fr 1fr',
-      rows: '1fr 1fr',
-      items: [{ gridRow: '1 / 3' }, {}, {}]
-    };
-  }
-  return {
-    columns: '1.45fr 1fr 1fr',
-    rows: '1fr 1fr',
-    items: [
-      { gridColumn: '1', gridRow: '1 / 3' },
-      { gridColumn: '2', gridRow: '1' },
-      { gridColumn: '3', gridRow: '1' },
-      { gridColumn: '2 / 4', gridRow: '2' }
-    ]
-  };
-};
+function CoverTile({ src, alt, featured = false, onError }) {
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        aspectRatio: '1 / 1',
+        minWidth: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: featured ? { xs: 1.6, md: 2.2 } : { xs: 1, md: 1.15 },
+        borderRadius: featured ? '26px' : '18px',
+        bgcolor: '#FFFFFF',
+        border: featured ? '1px solid rgba(46,59,85,0.1)' : '1px solid rgba(148,109,109,0.1)',
+        boxShadow: featured
+          ? '0 24px 48px -28px rgba(46,59,85,0.55)'
+          : '0 12px 24px -20px rgba(46,59,85,0.4)'
+      }}
+    >
+      <Box
+        component="img"
+        src={src}
+        alt={alt}
+        onError={onError}
+        sx={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          objectPosition: 'center',
+          display: 'block'
+        }}
+      />
+    </Box>
+  );
+}
 
 function CoverGallery({ images, alt }) {
   const [failed, setFailed] = useState({});
   const visible = images.filter((src) => src && !failed[src]);
-  const layout = mosaicPlacement(visible.length);
+  const markFailed = (src) => setFailed((prev) => ({ ...prev, [src]: true }));
+
+  if (!visible.length) return null;
+
+  const hero = visible[0];
+  const rest = visible.slice(1);
 
   return (
     <Box
       sx={{
         position: 'relative',
-        height: { xs: 220, sm: 280, md: 360 },
-        minHeight: { xs: 220, sm: 280, md: 360 },
-        overflow: 'hidden',
-        bgcolor: '#E8DFF3',
-        background:
-          'linear-gradient(135deg, #B0CDE6 0%, #E4DCF0 48%, #FDF4D2 100%)'
+        background: 'linear-gradient(180deg, #EFE6D6 0%, #F6F1E6 100%)',
+        borderBottom: '1px solid rgba(148,109,109,0.1)',
+        px: { xs: 1.8, md: 3 },
+        py: { xs: 2.2, md: 3 }
       }}
     >
-      {visible.length ? (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: layout.columns
-            },
-            gridTemplateRows: {
-              xs: visible.length > 1 ? `repeat(${Math.min(visible.length, 3)}, 1fr)` : '1fr',
-              sm: layout.rows
-            },
-            gap: { xs: 0.7, md: 0.9 },
-            height: '100%',
-            p: { xs: 0.7, md: 0.9 }
-          }}
-        >
-          {visible.map((src, index) => (
-            <Box
-              key={`${src}-${index}`}
-              sx={{
-                position: 'relative',
-                overflow: 'hidden',
-                minWidth: 0,
-                minHeight: 0,
-                display: { xs: index > 2 ? 'none' : 'block', sm: 'block' },
-                borderRadius: {
-                  xs: index === 0 ? '16px 16px 10px 10px' : '12px',
-                  sm: index === 0 ? '18px 12px 12px 18px' : '14px'
-                },
-                bgcolor: index % 2 ? '#B0CDE6' : '#E4DCF0',
-                gridColumn: { xs: '1', sm: layout.items[index]?.gridColumn || 'auto' },
-                gridRow: { xs: 'auto', sm: layout.items[index]?.gridRow || 'auto' }
-              }}
-            >
-              <Box
-                component="img"
-                src={src}
-                alt={index === 0 ? alt : ''}
-                onError={() => setFailed((prev) => ({ ...prev, [src]: true }))}
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block'
-                }}
-              />
-            </Box>
-          ))}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: rest.length ? 'row' : 'column' },
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: { xs: 1.4, md: 1.8 }
+        }}
+      >
+        <Box sx={{ width: '100%', maxWidth: rest.length ? { xs: 240, md: 300 } : { xs: 260, md: 320 } }}>
+          <CoverTile src={hero} alt={alt} featured onError={() => markFailed(hero)} />
         </Box>
-      ) : null}
+
+        {rest.length ? (
+          <Box
+            sx={{
+              display: 'grid',
+              width: '100%',
+              maxWidth: { xs: 360, md: rest.length === 1 ? 180 : 420 },
+              gridTemplateColumns: {
+                xs: `repeat(${Math.min(rest.length, 3)}, minmax(0, 1fr))`,
+                md: rest.length === 1 ? '1fr' : `repeat(${Math.min(rest.length, 3)}, minmax(0, 1fr))`
+              },
+              gap: { xs: 1.1, md: 1.3 }
+            }}
+          >
+            {rest.map((src, index) => (
+              <CoverTile
+                key={`${src}-${index}`}
+                src={src}
+                alt=""
+                onError={() => markFailed(src)}
+              />
+            ))}
+          </Box>
+        ) : null}
+      </Box>
     </Box>
   );
 }
@@ -357,57 +346,57 @@ export default function AtelierPage() {
         >
           <CoverGallery images={covers} alt={`${atelier.magazaAdi} vitrini`} />
 
-          <Box sx={{ px: { xs: 2, md: 3.2 }, pb: { xs: 2.4, md: 3.2 }, pt: 0, minWidth: 0 }}>
-            <Avatar
-              src={mediaUrl(atelier.avatarUrl) || undefined}
-              alt={atelier.magazaAdi}
-              sx={{
-                width: { xs: 76, md: 88 },
-                height: { xs: 76, md: 88 },
-                mt: { xs: -5, md: -6 },
-                mb: 1.6,
-                bgcolor: '#B0CDE6',
-                color: '#2E3B55',
-                fontWeight: 800,
-                fontSize: '1.6rem',
-                border: '4px solid #FFFFFF',
-                boxShadow: '0 10px 24px -12px rgba(46,59,85,0.45)'
-              }}
-            >
-              {initialsOf(atelier.magazaAdi)}
-            </Avatar>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mb: 1.2 }}>
-              <Chip
-                icon={<VerifiedOutlined sx={{ fontSize: '16px !important', color: '#FFFFFF !important' }} />}
-                label={t('atelier.verified')}
-                sx={{ bgcolor: '#946D6D', color: '#FFFFFF', fontWeight: 800, height: 28, '& .MuiChip-icon': { ml: 0.6 } }}
-              />
-              {atelier.isWeeklyAtelier ? (
-                <Chip label={t('atelier.weekBadge')} sx={{ bgcolor: '#2E3B55', color: '#FFFFFF', fontWeight: 800, height: 28 }} />
-              ) : null}
-              {atelier.hesapTipi ? (
-                <Chip label={atelier.hesapTipi} sx={{ bgcolor: '#B0CDE6', color: '#2E3B55', fontWeight: 800, height: 28 }} />
-              ) : null}
+          <Box sx={{ px: { xs: 2, md: 3.2 }, pb: { xs: 2.4, md: 3.2 }, pt: { xs: 2, md: 2.4 }, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1.4, md: 1.8 }, mb: 1.6 }}>
+              <Avatar
+                src={mediaUrl(atelier.avatarUrl) || undefined}
+                alt={atelier.magazaAdi}
+                sx={{
+                  width: { xs: 56, md: 64 },
+                  height: { xs: 56, md: 64 },
+                  flexShrink: 0,
+                  bgcolor: '#B0CDE6',
+                  color: '#2E3B55',
+                  fontWeight: 800,
+                  fontSize: '1.35rem',
+                  border: '3px solid #F6F1E6'
+                }}
+              >
+                {initialsOf(atelier.magazaAdi)}
+              </Avatar>
+              <Box sx={{ minWidth: 0, pt: 0.2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, flexWrap: 'wrap', mb: 0.7 }}>
+                  <Chip
+                    icon={<VerifiedOutlined sx={{ fontSize: '15px !important', color: '#FFFFFF !important' }} />}
+                    label={t('atelier.verified')}
+                    sx={{ bgcolor: '#946D6D', color: '#FFFFFF', fontWeight: 800, height: 26, '& .MuiChip-icon': { ml: 0.55 } }}
+                  />
+                  {atelier.isWeeklyAtelier ? (
+                    <Chip label={t('atelier.weekBadge')} sx={{ bgcolor: '#2E3B55', color: '#FFFFFF', fontWeight: 800, height: 26 }} />
+                  ) : null}
+                  {atelier.hesapTipi ? (
+                    <Chip label={atelier.hesapTipi} sx={{ bgcolor: '#B0CDE6', color: '#2E3B55', fontWeight: 800, height: 26 }} />
+                  ) : null}
+                </Box>
+                <Typography
+                  component="h1"
+                  fontWeight={800}
+                  sx={{
+                    color: '#2E3B55',
+                    fontSize: { xs: '1.55rem', md: '2rem' },
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1.12,
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {atelier.magazaAdi}
+                </Typography>
+                <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.35, fontSize: { xs: '0.88rem', md: '0.95rem' } }}>
+                  {atelier.makerName && atelier.makerName !== atelier.magazaAdi ? `${atelier.makerName} · ` : ''}
+                  {atelier.magazaTuruEtiket || 'El yapımı'}
+                </Typography>
+              </Box>
             </Box>
-
-            <Typography
-              component="h1"
-              fontWeight={800}
-              sx={{
-                color: '#2E3B55',
-                fontSize: { xs: '1.7rem', md: '2.2rem' },
-                letterSpacing: '-0.04em',
-                lineHeight: 1.12,
-                wordBreak: 'break-word'
-              }}
-            >
-              {atelier.magazaAdi}
-            </Typography>
-            <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.45 }}>
-              {atelier.makerName && atelier.makerName !== atelier.magazaAdi ? `${atelier.makerName} · ` : ''}
-              {atelier.magazaTuruEtiket || 'El yapımı'}
-            </Typography>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.2, color: '#6E5252', fontWeight: 700, fontSize: '0.88rem', mt: 1.3, mb: 1.6 }}>
               {locationLabel ? (

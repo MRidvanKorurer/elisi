@@ -219,6 +219,7 @@ export default function SellerProductEditor({
               shippingCost={form.shippingCost}
               extraCost={form.extraCost}
               price={form.price}
+              discountPercentage={form.discountPercentage}
               onChange={setForm}
             />
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.6, mt: 2 }}>

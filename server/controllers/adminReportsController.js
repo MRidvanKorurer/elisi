@@ -12,6 +12,7 @@ const AdEvent = require('../models/AdEvent');
 const { CATEGORY_LABELS } = require('../constants/categories');
 const { sellerStatusOf } = require('../utils/orderFulfillment');
 const { feeOf, resolveCommission, sellerSettlementOf, ratesForSellers } = require('../utils/commission');
+const { formatIban } = require('../utils/bank');
 const {
   emptyOps,
   timingOf,
@@ -77,7 +78,7 @@ const getAdminReports = async (req, res) => {
 
     const [users, sellers, products, orders, reviews, questions, promos, featured, weeklyAteliers, adEvents] = await Promise.all([
       User.find({ rol: { $ne: 'superadmin' } }).select('adSoyad email rol createdAt').lean(),
-      Seller.find().select('user magazaAdi durum sehir createdAt komisyonOrani komisyonManuel').lean(),
+      Seller.find().select('user magazaAdi durum sehir telefon iban ibanHolder createdAt komisyonOrani komisyonManuel').lean(),
       Product.find().select('_id title category image stock price seller approvalStatus isActive rating numReviews soldCount isSponsored').lean(),
       Order.find().sort({ createdAt: 1 }).lean(),
       Review.find().lean(),
@@ -90,6 +91,34 @@ const getAdminReports = async (req, res) => {
 
     const { rates } = await ratesForSellers(sellers);
     const shopByUser = new Map(sellers.map((item) => [String(item.user), item]));
+    const platformUserIds = new Set(
+      (await User.find({ rol: 'superadmin' }).select('_id').lean()).map((item) => String(item._id))
+    );
+    const seedSeller = (sid) => {
+      const shop = shopByUser.get(sid);
+      return {
+        sellerId: sid,
+        shopId: shop?._id || '',
+        shop: shop?.magazaAdi || 'Mağaza',
+        holder: shop?.ibanHolder || '',
+        iban: formatIban(shop?.iban || ''),
+        phone: shop?.telefon || '',
+        city: shop?.sehir || '',
+        status: shop?.durum || 'unknown',
+        isPlatform: platformUserIds.has(sid),
+        commissionPercent: rates[sid] ?? (shop?.komisyonOrani != null ? shop.komisyonOrani : 10),
+        orders: 0,
+        revenue: 0,
+        fee: 0,
+        net: 0,
+        collectedFee: 0,
+        collectedNet: 0,
+        toPay: 0,
+        paidOut: 0,
+        waitingNet: 0,
+        qty: 0
+      };
+    };
     const productById = new Map(products.map((item) => [String(item._id), item]));
     const buyerOnly = users.filter((item) => item.rol === 'user');
 
@@ -109,19 +138,7 @@ const getAdminReports = async (req, res) => {
     const platformOps = emptyOps();
     sellers.forEach((item) => {
       const sid = String(item.user);
-      sellerMap.set(sid, {
-        sellerId: sid,
-        shop: item.magazaAdi || 'Mağaza',
-        city: item.sehir || '',
-        status: item.durum || 'unknown',
-        commissionPercent: rates[sid] ?? (item.komisyonOrani != null ? item.komisyonOrani : 10),
-        orders: 0,
-        revenue: 0,
-        fee: 0,
-        net: 0,
-        collectedFee: 0,
-        qty: 0
-      });
+      sellerMap.set(sid, seedSeller(sid));
       sellerOps.set(sid, emptyOps());
     });
     const categoryMap = new Map();
@@ -205,10 +222,30 @@ const getAdminReports = async (req, res) => {
           createdAt: order.createdAt,
           paymentStatus: order.paymentStatus,
           paymentMethod: order.paymentMethod,
+          customer: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim(),
           shops: [...new Set(commission.settlements.map((row) => shopByUser.get(row.seller)?.magazaAdi || 'Mağaza'))],
           gross: commission.gross,
           fee: orderFee,
-          net: commission.net
+          net: commission.net,
+          lines: commission.settlements.map((row) => {
+            const shop = shopByUser.get(row.seller);
+            const stored = Array.isArray(order.sellerSettlements) && order.sellerSettlements.some((item) => String(item.seller) === row.seller);
+            const paid = order.paymentStatus === 'completed';
+            const payoutStatus = row.payoutStatus === 'paid' ? 'paid' : 'pending';
+            return {
+              sellerId: row.seller,
+              shop: shop?.magazaAdi || 'Mağaza',
+              holder: shop?.ibanHolder || '',
+              iban: formatIban(shop?.iban || ''),
+              isPlatform: platformUserIds.has(row.seller),
+              percent: row.percent,
+              gross: row.gross,
+              fee: row.fee,
+              net: row.net,
+              payoutStatus,
+              payable: paid && payoutStatus !== 'paid' && !platformUserIds.has(row.seller) && stored
+            };
+          })
         });
       }
 
@@ -246,7 +283,6 @@ const getAdminReports = async (req, res) => {
         plainRevenue += revenue;
       }
 
-      const countedSellers = new Set();
       const orderSellers = new Set();
       items.forEach((item) => {
         const sid = sellerIdOf(item) || sellerIdOf(productById.get(String(item.product)));
@@ -254,32 +290,9 @@ const getAdminReports = async (req, res) => {
         const lineRev = lineQty * Number(item.price || 0);
         if (sid) {
           orderSellers.add(sid);
-          bump(sellerMap, sid, () => ({
-            sellerId: sid,
-            shop: shopByUser.get(sid)?.magazaAdi || 'Mağaza',
-            city: shopByUser.get(sid)?.sehir || '',
-            status: shopByUser.get(sid)?.durum || 'unknown',
-            commissionPercent: rates[sid] ?? (shopByUser.get(sid)?.komisyonOrani != null ? shopByUser.get(sid).komisyonOrani : 10),
-            orders: 0,
-            revenue: 0,
-            fee: 0,
-            net: 0,
-            collectedFee: 0,
-            qty: 0
-          }), (row) => {
+          bump(sellerMap, sid, () => seedSeller(sid), (row) => {
             if (!cancelled) {
-              const settled = commission.settlements.find((row) => row.seller === sid);
-              const lineRate = settled?.percent ?? rates[sid] ?? shopByUser.get(sid)?.komisyonOrani ?? 10;
-              const lineFee = feeOf(lineRev, lineRate);
               row.qty += lineQty;
-              row.revenue += lineRev;
-              row.fee += lineFee;
-              row.net += lineRev - lineFee;
-              if (order.paymentStatus === 'completed') row.collectedFee += lineFee;
-              if (!countedSellers.has(sid)) {
-                row.orders += 1;
-                countedSellers.add(sid);
-              }
             }
           });
         }
@@ -310,6 +323,33 @@ const getAdminReports = async (req, res) => {
           });
         }
       });
+      if (!cancelled) {
+        const counted = new Set();
+        commission.settlements.forEach((settled) => {
+          const sid = settled.seller;
+          if (!sid) return;
+          orderSellers.add(sid);
+          bump(sellerMap, sid, () => seedSeller(sid), (row) => {
+            row.revenue += settled.gross;
+            row.fee += settled.fee;
+            row.net += settled.net;
+            if (order.paymentStatus === 'completed') {
+              row.collectedFee += settled.fee;
+              row.collectedNet += settled.net;
+              if (!row.isPlatform) {
+                if (settled.payoutStatus === 'paid') row.paidOut += settled.net;
+                else row.toPay += settled.net;
+              }
+            } else if (order.paymentStatus === 'pending') {
+              row.waitingNet += settled.net;
+            }
+            if (!counted.has(sid)) {
+              row.orders += 1;
+              counted.add(sid);
+            }
+          });
+        });
+      }
       orderSellers.forEach((sid) => {
         const timing = timingOf(order, sid);
         sellerOps.set(sid, addTimingToOps(sellerOps.get(sid), timing));
@@ -357,6 +397,10 @@ const getAdminReports = async (req, res) => {
           fee: roundMoney(row.fee),
           net: roundMoney(row.net),
           collectedFee: roundMoney(row.collectedFee),
+          collectedNet: roundMoney(row.collectedNet),
+          toPay: roundMoney(row.toPay),
+          paidOut: roundMoney(row.paidOut),
+          waitingNet: roundMoney(row.waitingNet),
           products: products.filter((item) => String(item.seller) === row.sellerId).length,
           avgDaysToShip: ops.avgDaysToShip,
           avgDaysToDeliver: ops.avgDaysToDeliver,
@@ -571,33 +615,53 @@ const getAdminReports = async (req, res) => {
         },
         commission: {
           percent: 10,
+          buyerCollected: roundMoney(collected),
           collected: roundMoney(commissionCollected),
+          collectedFee: roundMoney(commissionCollected),
           pending: roundMoney(commissionPending),
           gross: roundMoney(commissionGross),
-          sellerNet: roundMoney(commissionOrders.reduce((sum, row) => sum + Number(row.net || 0), 0)),
+          sellerNet: roundMoney(sellerRows.reduce((sum, row) => sum + Number(row.net || 0), 0)),
+          toPay: roundMoney(sellerRows.reduce((sum, row) => sum + Number(row.toPay || 0), 0)),
+          paidOut: roundMoney(sellerRows.reduce((sum, row) => sum + Number(row.paidOut || 0), 0)),
+          waitingNet: roundMoney(sellerRows.reduce((sum, row) => sum + Number(row.waitingNet || 0), 0)),
           sellers: sellerRows
-            .filter((row) => row.fee > 0 || row.revenue > 0)
+            .filter((row) => row.fee > 0 || row.revenue > 0 || row.toPay > 0)
             .map((row) => ({
               sellerId: row.sellerId,
               shop: row.shop,
+              holder: row.holder,
+              iban: row.iban,
+              phone: row.phone,
               city: row.city,
               status: row.status,
+              isPlatform: row.isPlatform,
               commissionPercent: row.commissionPercent != null ? row.commissionPercent : 10,
               orders: row.orders,
+              qty: row.qty,
               gross: row.revenue,
               fee: row.fee,
               net: row.net,
-              collectedFee: row.collectedFee
+              collectedFee: row.collectedFee,
+              collectedNet: row.collectedNet,
+              toPay: row.toPay,
+              paidOut: row.paidOut,
+              waitingNet: row.waitingNet
             })),
           daily: daily.map((row) => ({ date: row.date, commission: row.commission || 0, orders: row.orders || 0 })),
           orders: commissionOrders
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, 40)
+            .slice(0, 80)
             .map((row) => ({
               ...row,
               gross: roundMoney(row.gross),
               fee: roundMoney(row.fee),
-              net: roundMoney(row.net)
+              net: roundMoney(row.net),
+              lines: (row.lines || []).map((line) => ({
+                ...line,
+                gross: roundMoney(line.gross),
+                fee: roundMoney(line.fee),
+                net: roundMoney(line.net)
+              }))
             }))
         },
         quality: {

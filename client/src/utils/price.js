@@ -63,19 +63,49 @@ export const orderChargeRows = (order) => {
   return rows;
 };
 
-export const platformShareOf = (order) => {
-  const items = order?.orderItems || [];
-  const gross = roundMoney(items.reduce((sum, item) => sum + lineTotalOf(item), 0));
-  const stored = (order?.sellerSettlements || []).reduce((sum, row) => sum + Number(row.fee || 0), 0);
-  const fee = roundMoney(
-    order?.platformFee != null && order.platformFee !== ''
-      ? order.platformFee
-      : stored || gross * 0.1
-  );
+export const sellerShareDisplay = (order) => {
+  const percent = Number(order?.commissionPercent) || 10;
+  const goods = roundMoney(Math.max(0, Number(order?.sellerTotal || 0) - Number(order?.sellerPromoDiscount || 0)));
+  const shipping = roundMoney(Number(order?.shippingCost || 0));
+  let gross = roundMoney(Number(order?.sellerGross || 0));
+  if (shipping > 0 && !order?.mixedCart && gross <= goods + 0.05) {
+    gross = roundMoney(goods + shipping);
+  }
+  if (gross <= 0) {
+    gross = roundMoney(goods + (order?.mixedCart ? 0 : shipping));
+  }
+  const fee = roundMoney(gross * (percent / 100));
   return {
-    percent: Number(order?.platformFeePercent) || 10,
+    percent,
+    goods,
+    shipping,
     gross,
     fee,
     net: roundMoney(gross - fee)
   };
 };
+
+export const platformShareOf = (order) => {
+  const items = order?.orderItems || [];
+  const subtotal = roundMoney(
+    order?.subtotal != null && order.subtotal !== ''
+      ? order.subtotal
+      : items.reduce((sum, item) => sum + lineTotalOf(item), 0)
+  );
+  const shipping = roundMoney(Number(order?.shippingCost || 0));
+  const paid = roundMoney(
+    order?.totalPrice != null && order.totalPrice !== ''
+      ? Number(order.totalPrice)
+      : Math.max(0, subtotal - Number(order?.couponDiscount || 0) - Number(order?.promoDiscount || 0)) + (shipping > 0 ? shipping : 0)
+  );
+  const percent = Number(order?.platformFeePercent) || 10;
+  const fee = roundMoney(paid * (percent / 100));
+  return {
+    percent,
+    gross: paid,
+    fee,
+    net: roundMoney(paid - fee)
+  };
+};
+
+

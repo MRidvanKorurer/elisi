@@ -6,6 +6,8 @@ export const adminService = {
   overview: async () => (await API.get('/admin/overview')).data,
   orders: async () => (await API.get('/admin/orders')).data,
   updateOrder: async (id, payload) => (await API.put(`/admin/orders/${id}`, payload)).data,
+  markOrderPayout: async (id, payload) => (await API.put(`/admin/orders/${id}/payout`, payload)).data,
+  markSellerPayouts: async (id) => (await API.put(`/admin/sellers/${id}/payouts`)).data,
   users: async () => (await API.get('/admin/users')).data,
   setUserRole: async (id, rol) => (await API.put(`/admin/users/${id}/role`, { rol })).data,
   sellers: async () => (await API.get('/admin/sellers')).data,
@@ -29,6 +31,8 @@ export const adminService = {
   reportsSeller: async (sellerId) => (await API.get(`/admin/reports/sellers/${sellerId}`)).data,
   adsBoard: async (params) => (await API.get('/admin/ads', { params })).data,
   adsSuggest: async () => (await API.post('/admin/ads/suggest')).data,
+  bankAccounts: async () => (await API.get('/admin/bank')).data,
+  savePlatformBank: async (payload) => (await API.put('/admin/bank', payload)).data,
   categories: async () => (await API.get('/admin/categories')).data,
   createCategory: async (payload) =>
     (await API.post('/admin/categories', payload, payload instanceof FormData ? multipart : undefined)).data,

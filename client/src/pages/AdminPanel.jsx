@@ -66,6 +66,7 @@ import { FEATURED_PACKAGES, FEATURED_SLOTS, FEATURED_STATUS, isLiveFeatured, isR
 import { ATELIER_WEEK_SLOTS, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
 import { lineTotalOf, orderChargeRows, platformShareOf } from '../utils/price';
 import AdminCommission from '../components/AdminCommission';
+import AdminBankAccounts from '../components/AdminBankAccounts';
 import AdminAdsBoard from '../components/AdminAdsBoard';
 
 const emptyForm = {
@@ -262,7 +263,7 @@ export default function AdminPanel({ user, handleLogout }) {
     [users, q]
   );
   const filteredSellers = useMemo(
-    () => sellers.filter((s) => !q || `${s.magazaAdi} ${s.user?.email} ${s.sehir}`.toLowerCase().includes(q)),
+    () => sellers.filter((s) => !q || `${s.magazaAdi} ${s.user?.email} ${s.user?.adSoyad} ${s.adSoyad} ${s.ibanHolder} ${s.iban} ${s.sehir}`.toLowerCase().includes(q)),
     [sellers, q]
   );
 
@@ -549,7 +550,8 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'ads', label: 'Reklamlar', icon: CampaignOutlined },
     { id: 'week', label: 'Haftanın atölyeleri', icon: CelebrationOutlined, badge: overview?.pendingAtelierWeek || weekRequests.filter((item) => item.status === 'pending').length },
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
-    { id: 'commission', label: 'Komisyon', icon: AccountBalanceOutlined },
+    { id: 'commission', label: 'Satıcı ödemeleri', icon: AccountBalanceOutlined },
+    { id: 'bank', label: 'IBAN hesapları', icon: PaymentsOutlined },
     { id: 'products', label: 'Ürünler', icon: Inventory2Outlined },
     { id: 'categories', label: 'Kategoriler', icon: CategoryOutlined },
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
@@ -580,7 +582,7 @@ export default function AdminPanel({ user, handleLogout }) {
       handleLogout={handleLogout}
       query={query}
       setQuery={setQuery}
-      searchPlaceholder={view === 'week' ? 'Atölye veya satıcı ara' : view === 'ads' ? 'Ürün, kategori veya satıcı ara' : view === 'reports' || view === 'commission' ? 'Mağaza veya sipariş ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
+      searchPlaceholder={view === 'week' ? 'Atölye veya satıcı ara' : view === 'ads' ? 'Ürün, kategori veya satıcı ara' : view === 'reports' || view === 'commission' || view === 'bank' ? 'Mağaza, IBAN veya sipariş ara' : 'Sipariş, ürün, müşteri veya mağaza ara'}
       mobileOpen={mobileOpen}
       setMobileOpen={setMobileOpen}
     >
@@ -1038,15 +1040,32 @@ export default function AdminPanel({ user, handleLogout }) {
         <Box>
           <SectionTitle
             overline="SÜPER ADMİN HESABI"
-            title="Platform komisyonu"
-            subtitle="Tek pay: ürün satışından %10 (kart ücreti dahil), 90 günde 50.000 ₺ ciroda %8. Kargo ayrıdır. Site ve hoş geldin indirimini platform karşılar. Özel oran Satıcılar’dan kilitlenir."
+            title="Satıcı ödemeleri"
+            subtitle="Hangi atölyeden ne kadar satış geldiğini, sende kalan komisyonu ve satıcıya ödemen gereken tutarı görün."
           />
           <AdminCommission
-            data={report?.commission}
             query={query}
-            onOpenSeller={() => goView('reports')}
+            data={report?.commission}
+            onChanged={load}
+            onMessage={flash}
+            onError={(text) => setError(text)}
           />
         </Box>
+      )}
+
+      {view === 'bank' && (
+        <AdminBankAccounts
+          query={query}
+          sellers={sellers}
+          bank={{ name: bankName, holder: bankHolder, iban: bankIban }}
+          onMessage={flash}
+          onError={(text) => setError(text)}
+          onBankSaved={(bank) => {
+            setBankName(bank.name || '');
+            setBankHolder(bank.holder || '');
+            setBankIban(bank.iban || '');
+          }}
+        />
       )}
 
       {view === 'orders' && (
@@ -1177,9 +1196,12 @@ export default function AdminPanel({ user, handleLogout }) {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'flex-start' }}>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 900, color: T.navy }}>{seller.magazaAdi}</Typography>
-                    <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>{seller.user?.email}</Typography>
+                    <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>{seller.user?.adSoyad || seller.adSoyad || seller.ibanHolder} · {seller.user?.email}</Typography>
                     <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>
                       {seller.sehir}/{seller.ilce} · {(Array.isArray(seller.magazaTuru) ? seller.magazaTuru : [seller.magazaTuru]).filter(Boolean).map(categoryLabel).join(' · ') || seller.magazaTuru} · {seller.telefon}
+                    </Typography>
+                    <Typography sx={{ color: T.navy, fontSize: '0.82rem', fontWeight: 800, mt: 0.7, letterSpacing: 0.2, wordBreak: 'break-all' }}>
+                      {seller.ibanHolder ? `${seller.ibanHolder} · ` : ''}{seller.iban || 'IBAN yok'}
                     </Typography>
                     <Typography sx={{ color: T.muted, fontSize: '0.8rem', mt: 0.6 }}>
                       {seller.komisyonManuel

@@ -23,25 +23,28 @@ export default function ProductMarginCalculator({
   shippingCost,
   extraCost,
   price,
+  discountPercentage,
   onChange,
   showPriceField = true
 }) {
-  const shipping = shippingCost === '' || shippingCost == null ? 0 : shippingCost;
+  const sellerShip = shippingCost === '' || shippingCost == null ? 0 : shippingCost;
   const quote = quoteMargin({
     cost: costPrice,
-    shipping,
+    shipping: sellerShip,
     extra: extraCost,
     price,
+    discountPercentage,
     commissionPercent
   });
 
   const set = (patch) => onChange?.((prev) => ({ ...prev, ...patch }));
+  const showQuote = quote.sale > 0 || quote.base > 0;
 
   return (
     <Box>
       <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Kar marjı</Typography>
       <Typography sx={{ color: T.muted, fontSize: '0.82rem', mb: 2 }}>
-        Maliyeti yaz. Site payı (kart ücreti dahil, %{quote.commissionPercent}) satış fiyatından düşülür. Kargo payını yalnızca senin gerçek gönderim maliyetinse yaz.
+        Site payı, alıcının ödediği son tutardandır. 1000 ₺ altı siparişte kargo 100 ₺’dir; 300 + 100 = 400 üzerinden %10 = 40 ₺ siteye kalır. 1000 ₺ ve üzeri kargo bedava, pay yalnızca üründendir.
       </Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 2 }}>
@@ -54,12 +57,12 @@ export default function ProductMarginCalculator({
           sx={fieldSx}
         />
         <TextField
-          label="Kargo payı (₺)"
+          label="Senin kargo masrafın (₺)"
           type="number"
           value={shippingCost}
           onChange={(e) => set({ shippingCost: e.target.value })}
           placeholder="0"
-          helperText="Müşteri 1000 ₺ altında 100 ₺ kargo öder; 1000 ₺ ve üzeri bedava kargo site kampanyasıdır, senin komisyonuna girmez."
+          helperText="Kendi gönderim maliyetin. Alıcı kargosu otomatik 100 ₺ / ücretsiz kuralıdır."
           sx={fieldSx}
         />
         <TextField
@@ -77,44 +80,64 @@ export default function ProductMarginCalculator({
             value={price}
             onChange={(e) => set({ price: e.target.value })}
             required
-            helperText="Önerileni değiştirebilirsin"
+            helperText="Müşterinin ürüne ödeyeceği tutar"
             sx={fieldSx}
           />
         ) : null}
       </Box>
 
-      {quote.base > 0 ? (
+      {showQuote ? (
         <Box sx={{ p: 1.8, borderRadius: '16px', bgcolor: T.surfaceSoft, border: `1px solid ${T.line}` }}>
-          <Row label="Ürün + kargo + diğer" value={money(quote.base)} />
+          {quote.sale > 0 ? (
+            <>
+              <Row label="Ürün (alıcı)" value={money(quote.sale)} />
+              <Row
+                label="Alıcı kargosu"
+                value={quote.buyerShipping > 0 ? money(quote.buyerShipping) : 'Ücretsiz'}
+                hint={quote.buyerShipping > 0 ? `${money(quote.freeShippingLimit)} altı sipariş` : `${money(quote.freeShippingLimit)} ve üzeri`}
+              />
+              <Row label="Alıcının ödeyeceği" value={money(quote.charged)} strong />
+            </>
+          ) : null}
           <Row
             label={`Site komisyonu (%${quote.commissionPercent})`}
             value={quote.sale ? money(quote.commission) : 'fiyata göre'}
-            hint={quote.sale ? 'Satış fiyatı üzerinden' : 'Başabaş fiyatta hesaplanır'}
+            hint={
+              quote.sale
+                ? (quote.buyerShipping > 0
+                  ? `${money(quote.charged)} üzerinden (ürün + kargo)`
+                  : `${money(quote.sale)} üzerinden, kargo yok`)
+                : 'Satış fiyatı yazınca hesaplanır'
+            }
           />
-          <Row label="Gerçek maliyet / başabaş" value={money(quote.breakEven)} strong />
-          <Row label="Nik Bag önerisi" value={money(quote.suggested)} hint="%25 net kâr payı, yuvarlanmış" />
+          {quote.base > 0 ? <Row label="Senin maliyetin" value={money(quote.base)} /> : null}
+          {quote.breakEven > 0 ? <Row label="Başabaş satış" value={money(quote.breakEven)} strong /> : null}
+          {quote.suggested > 0 ? <Row label="Nik Bag önerisi" value={money(quote.suggested)} hint="%25 net kâr payı, yuvarlanmış" /> : null}
           {quote.sale > 0 ? (
             <>
-              <Row label="Sana kalan" value={money(quote.net)} />
-              <Row
-                label={quote.belowCost ? 'Zarar' : 'Net kâr'}
-                value={money(quote.profit)}
-                warn={quote.belowCost}
-                hint={`Satışın %${Math.abs(quote.profitRate)}’i`}
-                strong
-              />
+              <Row label="Sana kalan (brüt)" value={money(quote.net)} />
+              {quote.base > 0 ? (
+                <Row
+                  label={quote.belowCost ? 'Zarar' : 'Net kâr'}
+                  value={money(quote.profit)}
+                  warn={quote.belowCost}
+                  hint={`Alıcının ödeyeceğinin %${Math.abs(quote.profitRate)}’i`}
+                  strong
+                />
+              ) : null}
             </>
           ) : null}
-          <Button
-            onClick={() => set({ price: quote.suggested })}
-            disabled={!quote.suggested}
-            sx={{ ...primaryButton, mt: 1.6, width: { xs: '100%', sm: 'auto' } }}
-          >
-            Önerilen fiyatı kullan · {money(quote.suggested)}
-          </Button>
+          {quote.suggested > 0 ? (
+            <Button
+              onClick={() => set({ price: quote.suggested })}
+              sx={{ ...primaryButton, mt: 1.6, width: { xs: '100%', sm: 'auto' } }}
+            >
+              Önerilen fiyatı kullan · {money(quote.suggested)}
+            </Button>
+          ) : null}
         </Box>
       ) : (
-        <Typography sx={{ color: T.muted, fontWeight: 700 }}>Önce ürün maliyetini yaz, hesap dolsun.</Typography>
+        <Typography sx={{ color: T.muted, fontWeight: 700 }}>Satış fiyatı veya maliyeti yaz, hesap dolsun.</Typography>
       )}
     </Box>
   );

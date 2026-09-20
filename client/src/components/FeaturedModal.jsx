@@ -243,7 +243,7 @@ export default function FeaturedModal({ open, onClose }) {
               {loading
                 ? Array.from({ length: 3 }).map((_, index) => (
                     <Box key={`skeleton-${index}`} sx={{ borderRadius: '20px', overflow: 'hidden', bgcolor: '#fff', border: '1px solid rgba(148,109,109,0.12)' }}>
-                      <Skeleton variant="rectangular" sx={{ width: '100%', aspectRatio: '4 / 3' }} />
+                      <Skeleton variant="rectangular" sx={{ width: '100%', aspectRatio: '1 / 1' }} />
                       <Box sx={{ p: 1.8 }}>
                         <Skeleton width="45%" height={14} />
                         <Skeleton width="85%" height={22} sx={{ mt: 0.8 }} />
@@ -282,11 +282,10 @@ export default function FeaturedModal({ open, onClose }) {
                             transform: 'translateY(-6px)',
                             borderColor: 'rgba(148,109,109,0.4)',
                             boxShadow: '0 26px 44px -22px rgba(46,59,85,0.5)'
-                          },
-                          '&:hover .featured-cover': { transform: 'scale(1.07)' }
+                          }
                         }}
                       >
-                        <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', backgroundColor: '#F2EADF' }}>
+                        <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1.2 }}>
                           <Box
                             className="featured-cover"
                             component="img"
@@ -301,9 +300,9 @@ export default function FeaturedModal({ open, onClose }) {
                             sx={{
                               width: '100%',
                               height: '100%',
-                              objectFit: 'cover',
-                              display: 'block',
-                              transition: 'transform .55s cubic-bezier(.22,.61,.36,1)'
+                              objectFit: 'contain',
+                              objectPosition: 'center',
+                              display: 'block'
                             }}
                           />
                           <Box

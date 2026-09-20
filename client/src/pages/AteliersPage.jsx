@@ -107,9 +107,9 @@ function CoverImage({ covers = [], tone = '#2E3B55', alt = '' }) {
       sx={{
         width: '100%',
         height: '100%',
-        objectFit: 'cover',
-        display: 'block',
-        transition: 'transform 420ms var(--ease-soft, ease)'
+        objectFit: 'contain',
+        objectPosition: 'center',
+        display: 'block'
       }}
     />
   );
@@ -143,21 +143,23 @@ function AtelierTile({ atelier, t, index = 0 }) {
           borderColor: 'rgba(46,59,85,0.2)',
           boxShadow: '0 24px 44px -26px rgba(46,59,85,0.55)'
         },
-        '&:hover img': { transform: 'scale(1.04)' },
         '&:hover .atelier-cta': { color: '#946D6D', gap: 0.7 },
         '&:focus-visible': { outline: '3px solid #A290B7', outlineOffset: 3 }
       }}
     >
-      <Box sx={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden', bgcolor: 'rgba(148,109,109,0.08)' }}>
+      <Box
+        sx={{
+          position: 'relative',
+          aspectRatio: '1 / 1',
+          overflow: 'hidden',
+          bgcolor: '#FFFFFF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 1.2
+        }}
+      >
         <CoverImage covers={covers} tone={tone} alt="" />
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, rgba(46,59,85,0.08) 0%, rgba(46,59,85,0) 42%, rgba(46,59,85,0.55) 100%)',
-            pointerEvents: 'none'
-          }}
-        />
         {atelier.isWeeklyAtelier ? (
           <Chip
             size="small"
@@ -256,7 +258,7 @@ function AtelierTile({ atelier, t, index = 0 }) {
 function AtelierSkeleton() {
   return (
     <Box sx={{ borderRadius: '22px', overflow: 'hidden', bgcolor: '#FFFFFF', border: '1px solid rgba(148,109,109,0.1)' }}>
-      <Skeleton variant="rectangular" sx={{ aspectRatio: '4 / 3', transform: 'none' }} />
+      <Skeleton variant="rectangular" sx={{ aspectRatio: '1 / 1', transform: 'none' }} />
       <Box sx={{ p: 2 }}>
         <Skeleton width="70%" height={24} />
         <Skeleton width="45%" height={18} sx={{ mt: 1 }} />

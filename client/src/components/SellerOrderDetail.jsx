@@ -20,7 +20,7 @@ import EmailOutlined from '@mui/icons-material/EmailOutlined';
 import PlaceOutlined from '@mui/icons-material/PlaceOutlined';
 import { StatusChip, primaryButton } from './PanelShell';
 import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money } from '../utils/panel';
-import { lineTotalOf } from '../utils/price';
+import { lineTotalOf, sellerShareDisplay } from '../utils/price';
 import OrderMakerThread from './OrderMakerThread';
 
 const whenFull = (value) =>
@@ -140,7 +140,8 @@ export default function SellerOrderDetail({
     order.shippingAddress?.address,
     [order.shippingAddress?.district, order.shippingAddress?.city].filter(Boolean).join(' / ')
   ].filter(Boolean).join(', ');
-  const net = order.sellerNet != null ? order.sellerNet : order.sellerTotal;
+  const share = sellerShareDisplay(order);
+  const net = share.net;
   const call = phoneHref(order.customerInfo?.phone);
   const wa = waHref(order.customerInfo?.phone);
   const late = Boolean(order.timing?.late && order.orderStatus === 'processing');
@@ -267,7 +268,7 @@ export default function SellerOrderDetail({
             ))}
 
             <Box sx={{ mt: 1.6, p: 1.6, borderRadius: '16px', bgcolor: T.surfaceSoft, border: `1px solid ${T.line}` }}>
-              <Row label="Ürün tutarı" value={money(order.sellerTotal)} />
+              <Row label="Ürün tutarı" value={money(share.goods)} />
               {order.sellerPromoDiscount > 0 ? (
                 <Row
                   label={`Senin kampanyan${order.promoCode ? ` (${order.promoCode})` : ''}`}
@@ -284,12 +285,21 @@ export default function SellerOrderDetail({
                 />
               ) : null}
               <Row
-                label={`Platform payı (%${order.commissionPercent ?? 10})`}
-                value={money(order.platformFee || 0)}
-                rose
-                hint="Kart ücreti dahil"
+                label="Alıcı kargosu"
+                value={share.shipping > 0 ? money(share.shipping) : 'Ücretsiz'}
+                hint={share.shipping > 0 ? 'Komisyona dahil' : 'Komisyon yalnızca üründen'}
               />
-              <Row label="Sana kalan" value={money(net)} strong />
+              <Row
+                label={`Platform payı (%${share.percent})`}
+                value={money(share.fee)}
+                rose
+                hint={
+                  share.shipping > 0
+                    ? `Kargo dahil ${money(share.gross)} üzerinden`
+                    : `${money(share.gross)} ürün tutarı üzerinden`
+                }
+              />
+              <Row label="Sana kalan" value={money(share.net)} strong />
             </Box>
 
             <Typography sx={{ color: T.muted, fontSize: 13, mt: 1.6, mb: 1 }}>

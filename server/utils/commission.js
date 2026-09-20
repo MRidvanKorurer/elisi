@@ -65,29 +65,92 @@ const sellerLineGross = (items = [], sellerId) =>
   );
 
 const sellerDiscountOf = (order, sellerId) => {
-  const sid = String(sellerId || '');
-  const promoSeller = sellerIdOf(order?.promoSeller);
-  if (!sid || !promoSeller || promoSeller !== sid) return 0;
-  return money(order?.promoDiscount);
+  const allocated = allocateOrderDiscounts(order?.orderItems, {
+    couponDiscount: order?.couponDiscount,
+    promoDiscount: order?.promoDiscount,
+    promoSellerId: order?.promoSeller
+  });
+  return money(allocated[String(sellerId)] || 0);
 };
 
-const settlementsFromItems = (items = [], rates, discounts = {}) => {
+const allocateOrderDiscounts = (items = [], {
+  couponDiscount = 0,
+  promoDiscount = 0,
+  promoSellerId = ''
+} = {}) => {
+  const discounts = {};
+  const promoSid = sellerIdOf(promoSellerId);
+  if (promoSid && Number(promoDiscount) > 0) {
+    discounts[promoSid] = money(promoDiscount);
+  }
+
+  const coupon = money(couponDiscount);
+  if (coupon <= 0) return discounts;
+
+  const bySeller = new Map();
+  let total = 0;
+  (items || []).forEach((item) => {
+    const sid = sellerIdOf(item.seller);
+    if (!sid) return;
+    const gross = lineGrossOf(item);
+    bySeller.set(sid, money((bySeller.get(sid) || 0) + gross));
+    total = money(total + gross);
+  });
+  if (total <= 0) return discounts;
+
+  const sellers = [...bySeller.keys()];
+  let allocated = 0;
+  sellers.forEach((sid, index) => {
+    const share = index === sellers.length - 1
+      ? money(Math.max(0, coupon - allocated))
+      : money((bySeller.get(sid) / total) * coupon);
+    allocated = money(allocated + share);
+    discounts[sid] = money((discounts[sid] || 0) + share);
+  });
+  return discounts;
+};
+
+const settlementsFromItems = (items = [], rates, discounts = {}, shippingCost = 0) => {
   const map = new Map();
   (items || []).forEach((item) => {
     const sid = sellerIdOf(item.seller);
     if (!sid) return;
-    const current = map.get(sid) || { seller: sid, gross: 0 };
-    current.gross = money(current.gross + lineGrossOf(item));
+    const current = map.get(sid) || { seller: sid, goods: 0 };
+    current.goods = money(current.goods + lineGrossOf(item));
     map.set(sid, current);
   });
-  return [...map.values()].map((row) => {
+  const rows = [...map.values()].map((row) => {
     const discount = money(discounts[row.seller] || discounts.get?.(row.seller) || 0);
-    const gross = money(Math.max(0, row.gross - discount));
+    return {
+      seller: row.seller,
+      goods: money(Math.max(0, row.goods - discount))
+    };
+  });
+  const goodsTotal = money(rows.reduce((sum, row) => sum + row.goods, 0));
+  const shipping = money(shippingCost) > 0 ? money(shippingCost) : 0;
+  let shipped = 0;
+  return rows.map((row, index) => {
+    let shippingShare = 0;
+    if (shipping > 0) {
+      if (goodsTotal > 0) {
+        shippingShare = index === rows.length - 1
+          ? money(shipping - shipped)
+          : money((row.goods / goodsTotal) * shipping);
+      } else {
+        shippingShare = index === rows.length - 1
+          ? money(shipping - shipped)
+          : money(shipping / rows.length);
+      }
+      shipped = money(shipped + shippingShare);
+    }
     const percent = rateOf(rates, row.seller);
+    const gross = money(row.goods + shippingShare);
     const fee = feeOf(gross, percent);
     return {
       seller: row.seller,
       percent,
+      goods: row.goods,
+      shipping: shippingShare,
       gross,
       fee,
       net: money(gross - fee)
@@ -96,33 +159,33 @@ const settlementsFromItems = (items = [], rates, discounts = {}) => {
 };
 
 const resolveCommission = (order) => {
-  const stored = order?.sellerSettlements;
   const fallbackPercent = order?.platformFeePercent != null && order.platformFeePercent !== ''
     ? clampCommissionPercent(order.platformFeePercent)
     : PLATFORM_COMMISSION_PERCENT;
-  const discounts = {};
-  const promoSeller = sellerIdOf(order?.promoSeller);
-  if (promoSeller) discounts[promoSeller] = money(order?.promoDiscount);
-  const settlements = Array.isArray(stored) && stored.length
-    ? stored.map((row) => {
-      const gross = money(row.gross);
-      const percent = row.percent != null && row.percent !== ''
-        ? clampCommissionPercent(row.percent)
-        : fallbackPercent;
-      const fee = row.fee != null ? money(row.fee) : feeOf(gross, percent);
-      return {
-        seller: sellerIdOf(row.seller),
-        percent,
-        gross,
-        fee,
-        net: row.net != null ? money(row.net) : money(gross - fee)
-      };
-    })
-    : settlementsFromItems(order?.orderItems, fallbackPercent, discounts);
-  const computedFee = money(settlements.reduce((sum, row) => sum + row.fee, 0));
-  const fee = order?.platformFee != null && order.platformFee !== ''
-    ? money(order.platformFee)
-    : computedFee;
+  const discounts = allocateOrderDiscounts(order?.orderItems, {
+    couponDiscount: order?.couponDiscount,
+    promoDiscount: order?.promoDiscount,
+    promoSellerId: order?.promoSeller
+  });
+  const storedRows = Array.isArray(order?.sellerSettlements) ? order.sellerSettlements : [];
+  const rateMap = {};
+  const storedStatus = new Map();
+  storedRows.forEach((row) => {
+    const sid = sellerIdOf(row.seller);
+    if (!sid) return;
+    if (row.percent != null && row.percent !== '') rateMap[sid] = row.percent;
+    storedStatus.set(sid, row.payoutStatus === 'paid' ? 'paid' : 'pending');
+  });
+  const settlements = settlementsFromItems(
+    order?.orderItems,
+    Object.keys(rateMap).length ? rateMap : fallbackPercent,
+    discounts,
+    order?.shippingCost
+  ).map((row) => ({
+    ...row,
+    payoutStatus: storedStatus.get(row.seller) || 'pending'
+  }));
+  const fee = money(settlements.reduce((sum, row) => sum + row.fee, 0));
   const gross = money(settlements.reduce((sum, row) => sum + row.gross, 0));
   return {
     percent: fallbackPercent,
@@ -137,9 +200,13 @@ const sellerSettlementOf = (order, sellerId) => {
   const { settlements, percent } = resolveCommission(order);
   const match = settlements.find((row) => row.seller === String(sellerId));
   if (match) return { ...match, percent: match.percent ?? percent };
-  const items = (order?.orderItems || []).filter((item) => sellerIdOf(item.seller) === String(sellerId));
-  const discounts = { [String(sellerId)]: sellerDiscountOf(order, sellerId) };
-  const [row] = settlementsFromItems(items, percent, discounts);
+  const discounts = allocateOrderDiscounts(order?.orderItems, {
+    couponDiscount: order?.couponDiscount,
+    promoDiscount: order?.promoDiscount,
+    promoSellerId: order?.promoSeller
+  });
+  const row = settlementsFromItems(order?.orderItems, percent, discounts, order?.shippingCost)
+    .find((item) => item.seller === String(sellerId));
   return row
     ? { ...row, percent: row.percent ?? percent }
     : { seller: String(sellerId || ''), percent, gross: 0, fee: 0, net: 0 };
@@ -238,6 +305,7 @@ module.exports = {
   clampCommissionPercent,
   rateOf,
   settlementsFromItems,
+  allocateOrderDiscounts,
   resolveCommission,
   sellerSettlementOf,
   sellerLineGross,

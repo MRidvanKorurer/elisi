@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const FeaturedRequest = require('../models/FeaturedRequest');
 const Product = require('../models/Product');
 const Seller = require('../models/Seller');
-const SiteSetting = require('../models/SiteSetting');
 const { packageOf, packageList, FEATURED_SLOTS } = require('../utils/featuredPackages');
 const { resolveBank } = require('../utils/bank');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
@@ -139,26 +138,19 @@ const updateFeaturedSettings = async (req, res) => {
   try {
     const holder = String(req.body.holder || req.body.featuredBankHolder || '').trim();
     const name = String(req.body.name || req.body.featuredBankName || '').trim() || holder;
-    const iban = String(req.body.iban || req.body.featuredBankIban || '').replace(/\s+/g, ' ').trim();
-    if (!(holder || name) || iban.replace(/\s/g, '').length < 10) {
+    const iban = String(req.body.iban || req.body.featuredBankIban || '').trim();
+    if (!(holder || name)) {
       return res.status(400).json({ mesaj: 'Alıcı ad soyad ve geçerli bir IBAN yaz.' });
     }
-    const settings = await SiteSetting.findOneAndUpdate(
-      { key: 'site' },
-      { $set: { featuredBankName: name, featuredBankHolder: holder || name, featuredBankIban: iban } },
-      { upsert: true, new: true }
-    );
+    const { upsertPlatformBank } = require('../utils/bank');
+    const bank = await upsertPlatformBank({ name, holder, iban });
     return res.json({
       success: true,
-      mesaj: 'Vitrin havale bilgisi kaydedildi.',
-      bank: {
-        name: settings.featuredBankName,
-        holder: settings.featuredBankHolder,
-        iban: settings.featuredBankIban
-      }
+      mesaj: 'Site IBAN bilgisi kaydedildi. Tüm siparişlerde bu hesap gösterilir.',
+      bank
     });
   } catch (error) {
-    return res.status(500).json({ mesaj: 'Ayar kaydedilemedi.', hata: error.message });
+    return res.status(error.status || 500).json({ mesaj: error.message || 'Ayar kaydedilemedi.', hata: error.message });
   }
 };
 

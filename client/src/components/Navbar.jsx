@@ -18,7 +18,7 @@ import CloseRounded from '@mui/icons-material/CloseRounded';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
 import Logo from '../assets/logo.svg?react';
-import { cartService } from '../api/cartServices';
+import { cartService, countCartItems } from '../api/cartServices';
 import NavSearch from './NavSearch';
 import { isSellerRole, isSuperAdmin } from '../utils/roles';
 
@@ -68,27 +68,24 @@ export default function Navbar({ setPage, user, handleLogout }) {
   }, [isHome]);
 
   useEffect(() => {
-    if (!user) {
-      setCartCount(cartService.guestCount());
-      const syncGuest = () => setCartCount(cartService.guestCount());
-      window.addEventListener('cartUpdated', syncGuest);
-      return () => window.removeEventListener('cartUpdated', syncGuest);
-    }
-
-    const fetchCartData = async () => {
+    let active = true;
+    const syncCart = async () => {
       try {
         const response = await cartService.getCart();
-        if (response.success) {
-          const totalQuantity = response.items.reduce((acc, item) => acc + item.quantity, 0);
-          setCartCount(totalQuantity);
-        }
+        if (!active) return;
+        setCartCount(countCartItems(response?.items));
       } catch {
-        setCartCount(0);
+        if (active) setCartCount(0);
       }
     };
-    fetchCartData();
-    window.addEventListener('cartUpdated', fetchCartData);
-    return () => window.removeEventListener('cartUpdated', fetchCartData);
+    syncCart();
+    window.addEventListener('cartUpdated', syncCart);
+    window.addEventListener('storage', syncCart);
+    return () => {
+      active = false;
+      window.removeEventListener('cartUpdated', syncCart);
+      window.removeEventListener('storage', syncCart);
+    };
   }, [user]);
 
   const go = (path) => {
@@ -187,7 +184,12 @@ export default function Navbar({ setPage, user, handleLogout }) {
             )}
 
             <IconButton aria-label={t('nav.cart')} onClick={() => go('sepet')} sx={iconBtn(solid)}>
-              <Badge badgeContent={cartCount} color="error" sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}>
+              <Badge
+                badgeContent={cartCount}
+                color="error"
+                invisible={cartCount < 1}
+                sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}
+              >
                 <ShoppingBagOutlined />
               </Badge>
             </IconButton>

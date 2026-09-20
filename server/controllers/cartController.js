@@ -7,15 +7,46 @@ const Cart = require('../models/Cart');
 // @access  Private (Sadece giriş yapmış kullanıcılar)
 exports.getCart = async (req, res) => {
   try {
-    // req.user._id auth middleware'inden (token/cookie) gelmeli
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
 
-    // Eğer kullanıcının henüz bir sepeti yoksa boş dizi döndür
     if (!cart) {
       return res.status(200).json({ success: true, items: [] });
     }
 
-    res.status(200).json({ success: true, items: cart.items });
+    const liveItems = cart.items.filter((item) => {
+      const product = item.product;
+      if (!product) return false;
+      if (typeof product === 'object' && product.isActive === false) return false;
+      return true;
+    });
+
+    if (liveItems.length !== cart.items.length) {
+      cart.items = liveItems.map((item) => ({
+        product: item.product._id || item.product,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        quantity: item.quantity,
+        color: item.color || '',
+        size: item.size || ''
+      }));
+      await cart.save();
+    }
+
+    const items = liveItems.map((item) => {
+      const product = item.product && typeof item.product === 'object' ? item.product : null;
+      return {
+        product: product?._id || item.product,
+        name: product?.title || item.name,
+        price: item.price,
+        image: product?.image || item.image,
+        quantity: item.quantity,
+        color: item.color || '',
+        size: item.size || ''
+      };
+    });
+
+    res.status(200).json({ success: true, items });
   } catch (error) {
     console.error('Sepet getirme hatası:', error);
     res.status(500).json({ success: false, message: 'Sepet yüklenirken hata oluştu.' });

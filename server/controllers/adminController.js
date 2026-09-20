@@ -2,7 +2,9 @@ const User = require('../models/User');
 const Seller = require('../models/Seller');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const mongoose = require('mongoose');
 const { isSuperAdmin } = require('../utils/roles');
+const { resolveBank, formatIban, upsertPlatformBank } = require('../utils/bank');
 const { applyPaidStock, restorePaidStock } = require('../utils/orderStock');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
@@ -292,6 +294,9 @@ const decorateSellerCommission = async (sellers = []) => {
     obj.komisyonOrani = rates[sid] ?? 10;
     obj.komisyonManuel = Boolean(seller.komisyonManuel);
     obj.komisyonHacim = volumeMeta(volumes.get(sid) || 0);
+    obj.iban = formatIban(seller.iban || obj.iban || '');
+    obj.ibanHolder = seller.ibanHolder || seller.user?.adSoyad || obj.ibanHolder || '';
+    obj.adSoyad = seller.user?.adSoyad || obj.adSoyad || obj.ibanHolder || '';
     return obj;
   });
 };
@@ -521,6 +526,126 @@ const updateOrder = async (req, res) => {
   }
 };
 
+const serializeSellerBank = (seller, adminUserId) => {
+  const user = seller.user || {};
+  const userId = String(user._id || seller.user || '');
+  return {
+    id: seller._id,
+    magazaAdi: seller.magazaAdi || '',
+    slug: seller.slug || '',
+    hesapTipi: seller.hesapTipi || 'bireysel',
+    magazaTuru: seller.magazaTuru || [],
+    iban: formatIban(seller.iban),
+    ibanHolder: seller.ibanHolder || user.adSoyad || '',
+    tcKimlik: seller.tcKimlik || '',
+    vergiNo: seller.vergiNo || '',
+    telefon: seller.telefon || user.telefon || '',
+    sehir: seller.sehir || '',
+    ilce: seller.ilce || '',
+    adres: seller.adres || '',
+    email: user.email || '',
+    adSoyad: user.adSoyad || '',
+    durum: seller.durum,
+    isPlatform: Boolean(adminUserId && userId === String(adminUserId)),
+    createdAt: seller.createdAt
+  };
+};
+
+const getBankAccounts = async (_req, res) => {
+  try {
+    const platform = await resolveBank();
+    const admin = await User.findOne({ rol: 'superadmin' }).sort({ createdAt: 1 }).select('_id').lean();
+    const sellers = await Seller.find()
+      .populate('user', 'adSoyad email rol telefon')
+      .sort({ magazaAdi: 1 })
+      .lean();
+    return res.json({
+      success: true,
+      platform,
+      sellers: sellers.map((seller) => serializeSellerBank(seller, admin?._id))
+    });
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Hesap bilgileri alınamadı.', hata: error.message });
+  }
+};
+
+const updatePlatformBank = async (req, res) => {
+  try {
+    const holder = String(req.body.holder || '').trim();
+    const name = String(req.body.name || '').trim();
+    const iban = String(req.body.iban || '').trim();
+    if (!(holder || name) || !iban) {
+      return res.status(400).json({ mesaj: 'Hesap sahibi ve IBAN zorunludur.' });
+    }
+    const bank = await upsertPlatformBank({ name, holder, iban });
+    return res.json({
+      success: true,
+      mesaj: 'Site IBAN bilgisi kaydedildi. Tüm siparişlerde bu hesap gösterilir.',
+      bank
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({ mesaj: error.message || 'IBAN kaydedilemedi.', hata: error.message });
+  }
+};
+
+const sellerUserIdOf = async (id) => {
+  if (!id || !mongoose.isValidObjectId(id)) return '';
+  const seller = await Seller.findOne({ $or: [{ _id: id }, { user: id }] }).select('user').lean();
+  return String(seller?.user || id);
+};
+
+const markOrderPayout = async (req, res) => {
+  try {
+    const payoutStatus = req.body.payoutStatus === 'pending' ? 'pending' : 'paid';
+    const sellerId = await sellerUserIdOf(req.body.sellerId);
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ mesaj: 'Sipariş bulunamadı.' });
+    if (order.paymentStatus !== 'completed' && payoutStatus === 'paid') {
+      return res.status(400).json({ mesaj: 'Önce alıcı ödemesi tamamlanmalı.' });
+    }
+    const rows = order.sellerSettlements || [];
+    if (!rows.length) return res.status(400).json({ mesaj: 'Bu siparişte satıcı pay kaydı yok.' });
+    let touched = 0;
+    rows.forEach((row) => {
+      if (String(row.seller) === sellerId) {
+        row.payoutStatus = payoutStatus;
+        touched += 1;
+      }
+    });
+    if (!touched) return res.status(404).json({ mesaj: 'Bu siparişte o satıcı yok.' });
+    await order.save();
+    return res.json({
+      success: true,
+      mesaj: payoutStatus === 'paid' ? 'Satıcıya ödeme işaretlendi.' : 'Satıcı ödemesi beklemeye alındı.'
+    });
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Pay güncellenemedi.', hata: error.message });
+  }
+};
+
+const markSellerPayouts = async (req, res) => {
+  try {
+    const sellerId = await sellerUserIdOf(req.params.id);
+    if (!sellerId) return res.status(400).json({ mesaj: 'Satıcı bulunamadı.' });
+    const sellerOid = new mongoose.Types.ObjectId(sellerId);
+    const result = await Order.updateMany(
+      {
+        paymentStatus: 'completed',
+        sellerSettlements: { $elemMatch: { seller: sellerOid, payoutStatus: { $ne: 'paid' } } }
+      },
+      { $set: { 'sellerSettlements.$[row].payoutStatus': 'paid' } },
+      { arrayFilters: [{ 'row.seller': sellerOid, 'row.payoutStatus': { $ne: 'paid' } }] }
+    );
+    return res.json({
+      success: true,
+      mesaj: `${result.modifiedCount || 0} siparişte satıcı ödemesi işaretlendi.`,
+      updated: result.modifiedCount || 0
+    });
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Ödemeler işaretlenemedi.', hata: error.message });
+  }
+};
+
 module.exports = {
   getOverview,
   listUsers,
@@ -533,5 +658,9 @@ module.exports = {
   deleteProduct,
   setProductApproval,
   listOrders,
-  updateOrder
+  updateOrder,
+  getBankAccounts,
+  updatePlatformBank,
+  markOrderPayout,
+  markSellerPayouts
 };

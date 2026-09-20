@@ -6,10 +6,9 @@ const FEATURED_PACKAGES = {
   7: { days: 7, price: 5000, label: '7 gün', hint: 'Tam vitrin' }
 };
 
-const DEFAULT_BANK = {
-  name: process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || '',
-  iban: process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || ''
-};
+const { envBank } = require('./bank');
+
+const DEFAULT_BANK = envBank();
 
 const packageOf = (days) => FEATURED_PACKAGES[Number(days)] || null;
 

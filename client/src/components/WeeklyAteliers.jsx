@@ -36,18 +36,36 @@ function ProductTiles({ images = [] }) {
         gridTemplateRows: '1fr 1fr',
         aspectRatio: '1 / 1',
         gap: '3px',
-        bgcolor: 'rgba(148,109,109,0.12)'
+        bgcolor: '#FFFFFF'
       }}
     >
       {tiles.map((src, index) => (
         src ? (
           <Box
             key={`${src}-${index}`}
-            component="img"
-            src={src}
-            alt=""
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
+            sx={{
+              minWidth: 0,
+              minHeight: 0,
+              bgcolor: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 0.6
+            }}
+          >
+            <Box
+              component="img"
+              src={src}
+              alt=""
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                objectPosition: 'center',
+                display: 'block'
+              }}
+            />
+          </Box>
         ) : (
           <Box key={`empty-${index}`} sx={{ bgcolor: TILE_TONES[index], opacity: 0.22 }} />
         )

@@ -59,8 +59,26 @@ const orderSchema = new mongoose.Schema({
     percent: { type: Number, default: 10 },
     gross: { type: Number, default: 0 },
     fee: { type: Number, default: 0 },
-    net: { type: Number, default: 0 }
+    net: { type: Number, default: 0 },
+    payoutStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' }
   }],
+  payouts: {
+    platform: {
+      label: { type: String, default: 'Site komisyonu' },
+      holder: { type: String, default: '' },
+      name: { type: String, default: '' },
+      iban: { type: String, default: '' },
+      amount: { type: Number, default: 0 }
+    },
+    sellers: [{
+      seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      label: { type: String, default: 'Atölye payı' },
+      holder: { type: String, default: '' },
+      name: { type: String, default: '' },
+      iban: { type: String, default: '' },
+      amount: { type: Number, default: 0 }
+    }]
+  },
   
   // Ödeme ve Durum Yönetimi
   paymentMethod: { 

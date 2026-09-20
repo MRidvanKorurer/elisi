@@ -9,11 +9,12 @@ const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed,
 const { evaluatePromo } = require('../utils/promoCode');
 const PromoCode = require('../models/PromoCode');
 const Seller = require('../models/Seller');
-const { settlementsFromItems, ratesForSellers } = require('../utils/commission');
+const { settlementsFromItems, ratesForSellers, allocateOrderDiscounts } = require('../utils/commission');
 const { clientUrl, serverUrl, isProd } = require('../utils/runtime');
 const { applyPaidStock } = require('../utils/orderStock');
 const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillment');
 const { resolveBank, hasBankAccount } = require('../utils/bank');
+const { buildOrderPayouts } = require('../utils/orderPayouts');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
@@ -221,17 +222,25 @@ exports.createOrder = async (req, res) => {
         const totalPrice = money(Math.max(0, subtotal - couponDiscount - promoDiscount) + shippingCost);
         const sellerIds = [...new Set(normalizedItems.map((item) => String(item.seller || '')).filter(Boolean))];
         const shops = sellerIds.length
-            ? await Seller.find({ user: { $in: sellerIds } }).select('user komisyonOrani komisyonManuel')
+            ? await Seller.find({ user: { $in: sellerIds } }).select('user komisyonOrani komisyonManuel iban ibanHolder magazaAdi')
             : [];
         const { rates: rateMap } = await ratesForSellers(shops);
-        const discounts = {};
-        if (promoSellerId && promoDiscount) discounts[promoSellerId] = promoDiscount;
-        const sellerSettlements = settlementsFromItems(normalizedItems, rateMap, discounts);
+        const discounts = allocateOrderDiscounts(normalizedItems, {
+            couponDiscount,
+            promoDiscount,
+            promoSellerId
+        });
+        const sellerSettlements = settlementsFromItems(normalizedItems, rateMap, discounts, shippingCost);
         const platformFee = money(sellerSettlements.reduce((sum, row) => sum + row.fee, 0));
         const settlementGross = sellerSettlements.reduce((sum, row) => sum + row.gross, 0);
         const platformFeePercent = settlementGross > 0
             ? money((platformFee / settlementGross) * 100)
             : 10;
+        const platformBank = await resolveBank();
+        const payouts = buildOrderPayouts(sellerSettlements, shops, platformBank);
+        if (paymentMethod === 'transfer' && !hasBankAccount(platformBank)) {
+            return res.status(503).json({ success: false, message: 'Havale hesabı henüz tanımlanmamış.' });
+        }
 
         const order = new Order({
             user: req.user ? req.user._id : null,
@@ -260,7 +269,11 @@ exports.createOrder = async (req, res) => {
             totalPrice,
             platformFeePercent,
             platformFee,
-            sellerSettlements,
+            sellerSettlements: sellerSettlements.map((row) => ({
+                ...row,
+                payoutStatus: 'pending'
+            })),
+            payouts,
             paymentMethod,
             paymentStatus: 'pending',
             sellerFulfillments: [...new Set(

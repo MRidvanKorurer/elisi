@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { PanelCard, SectionTitle, StatusChip } from './PanelShell';
 import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, T, money, when } from '../utils/panel';
+import { sellerShareDisplay } from '../utils/price';
 import { matchesCustomerName, matchesHaystack } from '../utils/search';
 
 const STATUS_FILTERS = [
@@ -93,7 +94,7 @@ function OrderCard({ order, updating, onOpen, onStatus }) {
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
         <Box>
-          <Typography sx={{ fontWeight: 900, color: T.navy }}>{money(order.sellerNet != null ? order.sellerNet : order.sellerTotal)}</Typography>
+          <Typography sx={{ fontWeight: 900, color: T.navy }}>{money(sellerShareDisplay(order).net)}</Typography>
           <Typography sx={{ color: T.muted, fontSize: 11 }}>
             {PAYMENT_METHOD[order.paymentMethod] || order.paymentMethod || '—'}
           </Typography>
@@ -133,7 +134,7 @@ export default function SellerOrders({
       shipped: orders.filter((order) => order.orderStatus === 'shipped').length,
       late: orders.filter((order) => order.timing?.late && order.orderStatus === 'processing').length,
       pendingPay: orders.filter((order) => order.paymentStatus === 'pending').length,
-      net: paid.reduce((sum, order) => sum + Number(order.sellerNet || 0), 0)
+      net: paid.reduce((sum, order) => sum + Number(sellerShareDisplay(order).net || 0), 0)
     };
   }, [orders]);
 
@@ -309,7 +310,7 @@ export default function SellerOrders({
                     </Box>
                   </TableCell>
                   <TableCell sx={{ borderBottom: `1px solid ${T.line}`, color: T.navy, verticalAlign: 'top' }}>
-                    <Typography sx={{ fontWeight: 900 }}>{money(order.sellerNet != null ? order.sellerNet : order.sellerTotal)}</Typography>
+                    <Typography sx={{ fontWeight: 900 }}>{money(sellerShareDisplay(order).net)}</Typography>
                     <Typography sx={{ fontSize: 11, color: T.muted }}>satış {money(order.sellerTotal)}</Typography>
                     <Box sx={{ mt: 0.6 }}>
                       <StatusChip map={PAYMENT_STATUS} value={order.paymentStatus} />

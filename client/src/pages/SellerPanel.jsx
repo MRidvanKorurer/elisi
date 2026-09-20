@@ -46,7 +46,7 @@ import { questionService } from '../api/questionService';
 import { isSellerRole } from '../utils/roles';
 import { asMagazaTurleri, formatIban, sanitizeIban } from '../utils/sellerValidation';
 import { APPROVAL_STATUS, ORDER_STATUS, T, money, when } from '../utils/panel';
-import { salePriceOf } from '../utils/price';
+import { salePriceOf, sellerShareDisplay } from '../utils/price';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
 import { categoryService } from '../api/categoryService';
 import { FEATURED_PACKAGES, FEATURED_STATUS, FEATURED_BANK, FEATURED_SLOTS, isLiveFeatured, isReceiptPdf } from '../utils/featured';
@@ -819,7 +819,7 @@ export default function SellerPanel({ user, handleLogout }) {
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>
-                      {money(order.sellerNet != null ? order.sellerNet : order.sellerTotal)}
+                      {money(sellerShareDisplay(order).net)}
                     </TableCell>
                     <TableCell sx={bodyCell}>
                       <StatusChip map={ORDER_STATUS} value={order.orderStatus} />
@@ -863,7 +863,7 @@ export default function SellerPanel({ user, handleLogout }) {
               <SectionTitle
                 overline="FİYATLAMA"
                 title="Kar marjı hesapla"
-                subtitle="Maliyet ve kargo masrafını yazın; site payı kart ücretini içerir."
+                subtitle="Kargo ücreti varsa site payı ürün+kargo üzerindendir; ücretsiz kargoda yalnızca üründen alınır."
                 action={
                   <Button
                     startIcon={<AddRounded />}
@@ -894,6 +894,7 @@ export default function SellerPanel({ user, handleLogout }) {
                   shippingCost={form.shippingCost}
                   extraCost={form.extraCost}
                   price={form.price}
+                  discountPercentage={form.discountPercentage}
                   onChange={setForm}
                 />
               </PanelCard>

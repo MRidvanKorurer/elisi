@@ -4,15 +4,23 @@ const compactIban = (iban = '') => String(iban || '').replace(/\s+/g, '').toUppe
 
 const formatIban = (iban = '') => compactIban(iban).replace(/(.{4})/g, '$1 ').trim();
 
-const envBank = () => ({
-  name: String(process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || '').trim(),
-  holder: String(process.env.BANK_HOLDER || process.env.BANK_ACCOUNT_HOLDER || '').trim(),
-  iban: formatIban(process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || '')
+const PLATFORM_BANK = {
+  name: 'Nik Bag',
+  holder: 'Muhammet Rıdvan Korurer',
+  iban: 'TR26 0006 2000 5890 0006 6103 80'
+};
+
+const envBank = () => normalizeBank({
+  name: process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || PLATFORM_BANK.name,
+  holder: process.env.BANK_HOLDER || process.env.BANK_ACCOUNT_HOLDER || PLATFORM_BANK.holder,
+  iban: process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || PLATFORM_BANK.iban
 });
 
 const hasBankAccount = (account) => compactIban(account?.iban).length >= 10;
 
-const normalizeBank = ({ name = '', holder = '', iban = '' } = {}) => {
+const isValidIbanTr = (iban) => /^TR\d{24}$/.test(compactIban(iban));
+
+function normalizeBank({ name = '', holder = '', iban = '' } = {}) {
   const shop = String(name || '').trim();
   const person = String(holder || '').trim();
   return {
@@ -20,31 +28,13 @@ const normalizeBank = ({ name = '', holder = '', iban = '' } = {}) => {
     holder: person || shop,
     iban: formatIban(iban)
   };
-};
+}
 
 const fromSettings = (settings, fallback) => ({
   name: String(settings?.featuredBankName || fallback.name || '').trim(),
   holder: String(settings?.featuredBankHolder || fallback.holder || '').trim(),
   iban: formatIban(settings?.featuredBankIban || fallback.iban || '')
 });
-
-const fromSeller = async () => {
-  const Seller = require('../models/Seller');
-  const shop = await Seller.findOne({
-    durum: 'approved',
-    iban: { $exists: true, $nin: [null, ''] }
-  })
-    .sort({ createdAt: 1 })
-    .select('magazaAdi iban ibanHolder user')
-    .populate('user', 'adSoyad')
-    .lean();
-  if (!shop?.iban) return { name: '', holder: '', iban: '' };
-  return {
-    name: String(shop.magazaAdi || 'Nik Bag').trim(),
-    holder: String(shop.ibanHolder || shop.user?.adSoyad || '').trim(),
-    iban: formatIban(shop.iban)
-  };
-};
 
 const persistBank = async (account) => {
   if (!hasBankAccount(account)) return;
@@ -61,25 +51,68 @@ const persistBank = async (account) => {
   );
 };
 
+const upsertPlatformBank = async ({ name = '', holder = '', iban = '' } = {}) => {
+  const clean = compactIban(iban);
+  if (!isValidIbanTr(clean)) {
+    const error = new Error('TR ile başlayan 26 karakterlik geçerli bir IBAN yazın.');
+    error.status = 400;
+    throw error;
+  }
+  const User = require('../models/User');
+  const Seller = require('../models/Seller');
+  const admin = await User.findOne({ rol: 'superadmin' }).sort({ createdAt: 1 }).select('_id adSoyad');
+  const shop = admin ? await Seller.findOne({ user: admin._id }) : null;
+  const account = normalizeBank({
+    name: String(name || shop?.magazaAdi || PLATFORM_BANK.name).trim(),
+    holder: String(holder || shop?.ibanHolder || admin?.adSoyad || PLATFORM_BANK.holder).trim(),
+    iban: clean
+  });
+  if (shop) {
+    shop.iban = clean;
+    shop.ibanHolder = account.holder;
+    await shop.save();
+    account.name = shop.magazaAdi || account.name;
+  }
+  if (admin && account.holder && admin.adSoyad !== account.holder) {
+    admin.adSoyad = account.holder;
+    await admin.save();
+  }
+  await persistBank(account);
+  return account;
+};
+
+const ensurePlatformBank = async () => {
+  const account = await upsertPlatformBank(envBank());
+  return account;
+};
+
 const resolveBank = async () => {
-  const fallback = envBank();
+  const platform = envBank();
   try {
-    const settings = await SiteSetting.findOne({ key: 'site' }).lean();
-    const saved = fromSettings(settings, fallback);
-    const needsHolder = !saved.holder;
-    const shop = (!hasBankAccount(saved) || needsHolder) ? await fromSeller() : { name: '', holder: '', iban: '' };
-    const merged = normalizeBank({
-      name: saved.name || shop.name,
-      holder: saved.holder || shop.holder,
-      iban: saved.iban || shop.iban
-    });
-    if (hasBankAccount(merged) && needsHolder && shop.holder) {
-      await persistBank(merged);
+    await persistBank(platform);
+    const User = require('../models/User');
+    const Seller = require('../models/Seller');
+    const admin = await User.findOne({ rol: 'superadmin' }).sort({ createdAt: 1 }).select('_id');
+    if (admin) {
+      await Seller.updateOne(
+        { user: admin._id },
+        { $set: { iban: compactIban(platform.iban), ibanHolder: platform.holder } }
+      );
     }
-    return merged;
+    return platform;
   } catch {
-    return fallback;
+    return platform;
   }
 };
 
-module.exports = { envBank, resolveBank, hasBankAccount, formatIban };
+module.exports = {
+  PLATFORM_BANK,
+  envBank,
+  resolveBank,
+  hasBankAccount,
+  formatIban,
+  persistBank,
+  isValidIbanTr,
+  upsertPlatformBank,
+  ensurePlatformBank
+};

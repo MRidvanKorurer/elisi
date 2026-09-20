@@ -8,8 +8,7 @@ const FeaturedRequest = require('../models/FeaturedRequest');
 const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Review = require('../models/Review');
 const PromoCode = require('../models/PromoCode');
-const SiteSetting = require('../models/SiteSetting');
-const { formatIban } = require('../utils/bank');
+const { formatIban, persistBank } = require('../utils/bank');
 const { isSuperAdmin } = require('../utils/roles');
 const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
@@ -258,6 +257,11 @@ const registerSeller = async (req, res) => {
             createdUser = true;
         }
 
+        const holder = String(adSoyad || user.adSoyad || '').trim();
+        if (holder && user.adSoyad !== holder) {
+            user.adSoyad = holder;
+        }
+
         const magazaAdiTrim = String(magazaAdi).trim();
         const escapedName = magazaAdiTrim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const magazaExists = await Seller.findOne({ magazaAdi: new RegExp(`^${escapedName}$`, 'i') });
@@ -278,6 +282,7 @@ const registerSeller = async (req, res) => {
                 ilce: String(ilce).trim(),
                 adres: String(adres).trim(),
                 iban: cleanIban,
+                ibanHolder: holder,
                 tcKimlik: tip === 'bireysel' ? String(tcKimlik).trim() : '',
                 vergiNo: tip === 'kurumsal' ? String(vergiNo).trim() : '',
                 instagram: String(instagram).trim(),
@@ -391,7 +396,6 @@ const updateMySeller = async (req, res) => {
             return res.status(400).json({ mesaj: 'Bu mağaza adı kullanılıyor.' });
         }
 
-        const previousIban = sanitizeIban(seller.iban);
         seller.magazaAdi = magazaAdiTrim;
         seller.magazaTuru = turleri;
         seller.aciklama = String(aciklama).trim();
@@ -415,20 +419,12 @@ const updateMySeller = async (req, res) => {
             await req.user.save();
         }
 
-        const settings = await SiteSetting.findOne({ key: 'site' }).lean();
-        const settingsIban = sanitizeIban(settings?.featuredBankIban || '');
-        if (!settingsIban || settingsIban === previousIban) {
-            await SiteSetting.findOneAndUpdate(
-                { key: 'site' },
-                {
-                    $set: {
-                        featuredBankName: magazaAdiTrim,
-                        featuredBankHolder: holder,
-                        featuredBankIban: formatIban(cleanIban)
-                    }
-                },
-                { upsert: true }
-            );
+        if (isSuperAdmin(req.user.rol)) {
+            await persistBank({
+                name: magazaAdiTrim,
+                holder,
+                iban: formatIban(cleanIban)
+            });
         }
 
         return res.json({
@@ -470,18 +466,34 @@ const buildSellerOrders = (orders, productIds, sellerId, productById = new Map()
                     };
                 });
             if (!items.length) return null;
+            const patched = {
+                ...order,
+                orderItems: (order.orderItems || []).map((item) => ({
+                    ...item,
+                    seller: item.seller || (owned.has(String(item.product)) ? sid : item.seller)
+                }))
+            };
             const listTotal = money2(items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0));
-            const share = sellerSettlementOf(order, sid);
-            const sellerStatus = sellerStatusOf(order, sid);
-            const timing = timingOf(order, sid);
-            const mine = (order.sellerFulfillments || []).find((row) => String(row.seller) === sid);
-            const sellerPromoDiscount = sellerDiscountOf(order, sid);
-            const couponDiscount = money2(order.couponDiscount);
-            const promoDiscount = money2(order.promoDiscount);
+            const sellerPromoDiscount = sellerDiscountOf(patched, sid);
+            const share = sellerSettlementOf(patched, sid);
             const mixedCart = (order.orderItems || []).some((item) => {
                 const itemSeller = item.seller ? String(item.seller) : '';
                 return itemSeller && itemSeller !== sid;
             });
+            const shipping = money2(order.shippingCost);
+            const goods = money2(Math.max(0, listTotal - sellerPromoDiscount));
+            let gross = money2(share.gross);
+            if (shipping > 0 && !mixedCart && gross <= goods + 0.05) {
+                gross = money2(goods + shipping);
+            }
+            const percent = share.percent != null ? share.percent : 10;
+            const fee = money2(gross * percent / 100);
+            const net = money2(gross - fee);
+            const sellerStatus = sellerStatusOf(order, sid);
+            const timing = timingOf(order, sid);
+            const mine = (order.sellerFulfillments || []).find((row) => String(row.seller) === sid);
+            const couponDiscount = money2(order.couponDiscount);
+            const promoDiscount = money2(order.promoDiscount);
             return {
                 _id: order._id,
                 code: shortOrderCode(order._id),
@@ -506,10 +518,10 @@ const buildSellerOrders = (orders, productIds, sellerId, productById = new Map()
                 itemCount: items.length,
                 qty: items.reduce((sum, item) => sum + Number(item.quantity || 1), 0),
                 sellerTotal: listTotal,
-                sellerGross: share.gross,
-                platformFee: share.fee,
-                sellerNet: share.net,
-                commissionPercent: share.percent,
+                sellerGross: gross,
+                platformFee: fee,
+                sellerNet: net,
+                commissionPercent: percent,
                 sellerPromoDiscount,
                 couponCode: order.couponCode || '',
                 couponDiscount,
