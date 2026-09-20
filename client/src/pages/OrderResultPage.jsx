@@ -11,6 +11,19 @@ import OrderMakerThread from '../components/OrderMakerThread';
 import { getSitePublic } from '../api/siteService';
 import { orderService } from '../api/orderServices';
 import BankTransferDetails from '../components/BankTransferDetails';
+import { hasBankAccount } from '../utils/bank';
+
+const readLastOrder = (orderId) => {
+  try {
+    const raw = sessionStorage.getItem('nikbagLastOrder');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (orderId && parsed?.orderId && String(parsed.orderId) !== String(orderId)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
 
 export default function OrderResultPage({ success }) {
   const { t } = useTranslation('checkout');
@@ -19,19 +32,27 @@ export default function OrderResultPage({ success }) {
   const orderId = params.get('orderId');
   const method = params.get('method');
   const reason = params.get('reason');
-  const isTransfer = method === 'transfer';
+  const lastOrder = useMemo(() => readLastOrder(orderId), [orderId]);
   const [site, setSite] = useState(null);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try { return sessionStorage.getItem('nikbagGuestEmail') || ''; } catch { return ''; }
+  });
   const [thread, setThread] = useState(null);
   const [threadError, setThreadError] = useState('');
   const [sending, setSending] = useState(false);
+  const isTransfer = method === 'transfer'
+    || lastOrder?.method === 'transfer'
+    || thread?.paymentMethod === 'transfer';
+  const transferAmount = thread?.totalPrice ?? lastOrder?.totalPrice;
+  const transferBank = (hasBankAccount(thread?.bankAccount) && thread.bankAccount)
+    || (hasBankAccount(lastOrder?.bank) && lastOrder.bank)
+    || site?.bank;
 
   useEffect(() => {
     if (!success || !orderId) return undefined;
     let stored = '';
     try { stored = sessionStorage.getItem('nikbagGuestEmail') || ''; } catch { stored = ''; }
     if (!stored.trim()) return undefined;
-    setEmail(stored);
     let cancelled = false;
     orderService.guestThread(orderId, stored.trim())
       .then((data) => { if (!cancelled) setThread(data.thread); })
@@ -40,8 +61,9 @@ export default function OrderResultPage({ success }) {
   }, [success, orderId]);
 
   useEffect(() => {
-    if (success && (isTransfer || method === 'whatsapp')) getSitePublic().then(setSite);
-  }, [success, isTransfer, method]);
+    if (!success) return undefined;
+    getSitePublic({ fresh: true }).then(setSite);
+  }, [success]);
 
   const copy = useMemo(() => {
     if (!success) {
@@ -150,7 +172,8 @@ export default function OrderResultPage({ success }) {
             <Box sx={{ mt: 2, textAlign: 'left', p: 2, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)' }}>
               <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>{t('bankTitle')}</Typography>
               <BankTransferDetails
-                bank={site?.bank}
+                bank={transferBank}
+                amount={transferAmount}
                 note={t('bankNote', { id: orderId })}
               />
             </Box>

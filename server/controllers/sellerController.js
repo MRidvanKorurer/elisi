@@ -8,7 +8,9 @@ const FeaturedRequest = require('../models/FeaturedRequest');
 const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Review = require('../models/Review');
 const PromoCode = require('../models/PromoCode');
-const { formatIban, persistBank } = require('../utils/bank');
+const { compactIban, formatIban, isValidIbanTr, persistBank } = require('../utils/bank');
+const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
+const { releasePromoUse } = require('../utils/promoCode');
 const { isSuperAdmin } = require('../utils/roles');
 const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
@@ -70,10 +72,6 @@ const pickCoverImages = (docs = []) => {
 
     return [...local, ...remote].slice(0, 4);
 };
-
-const sanitizeIban = (iban = '') => String(iban).replace(/\s+/g, '').toUpperCase();
-
-const isValidIbanTr = (iban) => /^TR\d{24}$/.test(iban);
 
 const isValidPhone = (telefon = '') => {
     const digits = String(telefon).replace(/\D/g, '');
@@ -195,7 +193,7 @@ const registerSeller = async (req, res) => {
             return res.status(400).json({ mesaj: 'Şehir, ilçe ve adres zorunludur.' });
         }
 
-        const cleanIban = sanitizeIban(iban);
+        const cleanIban = compactIban(iban);
         if (!isValidIbanTr(cleanIban)) {
             return res.status(400).json({ mesaj: 'Geçerli bir TR IBAN girin (TR + 24 hane).' });
         }
@@ -381,7 +379,7 @@ const updateMySeller = async (req, res) => {
         if (holder.length > 80) {
             return res.status(400).json({ mesaj: 'Alıcı ad soyad en fazla 80 karakter olabilir.' });
         }
-        const cleanIban = sanitizeIban(iban);
+        const cleanIban = compactIban(iban);
         if (!isValidIbanTr(cleanIban)) {
             return res.status(400).json({ mesaj: 'Geçerli bir TR IBAN girin (TR + 24 hane).' });
         }
@@ -643,7 +641,14 @@ const updateMyOrder = async (req, res) => {
 
         stampFulfillment(mine, orderStatus);
         order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
+        if (order.orderStatus === 'cancelled' && order.paymentStatus !== 'completed') {
+            order.paymentStatus = 'failed';
+        }
         await order.save();
+        if (order.orderStatus === 'cancelled' && order.paymentStatus !== 'completed') {
+            await releaseWelcomeCoupon(order);
+            await releasePromoUse(order);
+        }
 
         const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id, catalogMapOf(products))[0];
         return res.json({

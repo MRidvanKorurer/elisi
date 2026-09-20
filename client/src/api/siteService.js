@@ -3,15 +3,15 @@ import API from './api';
 let cached = null;
 let pending = null;
 
-export const getSitePublic = () => {
-  if (cached) return Promise.resolve(cached);
+export const getSitePublic = ({ fresh = false } = {}) => {
+  if (!fresh && cached) return Promise.resolve(cached);
   if (pending) return pending;
   pending = API.get('/site')
     .then((res) => {
       cached = res.data?.site || {};
       return cached;
     })
-    .catch(() => ({}))
+    .catch(() => cached || {})
     .finally(() => {
       pending = null;
     });

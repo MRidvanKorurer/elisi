@@ -19,7 +19,7 @@
   "payment": "Payment",
   "paymentHint": "Use a saved card, add a new one, or pay by bank transfer.",
   "cardTitle": "Credit / debit card",
-  "cardSubtitle": "Pick a saved card or add a new one.",
+  "cardSubtitle": "Payment is taken on the Iyzico page. Card numbers are not stored on this site.",
   "cardHolder": "Cardholder",
   "cardName": "Name on card",
   "cardNumber": "Card number",
@@ -56,5 +56,8 @@
   "bankIban": "IBAN",
   "bankMissing": "Bank details are not set yet. You can pay by card or try again later.",
   "bankHint": "Enter the account holder name and IBAN exactly as shown. Put the order code in the transfer description.",
-  "bankNote": "Reference: {{id}}"
+  "bankNote": "Reference: {{id}}",
+  "bankAmount": "Amount to send",
+  "copy": "Copy",
+  "copied": "Copied"
 }

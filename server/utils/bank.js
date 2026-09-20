@@ -4,21 +4,13 @@ const compactIban = (iban = '') => String(iban || '').replace(/\s+/g, '').toUppe
 
 const formatIban = (iban = '') => compactIban(iban).replace(/(.{4})/g, '$1 ').trim();
 
+const isValidIbanTr = (iban = '') => /^TR\d{24}$/.test(compactIban(iban));
+
 const PLATFORM_BANK = {
   name: 'Nik Bag',
   holder: 'Muhammet Rıdvan Korurer',
   iban: 'TR26 0006 2000 5890 0006 6103 80'
 };
-
-const envBank = () => normalizeBank({
-  name: process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || PLATFORM_BANK.name,
-  holder: process.env.BANK_HOLDER || process.env.BANK_ACCOUNT_HOLDER || PLATFORM_BANK.holder,
-  iban: process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || PLATFORM_BANK.iban
-});
-
-const hasBankAccount = (account) => compactIban(account?.iban).length >= 10;
-
-const isValidIbanTr = (iban) => /^TR\d{24}$/.test(compactIban(iban));
 
 function normalizeBank({ name = '', holder = '', iban = '' } = {}) {
   const shop = String(name || '').trim();
@@ -29,6 +21,14 @@ function normalizeBank({ name = '', holder = '', iban = '' } = {}) {
     iban: formatIban(iban)
   };
 }
+
+const envBank = () => normalizeBank({
+  name: process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || PLATFORM_BANK.name,
+  holder: process.env.BANK_HOLDER || process.env.BANK_ACCOUNT_HOLDER || PLATFORM_BANK.holder,
+  iban: process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || PLATFORM_BANK.iban
+});
+
+const hasBankAccount = (account) => isValidIbanTr(account?.iban);
 
 const fromSettings = (settings, fallback) => ({
   name: String(settings?.featuredBankName || fallback.name || '').trim(),
@@ -89,24 +89,22 @@ const ensurePlatformBank = async () => {
 const resolveBank = async () => {
   const platform = envBank();
   try {
-    await persistBank(platform);
-    const User = require('../models/User');
-    const Seller = require('../models/Seller');
-    const admin = await User.findOne({ rol: 'superadmin' }).sort({ createdAt: 1 }).select('_id');
-    if (admin) {
-      await Seller.updateOne(
-        { user: admin._id },
-        { $set: { iban: compactIban(platform.iban), ibanHolder: platform.holder } }
-      );
+    const settings = await SiteSetting.findOne({ key: 'site' }).lean();
+    const saved = fromSettings(settings, platform);
+    const merged = hasBankAccount(saved) ? normalizeBank(saved) : platform;
+    if (!hasBankAccount(merged)) {
+      return normalizeBank({ name: merged.name, holder: merged.holder, iban: '' });
     }
-    return platform;
+    await persistBank(merged);
+    return merged;
   } catch {
-    return platform;
+    return hasBankAccount(platform) ? platform : normalizeBank({ ...platform, iban: '' });
   }
 };
 
 module.exports = {
   PLATFORM_BANK,
+  compactIban,
   envBank,
   resolveBank,
   hasBankAccount,

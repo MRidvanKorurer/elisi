@@ -129,9 +129,18 @@ const evaluatePromo = async (rawCode, input) => {
   };
 };
 
+const releasePromoUse = async (order) => {
+  if (!order?.promoCode) return;
+  await PromoCode.findOneAndUpdate(
+    { code: order.promoCode, usedCount: { $gt: 0 } },
+    { $inc: { usedCount: -1 } }
+  );
+};
+
 module.exports = {
   normalizeCode,
   promoDiscountOf,
   evaluatePromo,
-  resolvePromoItems
+  resolvePromoItems,
+  releasePromoUse
 };

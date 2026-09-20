@@ -3,7 +3,7 @@ const FeaturedRequest = require('../models/FeaturedRequest');
 const Product = require('../models/Product');
 const Seller = require('../models/Seller');
 const { packageOf, packageList, FEATURED_SLOTS } = require('../utils/featuredPackages');
-const { resolveBank } = require('../utils/bank');
+const { formatIban, isValidIbanTr, resolveBank } = require('../utils/bank');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
@@ -138,9 +138,9 @@ const updateFeaturedSettings = async (req, res) => {
   try {
     const holder = String(req.body.holder || req.body.featuredBankHolder || '').trim();
     const name = String(req.body.name || req.body.featuredBankName || '').trim() || holder;
-    const iban = String(req.body.iban || req.body.featuredBankIban || '').trim();
-    if (!(holder || name)) {
-      return res.status(400).json({ mesaj: 'Alıcı ad soyad ve geçerli bir IBAN yaz.' });
+    const iban = formatIban(req.body.iban || req.body.featuredBankIban || '');
+    if (!(holder || name) || !isValidIbanTr(iban)) {
+      return res.status(400).json({ mesaj: 'Alıcı ad soyad ve geçerli bir TR IBAN yazın (TR + 24 hane).' });
     }
     const { upsertPlatformBank } = require('../utils/bank');
     const bank = await upsertPlatformBank({ name, holder, iban });

@@ -6,6 +6,8 @@ const mongoose = require('mongoose');
 const { isSuperAdmin } = require('../utils/roles');
 const { resolveBank, formatIban, upsertPlatformBank } = require('../utils/bank');
 const { applyPaidStock, restorePaidStock } = require('../utils/orderStock');
+const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
+const { releasePromoUse } = require('../utils/promoCode');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 const FeaturedRequest = require('../models/FeaturedRequest');
@@ -518,8 +520,14 @@ const updateOrder = async (req, res) => {
       if (previous === 'completed' && paymentStatus !== 'completed') {
         await restorePaidStock(order);
       }
+      await order.save();
+      if (paymentStatus === 'failed' && previous !== 'failed') {
+        await releaseWelcomeCoupon(order);
+        await releasePromoUse(order);
+      }
+    } else {
+      await order.save();
     }
-    await order.save();
     return res.json({ success: true, mesaj: 'Sipariş güncellendi.', order });
   } catch (error) {
     return res.status(500).json({ mesaj: 'Sipariş güncellenemedi.', hata: error.message });
