@@ -1249,6 +1249,7 @@ import Seo from '../components/Seo';
 import { FREE_SHIPPING_LIMIT, SHIPPING_FEE } from '../utils/shipping';
 import { getSitePublic } from '../api/siteService';
 import LegalTextDialog from '../components/LegalTextDialog';
+import BankTransferDetails from '../components/BankTransferDetails';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -2096,18 +2097,11 @@ export default function CheckoutPage({ user }) {
               />
               <Collapse in={paymentMethod === 'transfer'}>
                 <Box sx={{ mb: 2, p: 2, borderRadius: '18px', border: '1px dashed rgba(148,109,109,0.35)', backgroundColor: 'rgba(253,244,210,0.55)' }}>
-                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6 }}>Banka bilgisi</Typography>
-                  {site?.bank?.iban ? (
-                    <>
-                      <Typography variant="body2" sx={{ color: '#6E5252' }}>{site.bank.name}</Typography>
-                      <Typography variant="body2" sx={{ color: '#2E3B55', fontWeight: 800, letterSpacing: 0.2, wordBreak: 'break-all' }}>{site.bank.iban}</Typography>
-                    </>
-                  ) : (
-                    <Typography variant="body2" sx={{ color: '#946D6D', fontWeight: 700 }}>
-                      Havale hesabı henüz tanımlanmamış. Kart ile ödeyebilir veya daha sonra tekrar deneyebilirsiniz.
-                    </Typography>
-                  )}
-                  <Typography variant="caption" sx={{ color: '#946D6D', fontWeight: 700 }}>Açıklamaya sipariş kodunu yazın.</Typography>
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Banka bilgisi</Typography>
+                  <BankTransferDetails
+                    bank={site?.bank}
+                    note={t('bankHint')}
+                  />
                 </Box>
               </Collapse>
 

@@ -51,5 +51,10 @@
   "resultOkText": "Siparişiniz alındı. Üretim ve kargo sürecini hesabınızdan takip edebilirsiniz.",
   "orderCode": "Sipariş kodu: {{id}}",
   "bankTitle": "Banka bilgisi",
+  "bankHolder": "Alıcı ad soyad",
+  "bankCompany": "Unvan",
+  "bankIban": "IBAN",
+  "bankMissing": "Havale hesabı henüz tanımlanmamış. Kart ile ödeyebilir veya daha sonra tekrar deneyebilirsiniz.",
+  "bankHint": "Havale yaparken alıcı ad soyad ve IBAN’ı aynen yazın. Açıklamaya sipariş kodunu ekleyin.",
   "bankNote": "Açıklama: {{id}}"
 }

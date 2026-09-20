@@ -8,6 +8,7 @@ export const FEATURED_SLOTS = 12;
 
 export const FEATURED_BANK = {
   name: '',
+  holder: '',
   iban: ''
 };
 

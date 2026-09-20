@@ -51,5 +51,10 @@
   "resultOkText": "Your order is in. Follow making and shipping from your account.",
   "orderCode": "Order code: {{id}}",
   "bankTitle": "Bank details",
+  "bankHolder": "Account holder",
+  "bankCompany": "Account title",
+  "bankIban": "IBAN",
+  "bankMissing": "Bank details are not set yet. You can pay by card or try again later.",
+  "bankHint": "Enter the account holder name and IBAN exactly as shown. Put the order code in the transfer description.",
   "bankNote": "Reference: {{id}}"
 }

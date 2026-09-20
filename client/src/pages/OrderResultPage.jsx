@@ -10,6 +10,7 @@ import Seo from '../components/Seo';
 import OrderMakerThread from '../components/OrderMakerThread';
 import { getSitePublic } from '../api/siteService';
 import { orderService } from '../api/orderServices';
+import BankTransferDetails from '../components/BankTransferDetails';
 
 export default function OrderResultPage({ success }) {
   const { t } = useTranslation('checkout');
@@ -147,16 +148,11 @@ export default function OrderResultPage({ success }) {
           )}
           {success && isTransfer && (
             <Box sx={{ mt: 2, textAlign: 'left', p: 2, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)' }}>
-              <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1 }}>{t('bankTitle')}</Typography>
-              {site?.bank?.iban ? (
-                <>
-                  <Typography variant="body2" sx={{ color: '#6E5252' }}>{site.bank.name}</Typography>
-                  <Typography variant="body2" sx={{ color: '#6E5252' }}>{site.bank.iban}</Typography>
-                </>
-              ) : (
-                <Typography variant="body2" sx={{ color: '#946D6D' }}>Havale hesabı henüz tanımlanmamış.</Typography>
-              )}
-              <Typography variant="caption" sx={{ color: '#946D6D', fontWeight: 700 }}>{t('bankNote', { id: orderId })}</Typography>
+              <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>{t('bankTitle')}</Typography>
+              <BankTransferDetails
+                bank={site?.bank}
+                note={t('bankNote', { id: orderId })}
+              />
             </Box>
           )}
           <Box sx={{ display: 'flex', gap: 1, mt: 3, flexDirection: { xs: 'column', sm: 'row' } }}>

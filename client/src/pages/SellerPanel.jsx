@@ -1536,7 +1536,10 @@ export default function SellerPanel({ user, handleLogout }) {
           </Box>
           <Box sx={{ mt: 2, p: 1.6, borderRadius: '16px', border: `1px solid ${T.line}`, bgcolor: T.surfaceSoft }}>
             <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: '0.92rem' }}>Havale / EFT</Typography>
-            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>{featuredBank.name}</Typography>
+            {featuredBank.holder ? (
+              <Typography sx={{ color: T.navy, fontWeight: 800, fontSize: 13, mt: 0.5 }}>{featuredBank.holder}</Typography>
+            ) : null}
+            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.2 }}>{featuredBank.name}</Typography>
             <Typography sx={{ color: T.navy, fontWeight: 800, letterSpacing: 0.3, mt: 0.2 }}>{featuredBank.iban}</Typography>
             <Typography sx={{ color: T.rose, fontWeight: 900, mt: 0.8 }}>
               {money(featuredPackages.find((pack) => pack.days === featureDays)?.price || 0)}
@@ -1628,7 +1631,10 @@ export default function SellerPanel({ user, handleLogout }) {
           ) : null}
           <Box sx={{ p: 1.6, borderRadius: '16px', border: `1px solid ${T.line}`, bgcolor: T.surfaceSoft }}>
             <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: '0.92rem' }}>Havale / EFT</Typography>
-            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>{weekBank.name}</Typography>
+            {weekBank.holder ? (
+              <Typography sx={{ color: T.navy, fontWeight: 800, fontSize: 13, mt: 0.5 }}>{weekBank.holder}</Typography>
+            ) : null}
+            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.2 }}>{weekBank.name}</Typography>
             <Typography sx={{ color: T.navy, fontWeight: 800, letterSpacing: 0.3, mt: 0.2 }}>{weekBank.iban}</Typography>
             <Typography sx={{ color: T.rose, fontWeight: 900, mt: 0.8 }}>{money(weekPack.price)}</Typography>
             <Typography sx={{ color: T.muted, fontSize: 12, mt: 0.3 }}>

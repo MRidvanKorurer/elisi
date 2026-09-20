@@ -150,6 +150,7 @@ export default function AdminPanel({ user, handleLogout }) {
   const [giftNote, setGiftNote] = useState('');
   const [savingGift, setSavingGift] = useState(false);
   const [bankName, setBankName] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
   const [bankIban, setBankIban] = useState('');
   const [savingBank, setSavingBank] = useState(false);
   const [weekRequests, setWeekRequests] = useState([]);
@@ -208,6 +209,7 @@ export default function AdminPanel({ user, handleLogout }) {
       if (ft.slots) setFeaturedSlots(ft.slots);
       if (ft.bank) {
         setBankName(ft.bank.name || '');
+        setBankHolder(ft.bank.holder || '');
         setBankIban(ft.bank.iban || '');
       }
       setWeekRequests(wk.requests || []);
@@ -393,10 +395,11 @@ export default function AdminPanel({ user, handleLogout }) {
   const saveFeaturedBank = async () => {
     setSavingBank(true);
     try {
-      const data = await adminService.saveFeaturedSettings({ name: bankName, iban: bankIban });
+      const data = await adminService.saveFeaturedSettings({ name: bankName, holder: bankHolder, iban: bankIban });
       flash(data?.mesaj || 'Havale bilgisi kaydedildi.');
       if (data?.bank) {
         setBankName(data.bank.name);
+        setBankHolder(data.bank.holder || '');
         setBankIban(data.bank.iban);
       }
     } catch (err) {
@@ -773,9 +776,10 @@ export default function AdminPanel({ user, handleLogout }) {
             <PanelCard>
               <Typography sx={{ fontWeight: 900, color: T.navy, mb: 1.2 }}>Havale hesabı</Typography>
               <Box sx={{ display: 'grid', gap: 1.2 }}>
-                <TextField label="Banka / alıcı adı" value={bankName} onChange={(e) => setBankName(e.target.value)} sx={fieldSx} />
+                <TextField label="Alıcı ad soyad" value={bankHolder} onChange={(e) => setBankHolder(e.target.value)} sx={fieldSx} />
+                <TextField label="Unvan / mağaza" value={bankName} onChange={(e) => setBankName(e.target.value)} sx={fieldSx} />
                 <TextField label="IBAN" value={bankIban} onChange={(e) => setBankIban(e.target.value)} sx={fieldSx} />
-                <Button onClick={saveFeaturedBank} disabled={savingBank || !bankName.trim()} sx={{ ...primaryButton, justifySelf: 'start' }}>
+                <Button onClick={saveFeaturedBank} disabled={savingBank || !(bankHolder.trim() || bankName.trim())} sx={{ ...primaryButton, justifySelf: 'start' }}>
                   {savingBank ? 'Kaydediliyor...' : 'Havale bilgisini kaydet'}
                 </Button>
               </Box>
