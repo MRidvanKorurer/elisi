@@ -19,6 +19,10 @@ import Seo from './Seo';
 import { formatTRY, lineTotalOf, orderChargeRows, salePriceOf } from '../utils/price';
 import { nextVisibleCount } from '../hooks/useProductGridPageSize';
 import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
+import BankTransferDetails from './BankTransferDetails';
+import { getSitePublic } from '../api/siteService';
+import { PAYMENT_METHOD } from '../utils/panel';
+import { hasBankAccount } from '../utils/bank';
 
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -111,9 +115,14 @@ export default function ProfileDashboard() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isOrderLoading, setIsOrderLoading] = useState(false);
+  const [site, setSite] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, id: null, title: '', message: '' });
 
   const showAlert = (message, severity = 'success') => setAlertConfig({ open: true, message, severity });
+
+  useEffect(() => {
+    getSitePublic({ fresh: true }).then(setSite).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!favorites.length) {
@@ -703,8 +712,26 @@ export default function ProfileDashboard() {
             <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>
               Sipariş #{String(selectedOrder._id).slice(-6).toUpperCase()}
               <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.5 }}>{orderLabel(selectedOrder)}</Typography>
+              {selectedOrder.paymentMethod ? (
+                <Typography variant="body2" sx={{ color: '#946D6D', fontWeight: 700, mt: 0.3 }}>
+                  {PAYMENT_METHOD[selectedOrder.paymentMethod] || selectedOrder.paymentMethod}
+                </Typography>
+              ) : null}
             </DialogTitle>
             <DialogContent dividers>
+              {selectedOrder.paymentMethod === 'transfer' && selectedOrder.paymentStatus === 'pending' ? (
+                <Box sx={{ mb: 2.2, p: 1.6, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)', backgroundColor: 'rgba(253,244,210,0.55)' }}>
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Havale / EFT</Typography>
+                  <Typography sx={{ color: '#6E5252', fontSize: '0.85rem', mb: 1 }}>
+                    Ödeme onaylanınca üretim başlar. Açıklamaya sipariş kodunu yazın.
+                  </Typography>
+                  <BankTransferDetails
+                    bank={hasBankAccount(selectedOrder.bankAccount) ? selectedOrder.bankAccount : site?.bank}
+                    amount={selectedOrder.totalPrice}
+                    note={`Açıklama: ${selectedOrder._id}`}
+                  />
+                </Box>
+              ) : null}
               <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800 }}>TESLİMAT</Typography>
               <Typography sx={{ color: '#2E3B55', fontWeight: 600, mb: 2.5 }}>
                 {selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.district} / {selectedOrder.shippingAddress?.city}

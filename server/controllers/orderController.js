@@ -5,8 +5,8 @@ const iyzipay = require('../config/iyzipay');
 const Iyzipay = require('iyzipay');
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts } = require('../utils/welcomeCoupon');
-const { evaluatePromo } = require('../utils/promoCode');
+const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts, releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
+const { evaluatePromo, releasePromoUse } = require('../utils/promoCode');
 const PromoCode = require('../models/PromoCode');
 const Seller = require('../models/Seller');
 const { settlementsFromItems, ratesForSellers } = require('../utils/commission');
@@ -17,20 +17,11 @@ const { resolveBank, hasBankAccount } = require('../utils/bank');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
-const releaseWelcomeCoupon = async (order) => {
-    if (!order?.user || !order.couponCode) return;
-    const stillUsed = await couponAlreadyConsumed({ _id: order.user });
-    if (stillUsed) return;
-    await User.findByIdAndUpdate(order.user, { $set: { kampanyaKullanildi: false } });
-};
-
-const releasePromoUse = async (order) => {
-    if (!order?.promoCode) return;
-    await PromoCode.findOneAndUpdate(
-        { code: order.promoCode, usedCount: { $gt: 0 } },
-        { $inc: { usedCount: -1 } }
-    );
-};
+const publicBank = (account) => ({
+    name: account?.name || '',
+    holder: account?.holder || '',
+    iban: account?.iban || ''
+});
 
 const deleteOrderAndReleaseCoupon = async (order) => {
     if (!order?._id) return;
@@ -128,9 +119,10 @@ exports.createOrder = async (req, res) => {
                 return res.status(503).json({ success: false, message: 'Kart ödemesi henüz yapılandırılmamış.' });
             }
         }
+        let transferAccount = null;
         if (paymentMethod === 'transfer') {
-            const account = await resolveBank();
-            if (!hasBankAccount(account)) {
+            transferAccount = await resolveBank();
+            if (!hasBankAccount(transferAccount)) {
                 return res.status(503).json({ success: false, message: 'Havale hesabı henüz tanımlanmamış.' });
             }
         }
@@ -263,6 +255,7 @@ exports.createOrder = async (req, res) => {
             sellerSettlements,
             paymentMethod,
             paymentStatus: 'pending',
+            bankAccount: transferAccount ? publicBank(transferAccount) : undefined,
             sellerFulfillments: [...new Set(
                 normalizedItems.map((item) => item.seller).filter(Boolean).map(String)
             )].map((sellerId) => ({ seller: sellerId, status: 'processing' }))
@@ -375,7 +368,8 @@ exports.createOrder = async (req, res) => {
             message: 'Sipariş başarıyla oluşturuldu.',
             orderId: savedOrder._id,
             paymentMethod,
-            totalPrice
+            totalPrice,
+            bank: transferAccount ? publicBank(transferAccount) : undefined
         });
     } catch (error) {
         console.error('Sipariş oluşturma hatası:', error);
@@ -436,6 +430,10 @@ const guestEmailMatches = (order, email) => {
 
 const publicGuestThread = (order) => ({
     orderStatus: order.orderStatus,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
+    totalPrice: order.totalPrice,
+    bankAccount: order.paymentMethod === 'transfer' ? publicBank(order.bankAccount) : undefined,
     items: (order.orderItems || []).map((item) => ({
         name: item.name,
         customBrief: item.customBrief || null

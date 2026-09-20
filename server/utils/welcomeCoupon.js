@@ -18,7 +18,10 @@ const couponDiscountOf = (subtotal) => money((Number(subtotal) || 0) * (WELCOME_
 const priorOrderFilter = (userId, { ignorePendingCard = false } = {}) => {
   const filter = {
     user: userId,
-    paymentStatus: { $ne: 'failed' }
+    $or: [
+      { paymentStatus: 'completed' },
+      { paymentStatus: 'pending', orderStatus: { $ne: 'cancelled' } }
+    ]
   };
   if (ignorePendingCard) {
     filter.$nor = [{ paymentMethod: 'credit_card', paymentStatus: 'pending' }];
@@ -53,6 +56,14 @@ const clearAbandonedCardAttempts = async (userId) => {
   });
 };
 
+const releaseWelcomeCoupon = async (order) => {
+  if (!order?.user || !order.couponCode) return;
+  const stillUsed = await couponAlreadyConsumed({ _id: order.user });
+  if (stillUsed) return;
+  const User = require('../models/User');
+  await User.findByIdAndUpdate(order.user, { $set: { kampanyaKullanildi: false } });
+};
+
 module.exports = {
   WELCOME_PERCENT,
   normalizeCode,
@@ -61,5 +72,6 @@ module.exports = {
   couponAlreadyConsumed,
   syncWelcomeCouponFlag,
   clearAbandonedCardAttempts,
+  releaseWelcomeCoupon,
   money
 };

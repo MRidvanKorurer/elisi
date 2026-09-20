@@ -19,7 +19,7 @@
   "payment": "Ödeme yöntemi",
   "paymentHint": "Kayıtlı kart seçin, yeni kart ekleyin veya havale ile tamamlayın.",
   "cardTitle": "Kredi / banka kartı",
-  "cardSubtitle": "Kayıtlı kartınızı seçin veya örnek kart ile yeni kart ekleyin.",
+  "cardSubtitle": "Ödeme İyzico sayfasında alınır. Kart numarası bu sitede saklanmaz.",
   "cardHolder": "Kart sahibi",
   "cardName": "Kart üzerindeki isim",
   "cardNumber": "Kart numarası",
@@ -56,5 +56,8 @@
   "bankIban": "IBAN",
   "bankMissing": "Havale hesabı henüz tanımlanmamış. Kart ile ödeyebilir veya daha sonra tekrar deneyebilirsiniz.",
   "bankHint": "Havale yaparken alıcı ad soyad ve IBAN’ı aynen yazın. Açıklamaya sipariş kodunu ekleyin.",
-  "bankNote": "Açıklama: {{id}}"
+  "bankNote": "Açıklama: {{id}}",
+  "bankAmount": "Gönderilecek tutar",
+  "copy": "Kopyala",
+  "copied": "Kopyalandı"
 }

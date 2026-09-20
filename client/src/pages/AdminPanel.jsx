@@ -65,6 +65,8 @@ import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
 import { FEATURED_PACKAGES, FEATURED_SLOTS, FEATURED_STATUS, isLiveFeatured, isReceiptPdf } from '../utils/featured';
 import { ATELIER_WEEK_SLOTS, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
 import { lineTotalOf, orderChargeRows, platformShareOf } from '../utils/price';
+import { isValidIbanTr } from '../utils/bank';
+import BankTransferDetails from '../components/BankTransferDetails';
 import AdminCommission from '../components/AdminCommission';
 import AdminAdsBoard from '../components/AdminAdsBoard';
 
@@ -235,7 +237,7 @@ export default function AdminPanel({ user, handleLogout }) {
       orders.filter((order) => {
         const matchFilter =
           orderFilter === 'all' ||
-          (orderFilter === 'pay_pending' && order.paymentStatus === 'pending') ||
+          (orderFilter === 'pay_pending' && order.paymentStatus === 'pending' && order.orderStatus !== 'cancelled') ||
           order.orderStatus === orderFilter;
         const hay = `${order.customerInfo?.firstName} ${order.customerInfo?.lastName} ${order.customerInfo?.email} ${order._id}`.toLowerCase();
         return matchFilter && (!q || hay.includes(q));
@@ -393,6 +395,10 @@ export default function AdminPanel({ user, handleLogout }) {
   };
 
   const saveFeaturedBank = async () => {
+    if (!isValidIbanTr(bankIban)) {
+      setError('Geçerli bir TR IBAN yazın (TR + 24 hane).');
+      return;
+    }
     setSavingBank(true);
     try {
       const data = await adminService.saveFeaturedSettings({ name: bankName, holder: bankHolder, iban: bankIban });
@@ -774,12 +780,15 @@ export default function AdminPanel({ user, handleLogout }) {
               </Box>
             </PanelCard>
             <PanelCard>
-              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 1.2 }}>Havale hesabı</Typography>
+              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Havale hesabı</Typography>
+              <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2 }}>
+                Bu IBAN hem vitrin dekontlarında hem müşteri havale/EFT ödemesinde gösterilir.
+              </Typography>
               <Box sx={{ display: 'grid', gap: 1.2 }}>
                 <TextField label="Alıcı ad soyad" value={bankHolder} onChange={(e) => setBankHolder(e.target.value)} sx={fieldSx} />
                 <TextField label="Unvan / mağaza" value={bankName} onChange={(e) => setBankName(e.target.value)} sx={fieldSx} />
                 <TextField label="IBAN" value={bankIban} onChange={(e) => setBankIban(e.target.value)} sx={fieldSx} />
-                <Button onClick={saveFeaturedBank} disabled={savingBank || !(bankHolder.trim() || bankName.trim())} sx={{ ...primaryButton, justifySelf: 'start' }}>
+                <Button onClick={saveFeaturedBank} disabled={savingBank || !(bankHolder.trim() || bankName.trim()) || !isValidIbanTr(bankIban)} sx={{ ...primaryButton, justifySelf: 'start' }}>
                   {savingBank ? 'Kaydediliyor...' : 'Havale bilgisini kaydet'}
                 </Button>
               </Box>
@@ -1684,6 +1693,16 @@ export default function AdminPanel({ user, handleLogout }) {
                   </Box>
                 );
               })()}
+              {openOrder.paymentMethod === 'transfer' ? (
+                <Box sx={{ mt: 1.6, mb: 1.2, p: 1.6, borderRadius: '16px', border: `1px dashed ${T.line}`, bgcolor: T.surfaceSoft }}>
+                  <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.6 }}>Müşteriye gösterilen havale</Typography>
+                  <BankTransferDetails
+                    bank={openOrder.bankAccount?.iban ? openOrder.bankAccount : { name: bankName, holder: bankHolder, iban: bankIban }}
+                    amount={openOrder.totalPrice}
+                    note={openOrder._id ? `Açıklama: ${openOrder._id}` : ''}
+                  />
+                </Box>
+              ) : null}
               <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2, mt: 1.2 }}>
                 Kargo durumunu satıcı yönetir. Buradan yalnızca ödemeyi işaretleyebilirsiniz.
               </Typography>

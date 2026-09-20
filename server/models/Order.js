@@ -68,6 +68,11 @@ const orderSchema = new mongoose.Schema({
     required: true, 
     enum: ['credit_card', 'transfer', 'whatsapp'] 
   },
+  bankAccount: {
+    name: { type: String, default: '' },
+    holder: { type: String, default: '' },
+    iban: { type: String, default: '' }
+  },
   paymentStatus: { 
     type: String, 
     default: 'pending', 

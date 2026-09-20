@@ -4,13 +4,15 @@ const compactIban = (iban = '') => String(iban || '').replace(/\s+/g, '').toUppe
 
 const formatIban = (iban = '') => compactIban(iban).replace(/(.{4})/g, '$1 ').trim();
 
+const isValidIbanTr = (iban = '') => /^TR\d{24}$/.test(compactIban(iban));
+
 const envBank = () => ({
   name: String(process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || '').trim(),
   holder: String(process.env.BANK_HOLDER || process.env.BANK_ACCOUNT_HOLDER || '').trim(),
   iban: formatIban(process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || '')
 });
 
-const hasBankAccount = (account) => compactIban(account?.iban).length >= 10;
+const hasBankAccount = (account) => isValidIbanTr(account?.iban);
 
 const normalizeBank = ({ name = '', holder = '', iban = '' } = {}) => {
   const shop = String(name || '').trim();
@@ -38,7 +40,7 @@ const fromSeller = async () => {
     .select('magazaAdi iban ibanHolder user')
     .populate('user', 'adSoyad')
     .lean();
-  if (!shop?.iban) return { name: '', holder: '', iban: '' };
+  if (!shop?.iban || !isValidIbanTr(shop.iban)) return { name: '', holder: '', iban: '' };
   return {
     name: String(shop.magazaAdi || 'Nik Bag').trim(),
     holder: String(shop.ibanHolder || shop.user?.adSoyad || '').trim(),
@@ -76,10 +78,13 @@ const resolveBank = async () => {
     if (hasBankAccount(merged) && needsHolder && shop.holder) {
       await persistBank(merged);
     }
+    if (!hasBankAccount(merged)) {
+      return normalizeBank({ name: merged.name, holder: merged.holder, iban: '' });
+    }
     return merged;
   } catch {
-    return fallback;
+    return hasBankAccount(fallback) ? fallback : normalizeBank({ ...fallback, iban: '' });
   }
 };
 
-module.exports = { envBank, resolveBank, hasBankAccount, formatIban };
+module.exports = { compactIban, envBank, resolveBank, hasBankAccount, formatIban, isValidIbanTr };

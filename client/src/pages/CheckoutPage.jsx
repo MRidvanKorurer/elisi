@@ -1205,7 +1205,7 @@
 
 
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
@@ -1250,6 +1250,7 @@ import { FREE_SHIPPING_LIMIT, SHIPPING_FEE } from '../utils/shipping';
 import { getSitePublic } from '../api/siteService';
 import LegalTextDialog from '../components/LegalTextDialog';
 import BankTransferDetails from '../components/BankTransferDetails';
+import { hasBankAccount } from '../utils/bank';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -1483,9 +1484,10 @@ export default function CheckoutPage({ user }) {
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [legalDoc, setLegalDoc] = useState('');
   const [site, setSite] = useState(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
-    getSitePublic().then(setSite);
+    getSitePublic({ fresh: true }).then(setSite);
   }, []);
 
   const showToast = (message, severity = 'error') => setToast({ open: true, message, severity });
@@ -1787,6 +1789,9 @@ export default function CheckoutPage({ user }) {
     if (paymentMethod === 'credit_card' && formData.identityNumber.replace(/\D/g, '').length !== 11) {
       next.identityNumber = 'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli';
     }
+    if (paymentMethod === 'transfer' && !hasBankAccount(site?.bank)) {
+      next.payment = t('bankMissing');
+    }
     if (!legalAccepted) next.legal = 'Sözleşmeleri onaylayın';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -1898,6 +1903,7 @@ export default function CheckoutPage({ user }) {
   });
 
   const handleOrderSubmit = async () => {
+    if (submittingRef.current) return;
     if (!validateForm()) {
       showToast('Lütfen eksik alanları tamamlayın.', 'warning');
       return;
@@ -1906,8 +1912,13 @@ export default function CheckoutPage({ user }) {
       showToast('Sepetiniz boş.', 'error');
       return;
     }
+    if (paymentMethod === 'transfer' && !hasBankAccount(site?.bank)) {
+      showToast(t('bankMissing'), 'error');
+      return;
+    }
 
     try {
+      submittingRef.current = true;
       setLoading(true);
       const response = await orderService.createOrder(buildPayload(paymentMethod));
       if (!response.success) {
@@ -1916,6 +1927,14 @@ export default function CheckoutPage({ user }) {
       }
 
       try { sessionStorage.setItem('nikbagGuestEmail', String(formData.email || '').trim()); } catch { /* ignore */ }
+      try {
+        sessionStorage.setItem('nikbagLastOrder', JSON.stringify({
+          orderId: String(response.orderId || ''),
+          method: paymentMethod,
+          totalPrice: response.totalPrice,
+          bank: response.bank || site?.bank || null
+        }));
+      } catch { /* ignore */ }
 
       if (paymentMethod === 'credit_card' && response.paymentUrl && !response.usedSavedCard) {
         window.location.href = response.paymentUrl;
@@ -1928,6 +1947,7 @@ export default function CheckoutPage({ user }) {
     } catch (error) {
       showToast(error.message || 'Sipariş oluşturulurken bir hata oluştu.', 'error');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -1969,8 +1989,10 @@ export default function CheckoutPage({ user }) {
   };
 
   const payLabel = paymentMethod === 'credit_card'
-    ? (selectedCardId === 'new' ? 'İyzico ile güvenli öde' : 'Kayıtlı kart ile tamamla')
-    : 'Siparişi tamamla';
+    ? (selectedCardId === 'new' ? t('payIyzico') : t('paySaved'))
+    : t('payComplete');
+  const transferBlocked = paymentMethod === 'transfer' && !hasBankAccount(site?.bank);
+  const payDisabled = loading || !cartItems.length || transferBlocked;
 
   return (
     <Box sx={{ minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'clip', background: 'linear-gradient(180deg, #FDF4D2 0%, #F4E7C4 100%)', pt: { xs: 10, md: 13 }, pb: { xs: 16, md: 8 } }}>
@@ -2066,8 +2088,8 @@ export default function CheckoutPage({ user }) {
                 selected={paymentMethod === 'credit_card'}
                 onClick={() => setPaymentMethod('credit_card')}
                 icon={<CreditCardOutlinedIcon />}
-                title="Kredi / banka kartı"
-                subtitle="Ödeme İyzico sayfasında alınır. Kart numarası bu sitede saklanmaz."
+                title={t('cardTitle')}
+                subtitle={t('cardSubtitle')}
               />
               <Collapse in={paymentMethod === 'credit_card'}>
                 <Box sx={{ mb: 2 }}>
@@ -2092,16 +2114,22 @@ export default function CheckoutPage({ user }) {
                 selected={paymentMethod === 'transfer'}
                 onClick={() => setPaymentMethod('transfer')}
                 icon={<AccountBalanceOutlinedIcon />}
-                title="Havale / EFT"
-                subtitle="Sipariş sonrası hesap bilgileri gösterilir. Ödeme onaylanınca üretim başlar."
+                title={t('transferTitle')}
+                subtitle={t('transferSubtitle')}
               />
               <Collapse in={paymentMethod === 'transfer'}>
                 <Box sx={{ mb: 2, p: 2, borderRadius: '18px', border: '1px dashed rgba(148,109,109,0.35)', backgroundColor: 'rgba(253,244,210,0.55)' }}>
-                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Banka bilgisi</Typography>
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>{t('bankTitle')}</Typography>
                   <BankTransferDetails
                     bank={site?.bank}
                     note={t('bankHint')}
+                    amount={total}
                   />
+                  {errors.payment ? (
+                    <Typography sx={{ color: '#d32f2f', fontWeight: 700, fontSize: '0.85rem', mt: 1 }}>
+                      {errors.payment}
+                    </Typography>
+                  ) : null}
                 </Box>
               </Collapse>
 
@@ -2348,7 +2376,7 @@ export default function CheckoutPage({ user }) {
             <Button
               fullWidth
               variant="contained"
-              disabled={loading || !cartItems.length}
+              disabled={payDisabled}
               onClick={handleOrderSubmit}
               startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <LockOutlinedIcon />}
               sx={{ mt: 2.5, py: 1.45, borderRadius: '16px', display: { xs: 'none', md: 'inline-flex' }, ...darkBtnSx }}
@@ -2386,7 +2414,7 @@ export default function CheckoutPage({ user }) {
         <Button
           fullWidth
           variant="contained"
-          disabled={loading || !cartItems.length}
+          disabled={payDisabled}
           onClick={handleOrderSubmit}
           sx={{
             borderRadius: '14px',

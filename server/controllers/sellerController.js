@@ -9,7 +9,9 @@ const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Review = require('../models/Review');
 const PromoCode = require('../models/PromoCode');
 const SiteSetting = require('../models/SiteSetting');
-const { formatIban } = require('../utils/bank');
+const { compactIban, formatIban, isValidIbanTr } = require('../utils/bank');
+const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
+const { releasePromoUse } = require('../utils/promoCode');
 const { isSuperAdmin } = require('../utils/roles');
 const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
@@ -71,10 +73,6 @@ const pickCoverImages = (docs = []) => {
 
     return [...local, ...remote].slice(0, 4);
 };
-
-const sanitizeIban = (iban = '') => String(iban).replace(/\s+/g, '').toUpperCase();
-
-const isValidIbanTr = (iban) => /^TR\d{24}$/.test(iban);
 
 const isValidPhone = (telefon = '') => {
     const digits = String(telefon).replace(/\D/g, '');
@@ -196,7 +194,7 @@ const registerSeller = async (req, res) => {
             return res.status(400).json({ mesaj: 'Şehir, ilçe ve adres zorunludur.' });
         }
 
-        const cleanIban = sanitizeIban(iban);
+        const cleanIban = compactIban(iban);
         if (!isValidIbanTr(cleanIban)) {
             return res.status(400).json({ mesaj: 'Geçerli bir TR IBAN girin (TR + 24 hane).' });
         }
@@ -376,7 +374,7 @@ const updateMySeller = async (req, res) => {
         if (holder.length > 80) {
             return res.status(400).json({ mesaj: 'Alıcı ad soyad en fazla 80 karakter olabilir.' });
         }
-        const cleanIban = sanitizeIban(iban);
+        const cleanIban = compactIban(iban);
         if (!isValidIbanTr(cleanIban)) {
             return res.status(400).json({ mesaj: 'Geçerli bir TR IBAN girin (TR + 24 hane).' });
         }
@@ -391,7 +389,7 @@ const updateMySeller = async (req, res) => {
             return res.status(400).json({ mesaj: 'Bu mağaza adı kullanılıyor.' });
         }
 
-        const previousIban = sanitizeIban(seller.iban);
+        const previousIban = compactIban(seller.iban);
         seller.magazaAdi = magazaAdiTrim;
         seller.magazaTuru = turleri;
         seller.aciklama = String(aciklama).trim();
@@ -416,7 +414,7 @@ const updateMySeller = async (req, res) => {
         }
 
         const settings = await SiteSetting.findOne({ key: 'site' }).lean();
-        const settingsIban = sanitizeIban(settings?.featuredBankIban || '');
+        const settingsIban = compactIban(settings?.featuredBankIban || '');
         if (!settingsIban || settingsIban === previousIban) {
             await SiteSetting.findOneAndUpdate(
                 { key: 'site' },
@@ -631,7 +629,14 @@ const updateMyOrder = async (req, res) => {
 
         stampFulfillment(mine, orderStatus);
         order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
+        if (order.orderStatus === 'cancelled' && order.paymentStatus !== 'completed') {
+            order.paymentStatus = 'failed';
+        }
         await order.save();
+        if (order.orderStatus === 'cancelled' && order.paymentStatus !== 'completed') {
+            await releaseWelcomeCoupon(order);
+            await releasePromoUse(order);
+        }
 
         const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id, catalogMapOf(products))[0];
         return res.json({
