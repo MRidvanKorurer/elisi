@@ -1,11 +1,13 @@
 const express = require('express');
 const NewsletterSubscriber = require('../models/NewsletterSubscriber');
 const { publicSite } = require('../utils/runtime');
+const { resolveBank } = require('../utils/bank');
 
 const router = express.Router();
 
-router.get('/', (_req, res) => {
-  res.json({ success: true, site: publicSite() });
+router.get('/', async (_req, res) => {
+  const account = await resolveBank();
+  res.json({ success: true, site: publicSite({ bank: account }) });
 });
 
 router.post('/newsletter', async (req, res) => {

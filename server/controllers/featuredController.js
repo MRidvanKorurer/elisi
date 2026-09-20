@@ -3,7 +3,8 @@ const FeaturedRequest = require('../models/FeaturedRequest');
 const Product = require('../models/Product');
 const Seller = require('../models/Seller');
 const SiteSetting = require('../models/SiteSetting');
-const { packageOf, packageList, FEATURED_SLOTS, DEFAULT_BANK } = require('../utils/featuredPackages');
+const { packageOf, packageList, FEATURED_SLOTS } = require('../utils/featuredPackages');
+const { resolveBank } = require('../utils/bank');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
@@ -26,13 +27,7 @@ const canonicalStatus = (item, now = new Date()) => {
   return status;
 };
 
-const getBank = async () => {
-  const settings = await SiteSetting.findOne({ key: 'site' }).lean();
-  return {
-    name: settings?.featuredBankName || DEFAULT_BANK.name,
-    iban: settings?.featuredBankIban || DEFAULT_BANK.iban
-  };
-};
+const getBank = () => resolveBank();
 
 const expireFeaturedProducts = async () => {
   const now = new Date();

@@ -59,7 +59,7 @@ export default function ProductMarginCalculator({
           value={shippingCost}
           onChange={(e) => set({ shippingCost: e.target.value })}
           placeholder="0"
-          helperText="Müşteri 500 ₺ altında kargo öder; 500 ₺ üstü bedava kargo site kampanyasıdır, senin komisyonuna girmez."
+          helperText="Müşteri 1000 ₺ altında 100 ₺ kargo öder; 1000 ₺ ve üzeri bedava kargo site kampanyasıdır, senin komisyonuna girmez."
           sx={fieldSx}
         />
         <TextField

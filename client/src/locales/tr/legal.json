@@ -50,8 +50,9 @@
   },
   "kargo": {
     "title": "Kargo Koşulları",
-    "lead": "Kargo ücreti ve ücretsiz kargo eşiği ödeme adımında hesaplanır.",
+    "lead": "Kargo ücreti 100 ₺’dir. 1000 ₺ ve üzeri siparişlerde kargo ücretsizdir; 1000 ₺ altındaki siparişlerde 100 ₺ kargo alınır.",
     "sections": [
+      { "h": "Ücret", "p": "1000 ₺ ve üzeri siparişlerde kargo bedava. 1000 ₺ altındaki siparişlerde kargo 100 ₺’dir. Tutar ödeme adımında hesaplanır." },
       { "h": "Süre", "p": "Stoktaki ürünler onaydan sonra hazırlanır. Siparişe özel üretim süreleri ürün sayfasında yazar." },
       { "h": "Hasar", "p": "Paketi teslim alırken kontrol edin. Hasar varsa tutanak tutturup {{email}} adresine fotoğrafla bildirin." }
     ]

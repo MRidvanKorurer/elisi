@@ -5,6 +5,13 @@ export const RETURN_DAYS = 14;
 const formatPrice = (value) =>
   Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
+const siteShipping = () => ({
+  freeFrom: FREE_SHIPPING_LIMIT,
+  fee: SHIPPING_FEE,
+  title: `${formatPrice(FREE_SHIPPING_LIMIT)} ₺ ve üzeri kargo bedava`,
+  detail: `${formatPrice(FREE_SHIPPING_LIMIT)} ₺ altındaki siparişlerde kargo ${formatPrice(SHIPPING_FEE)} ₺.`
+});
+
 const parseDimensions = (sizes = []) => {
   const tokens = (Array.isArray(sizes) ? sizes : [sizes]).map((item) => String(item || '').trim()).filter(Boolean);
   const found = [];
@@ -26,6 +33,7 @@ export const buildFulfillment = (product = {}) => {
   if (product.fulfillment?.delivery && product.fulfillment?.shipping && product.fulfillment?.returns) {
     return {
       ...product.fulfillment,
+      shipping: siteShipping(),
       measures: Array.isArray(product.fulfillment.measures) ? product.fulfillment.measures : []
     };
   }
@@ -64,12 +72,7 @@ export const buildFulfillment = (product = {}) => {
           detail: `Atölye bu parçayı senin siparişinle hazırlar. Üretim süresi: ${product.customProductionTime || '1-3 iş günü'}.`,
           time: product.customProductionTime || '1-3 iş günü'
         },
-    shipping: {
-      freeFrom: FREE_SHIPPING_LIMIT,
-      fee: SHIPPING_FEE,
-      title: `${formatPrice(FREE_SHIPPING_LIMIT)} ₺ ve üzeri kargo bedava`,
-      detail: `${formatPrice(FREE_SHIPPING_LIMIT)} ₺ altındaki siparişlerde kargo ${formatPrice(SHIPPING_FEE)} ₺.`
-    },
+    shipping: siteShipping(),
     returns: {
       days: RETURN_DAYS,
       title: `${RETURN_DAYS} gün içinde iade`,

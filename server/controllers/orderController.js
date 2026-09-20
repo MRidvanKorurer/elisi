@@ -12,8 +12,8 @@ const Seller = require('../models/Seller');
 const { settlementsFromItems, ratesForSellers } = require('../utils/commission');
 const { clientUrl, serverUrl, isProd } = require('../utils/runtime');
 const { applyPaidStock } = require('../utils/orderStock');
-const FREE_SHIPPING_LIMIT = 500;
-const SHIPPING_FEE = 49.9;
+const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillment');
+const { resolveBank, hasBankAccount } = require('../utils/bank');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
@@ -128,8 +128,11 @@ exports.createOrder = async (req, res) => {
                 return res.status(503).json({ success: false, message: 'Kart ödemesi henüz yapılandırılmamış.' });
             }
         }
-        if (paymentMethod === 'transfer' && isProd() && !(process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN)) {
-            return res.status(503).json({ success: false, message: 'Havale hesabı henüz tanımlanmamış.' });
+        if (paymentMethod === 'transfer') {
+            const account = await resolveBank();
+            if (!hasBankAccount(account)) {
+                return res.status(503).json({ success: false, message: 'Havale hesabı henüz tanımlanmamış.' });
+            }
         }
 
         if (!customerInfo?.firstName || !customerInfo?.lastName || !customerInfo?.email || !customerInfo?.phone) {

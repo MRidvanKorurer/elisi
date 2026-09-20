@@ -25,6 +25,7 @@ function LegacyProductRedirect() {
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTopButton from './components/ScrollToTopButton';
 import API from './api/api';
 import './index.css';
 import useSmoothScroll from './hooks/useSmoothScroll';
@@ -260,6 +261,8 @@ export default function App() {
             <SupportDock />
           </Suspense>
         )}
+
+        {!isAdminRoute && <ScrollToTopButton />}
 
         <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 0, pb: { xs: isAdminRoute ? 0 : 10, md: 0 } }}>
           <Suspense fallback={<RouteFallback />}>

@@ -3,9 +3,8 @@ const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Seller = require('../models/Seller');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const SiteSetting = require('../models/SiteSetting');
 const { ATELIER_WEEK_SLOTS, ATELIER_WEEK_PACKAGE, packageOf, packageList } = require('../utils/atelierWeek');
-const { DEFAULT_BANK } = require('../utils/featuredPackages');
+const { resolveBank } = require('../utils/bank');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 
@@ -24,13 +23,7 @@ const canonicalStatus = (item, now = new Date()) => {
   return status;
 };
 
-const getBank = async () => {
-  const settings = await SiteSetting.findOne({ key: 'site' }).lean();
-  return {
-    name: settings?.featuredBankName || DEFAULT_BANK.name,
-    iban: settings?.featuredBankIban || DEFAULT_BANK.iban
-  };
-};
+const getBank = () => resolveBank();
 
 const liveProductCount = async (userId) => Product.countDocuments({
   seller: userId,

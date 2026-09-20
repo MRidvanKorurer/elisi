@@ -1,5 +1,5 @@
-const FREE_SHIPPING_LIMIT = 500;
-const SHIPPING_FEE = 49.9;
+const FREE_SHIPPING_LIMIT = 1000;
+const SHIPPING_FEE = 100;
 const RETURN_DAYS = 14;
 
 const formatPrice = (value) =>

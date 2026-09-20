@@ -2104,7 +2104,7 @@ export default function CheckoutPage({ user }) {
                     </>
                   ) : (
                     <Typography variant="body2" sx={{ color: '#946D6D', fontWeight: 700 }}>
-                      Havale hesabı henüz tanımlanmamış. BANK_IBAN ortam değişkenini ekleyin.
+                      Havale hesabı henüz tanımlanmamış. Kart ile ödeyebilir veya daha sonra tekrar deneyebilirsiniz.
                     </Typography>
                   )}
                   <Typography variant="caption" sx={{ color: '#946D6D', fontWeight: 700 }}>Açıklamaya sipariş kodunu yazın.</Typography>

@@ -86,10 +86,7 @@ const corsOriginDelegate = (origin, callback) => {
   return callback(null, false);
 };
 
-const bank = () => ({
-  name: process.env.BANK_NAME || process.env.FEATURED_BANK_NAME || '',
-  iban: (process.env.BANK_IBAN || process.env.FEATURED_BANK_IBAN || '').replace(/\s+/g, ' ').trim()
-});
+const bank = () => require('./bank').envBank();
 
 const contact = () => ({
   companyName: process.env.COMPANY_NAME || 'Nik Bag',
@@ -107,9 +104,9 @@ const contact = () => ({
   pinterest: process.env.PINTEREST_URL || ''
 });
 
-const publicSite = () => ({
+const publicSite = (overrides = {}) => ({
   ...contact(),
-  bank: bank(),
+  bank: overrides.bank || bank(),
   clientUrl: clientUrl(),
   siteUrl: siteUrl(),
   googleClientId: String(process.env.GOOGLE_CLIENT_ID || '').trim()

@@ -46,8 +46,9 @@
   },
   "kargo": {
     "title": "Shipping",
-    "lead": "Shipping fee and the free-shipping threshold are calculated at checkout.",
+    "lead": "Shipping is 100 ₺. Orders of 1000 ₺ and above ship free; below 1000 ₺ the fee is 100 ₺.",
     "sections": [
+      { "h": "Fee", "p": "Orders of 1000 ₺ and above include free shipping. Below 1000 ₺, shipping is 100 ₺. The amount is calculated at checkout." },
       { "h": "Timing", "p": "In-stock items are prepared after payment is confirmed. Made-to-order times are on the product page." },
       { "h": "Damage", "p": "Check the parcel on delivery and email photos to {{email}} if it is damaged." }
     ]

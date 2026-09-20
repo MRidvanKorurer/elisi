@@ -2,8 +2,8 @@ const KNOWLEDGE = `
 Nik Bag (NikBag) el yapımı çanta, takı, seramik, mum ve ev dekorasyonu satan bir atölye pazarıdır.
 
 KARGO
-- 500 ₺ ve üzeri siparişlerde kargo bedava.
-- 500 ₺ altındaki siparişlerde kargo 49,90 ₺.
+- 1000 ₺ ve üzeri siparişlerde kargo bedava.
+- 1000 ₺ altındaki siparişlerde kargo 100 ₺.
 - Stoklu / hemen kargoda ürünler sipariş onayından sonra 24 saat içinde kargoya verilir.
 - Sipariş üzerine üretimde süre üründe yazar (genelde 1-3 iş günü, sonra kargo).
 
@@ -38,7 +38,7 @@ HESAP
 const FAQS = [
   {
     keys: ['kargo', 'kargom', 'teslimat', 'ücretsiz kargo', 'ucretsiz kargo', 'shipping', 'ne zaman gelir'],
-    answer: '500 ₺ ve üzeri siparişlerde kargo bedava, altında 49,90 ₺. Stoklu ürünler onaydan sonra 24 saat içinde kargoya çıkar. Sipariş üzerine üretimde süre üründe yazar; üretim bitince kargo başlar.'
+    answer: '1000 ₺ ve üzeri siparişlerde kargo bedava, altında 100 ₺. Stoklu ürünler onaydan sonra 24 saat içinde kargoya çıkar. Sipariş üzerine üretimde süre üründe yazar; üretim bitince kargo başlar.'
   },
   {
     keys: ['iade', 'değişim', 'degisim', 'geri gönder', 'geri gonder', 'bozulan'],

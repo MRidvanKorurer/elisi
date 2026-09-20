@@ -206,8 +206,8 @@ export default function AdminPanel({ user, handleLogout }) {
       setPromos(pm.promos || []);
       setFeaturedRequests(ft.requests || []);
       if (ft.slots) setFeaturedSlots(ft.slots);
-      if (ft.bank?.name) {
-        setBankName(ft.bank.name);
+      if (ft.bank) {
+        setBankName(ft.bank.name || '');
         setBankIban(ft.bank.iban || '');
       }
       setWeekRequests(wk.requests || []);
