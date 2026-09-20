@@ -1,6 +1,20 @@
 {
+  "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/xml; charset=utf-8"
+        }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    },
     {
       "source": "/sitemap.xml",
       "destination": "https://elisi-fxey.onrender.com/sitemap.xml"
