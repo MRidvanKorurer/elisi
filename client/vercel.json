@@ -1,3 +1,5 @@
+
+
 {
   "headers": [
     {
@@ -5,23 +7,15 @@
       "headers": [
         {
           "key": "Content-Type",
-          "value": "text/xml; charset=utf-8"
+          "value": "application/xml; charset=utf-8"
         }
       ]
     }
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!sitemap\\.xml|robots\\.txt|.*\\..*).*)",
       "destination": "/index.html"
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": "https://elisi-fxey.onrender.com/sitemap.xml"
-    },
-    {
-      "source": "/robots.txt",
-      "destination": "https://elisi-fxey.onrender.com/robots.txt"
     }
   ]
 }
