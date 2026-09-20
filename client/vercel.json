@@ -1,5 +1,13 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://elisi-fxey.onrender.com/sitemap.xml"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "https://elisi-fxey.onrender.com/robots.txt"
+    }
   ]
 }
