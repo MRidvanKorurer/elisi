@@ -35,13 +35,13 @@ const fromSeller = async () => {
     iban: { $exists: true, $nin: [null, ''] }
   })
     .sort({ createdAt: 1 })
-    .select('magazaAdi iban user')
+    .select('magazaAdi iban ibanHolder user')
     .populate('user', 'adSoyad')
     .lean();
   if (!shop?.iban) return { name: '', holder: '', iban: '' };
   return {
     name: String(shop.magazaAdi || 'Nik Bag').trim(),
-    holder: String(shop.user?.adSoyad || '').trim(),
+    holder: String(shop.ibanHolder || shop.user?.adSoyad || '').trim(),
     iban: formatIban(shop.iban)
   };
 };

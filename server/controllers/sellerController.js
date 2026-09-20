@@ -8,6 +8,8 @@ const FeaturedRequest = require('../models/FeaturedRequest');
 const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Review = require('../models/Review');
 const PromoCode = require('../models/PromoCode');
+const SiteSetting = require('../models/SiteSetting');
+const { formatIban } = require('../utils/bank');
 const { isSuperAdmin } = require('../utils/roles');
 const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
@@ -108,6 +110,7 @@ const serializeSeller = (seller, user, extra = {}) => ({
     ilce: seller.ilce,
     adres: seller.adres,
     iban: seller.iban,
+    ibanHolder: seller.ibanHolder || user?.adSoyad || '',
     tcKimlik: seller.tcKimlik,
     vergiNo: seller.vergiNo,
     instagram: seller.instagram,
@@ -347,6 +350,8 @@ const updateMySeller = async (req, res) => {
             ilce,
             adres,
             iban,
+            adSoyad,
+            ibanHolder,
             instagram = '',
             website = ''
         } = req.body;
@@ -364,6 +369,13 @@ const updateMySeller = async (req, res) => {
         if (!sehir || !ilce || !adres) {
             return res.status(400).json({ mesaj: 'Şehir, ilçe ve adres zorunludur.' });
         }
+        const holder = String(ibanHolder || adSoyad || '').trim();
+        if (!holder || holder.length < 3) {
+            return res.status(400).json({ mesaj: 'Alıcı ad soyad en az 3 karakter olmalıdır.' });
+        }
+        if (holder.length > 80) {
+            return res.status(400).json({ mesaj: 'Alıcı ad soyad en fazla 80 karakter olabilir.' });
+        }
         const cleanIban = sanitizeIban(iban);
         if (!isValidIbanTr(cleanIban)) {
             return res.status(400).json({ mesaj: 'Geçerli bir TR IBAN girin (TR + 24 hane).' });
@@ -379,6 +391,7 @@ const updateMySeller = async (req, res) => {
             return res.status(400).json({ mesaj: 'Bu mağaza adı kullanılıyor.' });
         }
 
+        const previousIban = sanitizeIban(seller.iban);
         seller.magazaAdi = magazaAdiTrim;
         seller.magazaTuru = turleri;
         seller.aciklama = String(aciklama).trim();
@@ -387,13 +400,35 @@ const updateMySeller = async (req, res) => {
         seller.ilce = String(ilce).trim();
         seller.adres = String(adres).trim();
         seller.iban = cleanIban;
+        seller.ibanHolder = holder;
         seller.instagram = String(instagram).trim();
         seller.website = String(website).trim();
         await seller.save();
 
         if (telefon && req.user.telefon !== String(telefon).trim()) {
             req.user.telefon = String(telefon).trim();
+        }
+        if (req.user.adSoyad !== holder) {
+            req.user.adSoyad = holder;
+        }
+        if (req.user.isModified()) {
             await req.user.save();
+        }
+
+        const settings = await SiteSetting.findOne({ key: 'site' }).lean();
+        const settingsIban = sanitizeIban(settings?.featuredBankIban || '');
+        if (!settingsIban || settingsIban === previousIban) {
+            await SiteSetting.findOneAndUpdate(
+                { key: 'site' },
+                {
+                    $set: {
+                        featuredBankName: magazaAdiTrim,
+                        featuredBankHolder: holder,
+                        featuredBankIban: formatIban(cleanIban)
+                    }
+                },
+                { upsert: true }
+            );
         }
 
         return res.json({

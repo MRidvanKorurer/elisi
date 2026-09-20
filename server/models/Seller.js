@@ -53,6 +53,7 @@ const sellerSchema = new mongoose.Schema(
         ilce: { type: String, required: [true, 'İlçe zorunludur.'], trim: true },
         adres: { type: String, required: [true, 'Adres zorunludur.'], trim: true },
         iban: { type: String, required: [true, 'IBAN zorunludur.'], trim: true, uppercase: true },
+        ibanHolder: { type: String, trim: true, default: '' },
         tcKimlik: { type: String, trim: true, default: '' },
         vergiNo: { type: String, trim: true, default: '' },
         instagram: { type: String, trim: true, default: '' },

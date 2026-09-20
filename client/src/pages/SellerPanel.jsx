@@ -152,6 +152,7 @@ export default function SellerPanel({ user, handleLogout }) {
       ilce: data.satici.ilce || '',
       adres: data.satici.adres || '',
       iban: formatIban(data.satici.iban || ''),
+      ibanHolder: data.satici.ibanHolder || data.satici.kullanici?.adSoyad || '',
       instagram: data.satici.instagram || '',
       website: data.satici.website || ''
     });
@@ -426,8 +427,18 @@ export default function SellerPanel({ user, handleLogout }) {
     setSavingStore(true);
     setError('');
     try {
-      const data = await sellerService.updateMe({ ...store, iban: sanitizeIban(store.iban) });
+      const data = await sellerService.updateMe({
+        ...store,
+        iban: sanitizeIban(store.iban),
+        ibanHolder: String(store.ibanHolder || '').trim(),
+        adSoyad: String(store.ibanHolder || '').trim()
+      });
       setSeller(data.satici);
+      setStore((s) => ({
+        ...s,
+        iban: formatIban(data.satici.iban || s.iban),
+        ibanHolder: data.satici.ibanHolder || s.ibanHolder
+      }));
       flash(data.mesaj || 'Mağaza güncellendi.');
     } catch (err) {
       fail(err, 'Güncelleme başarısız.');
@@ -1430,7 +1441,30 @@ export default function SellerPanel({ user, handleLogout }) {
                 </Box>
               </Box>
               <TextField label="Telefon" value={store.telefon} onChange={(e) => setStore((s) => ({ ...s, telefon: e.target.value }))} required sx={fieldSx} />
-              <TextField label="IBAN" value={store.iban} onChange={(e) => setStore((s) => ({ ...s, iban: formatIban(e.target.value) }))} required sx={fieldSx} />
+              <Box sx={{ gridColumn: { md: '1 / -1' }, p: 1.8, borderRadius: '18px', border: `1px solid ${T.line}`, bgcolor: T.surfaceSoft, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+                  <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: '0.92rem' }}>Havale / EFT hesabı</Typography>
+                  <Typography sx={{ color: T.muted, fontWeight: 600, fontSize: '0.8rem', mt: 0.35 }}>
+                    Bankanın sorduğu alıcı ad soyad ve IBAN’ı buradan istediğin zaman değiştirebilirsin.
+                  </Typography>
+                </Box>
+                <TextField
+                  label="Alıcı ad soyad"
+                  value={store.ibanHolder || ''}
+                  onChange={(e) => setStore((s) => ({ ...s, ibanHolder: e.target.value }))}
+                  required
+                  helperText="Havale formuna yazılacak isim"
+                  sx={fieldSx}
+                />
+                <TextField
+                  label="IBAN"
+                  value={store.iban}
+                  onChange={(e) => setStore((s) => ({ ...s, iban: formatIban(e.target.value) }))}
+                  required
+                  helperText="TR ile başlayan 26 karakter, tamamen değiştirilebilir"
+                  sx={fieldSx}
+                />
+              </Box>
               <TextField label="Şehir" value={store.sehir} onChange={(e) => setStore((s) => ({ ...s, sehir: e.target.value }))} required sx={fieldSx} />
               <TextField label="İlçe" value={store.ilce} onChange={(e) => setStore((s) => ({ ...s, ilce: e.target.value }))} required sx={fieldSx} />
               <TextField label="Adres" value={store.adres} onChange={(e) => setStore((s) => ({ ...s, adres: e.target.value }))} required sx={{ ...fieldSx, gridColumn: { md: '1 / -1' } }} />
