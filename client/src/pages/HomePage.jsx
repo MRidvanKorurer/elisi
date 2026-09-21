@@ -7,6 +7,7 @@ import Reveal from '../components/Reveal';
 import { useTranslation } from 'react-i18next';
 import Seo from '../components/Seo';
 import { isSuperAdmin } from '../utils/roles';
+import AtelierFilmSection from '../components/AtelierFilmSection';
 
 const FeaturedShelf = lazy(() => import('../components/FeaturedShelf'));
 const WeeklyAteliers = lazy(() => import('../components/WeeklyAteliers'));
@@ -18,11 +19,11 @@ const SellerCtaBanner = lazy(() => import('../components/SellerCtaBanner'));
 const TrustStrip = lazy(() => import('../components/TrustStrip'));
 
 const LazyBlock = ({ children, minHeight = 160 }) => (
-  <DeferredMount minHeight={minHeight}>
-    <Suspense fallback={<Box sx={{ minHeight }} />}>
-      {children}
-    </Suspense>
-  </DeferredMount>
+    <DeferredMount minHeight={minHeight}>
+        <Suspense fallback={<Box sx={{ minHeight }} />}>
+            {children}
+        </Suspense>
+    </DeferredMount>
 );
 
 export default function HomePage({ user, onNavigateAuth }) {
@@ -44,6 +45,10 @@ export default function HomePage({ user, onNavigateAuth }) {
                     <FeaturedShelf />
                 </Reveal>
             </LazyBlock>
+            
+            <LazyBlock minHeight={360}>
+                <AtelierLookbook />
+            </LazyBlock>
 
             <LazyBlock minHeight={240}>
                 <WeeklyAteliers />
@@ -56,8 +61,10 @@ export default function HomePage({ user, onNavigateAuth }) {
             </LazyBlock>
 
             <LazyBlock minHeight={360}>
-                <AtelierLookbook />
+                <AtelierFilmSection />
             </LazyBlock>
+
+
 
             <LazyBlock minHeight={280}>
                 <Reveal>
