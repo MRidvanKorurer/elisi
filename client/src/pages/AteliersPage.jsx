@@ -125,7 +125,7 @@ function AtelierTile({ atelier, t, index = 0 }) {
   return (
     <Box
       component={LocaleLink}
-      to={`/atolye/${atelier.slug}`}
+      to={`/atolye/${atelier.slug || atelier.id}`}
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -231,7 +231,9 @@ function AtelierTile({ atelier, t, index = 0 }) {
               </Typography>
             )}
             <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: 12 }} noWrap>
-              · {atelier.productCount} {t('directory.products')}
+              · {atelier.productCount > 0
+                ? `${atelier.productCount} ${t('directory.products')}`
+                : t('directory.emptyVitrine')}
             </Typography>
           </Box>
           <Typography

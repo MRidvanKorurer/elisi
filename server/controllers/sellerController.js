@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Seller = require('../models/Seller');
 const Product = require('../models/Product');
@@ -1197,7 +1198,11 @@ const getPublicSeller = async (req, res) => {
         }
 
         await expireWeeklyAteliers();
-        const seller = await Seller.findOne({ slug, durum: 'approved' }).lean();
+        const byId = /^[a-fA-F0-9]{24}$/.test(slug);
+        const seller = await Seller.findOne({
+            durum: 'approved',
+            $or: byId ? [{ slug }, { _id: slug }] : [{ slug }]
+        }).lean();
         if (!seller) {
             return res.status(404).json({ success: false, mesaj: 'Atölye bulunamadı.' });
         }

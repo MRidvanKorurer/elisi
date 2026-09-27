@@ -476,8 +476,7 @@ const listPublicAteliers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const shops = await Seller.find({
-      durum: 'approved',
-      slug: { $exists: true, $nin: [null, ''] }
+      durum: 'approved'
     }).lean();
     const userIds = shops.map((shop) => shop.user).filter(Boolean);
     const makers = await User.find({ _id: { $in: userIds } }).select('adSoyad avatarUrl').lean();
@@ -546,7 +545,6 @@ const listPublicAteliers = async (req, res) => {
     );
 
     const catalog = shops
-      .filter((shop) => shop.slug)
       .map((shop) => {
         const key = String(shop.user);
         const summary = statsMap.get(key) || {};
@@ -561,8 +559,7 @@ const listPublicAteliers = async (req, res) => {
           rating,
           coverImages: coversBySeller.get(key) || []
         });
-      })
-      .filter((item) => item.productCount > 0);
+      });
 
     // Facetler filtrelerden bağımsız — seçili şehir/alan diğer seçenekleri silmesin
     const cityCounts = new Map();

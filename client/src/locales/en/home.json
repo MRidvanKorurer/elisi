@@ -94,6 +94,7 @@
     "loading": "Loading ateliers…",
     "clearFilters": "Clear filters",
     "newMaker": "New shop",
+    "emptyVitrine": "No products yet",
     "showMore": "Show more ({{count}} left)",
     "emptyTitle": "No ateliers found",
     "emptyText": "Clear filters and try again.",

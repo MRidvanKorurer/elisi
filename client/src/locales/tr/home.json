@@ -94,6 +94,7 @@
     "loading": "Atölyeler hazırlanıyor…",
     "clearFilters": "Filtreleri temizle",
     "newMaker": "Yeni vitrin",
+    "emptyVitrine": "Henüz ürün yok",
     "showMore": "Daha fazla göster ({{count}} kaldı)",
     "emptyTitle": "Atölye bulunamadı",
     "emptyText": "Filtreleri temizleyip yeniden deneyin.",

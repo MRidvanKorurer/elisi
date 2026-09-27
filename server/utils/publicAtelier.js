@@ -52,7 +52,7 @@ const serializePublicAtelier = (seller, user, extras = {}) => ({
   id: String(seller._id),
   userId: user?._id ? String(user._id) : (seller.user ? String(seller.user) : ''),
   magazaAdi: seller.magazaAdi,
-  slug: seller.slug,
+  slug: seller.slug || String(seller._id),
   magazaTuru: seller.magazaTuru || [],
   magazaTuruEtiket: magazaTuruEtiket(seller.magazaTuru) || 'Atölye',
   aciklama: seller.aciklama || '',
