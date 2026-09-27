@@ -23,14 +23,14 @@ export const DEFAULT_KEYWORDS = [
 
 export const ORGANIZATION = {
   legalName: 'Nik Bag Tasarım Atölyesi',
-  email: 'info@nikbag.com',
+  email: 'nikbagofficial@gmail.com',
   phone: import.meta.env.VITE_CONTACT_PHONE || '',
   city: 'İstanbul',
   country: 'TR',
   social: [
-    'https://www.instagram.com/nikbag',
-    'https://www.facebook.com/nikbag',
-    'https://tr.pinterest.com/nikbag'
+    'https://www.instagram.com/nikbagofficial',
+    'https://www.facebook.com/share/19fe1eojtZ/',
+    'https://www.tiktok.com/@nikbagstore'
   ]
 };
 

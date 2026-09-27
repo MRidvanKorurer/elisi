@@ -17,17 +17,18 @@ import { CATEGORY_OPTIONS } from '../utils/categories';
 import { getSitePublic, subscribeNewsletter } from '../api/siteService';
 import LegalTextDialog from './LegalTextDialog';
 
-const EtsyIcon = (props) => (
+const TikTokIcon = (props) => (
   <SvgIcon {...props} viewBox="0 0 24 24">
-    <path d="M9.195 5.517c-1.353 0-1.895.385-1.895 1.55v1.275h3.692c1.233 0 1.638-.346 1.638-1.393h.648v4.062h-.648c0-1.045-.405-1.391-1.638-1.391H7.3v3.947c0 1.348.653 1.849 2.158 1.849 1.455 0 2.226-.412 2.766-1.579h.73l-1.066 3.013H4.498v-.541c1.226-.11 1.442-.486 1.442-1.603V8.127c0-1.117-.216-1.493-1.442-1.603v-.542h5.58c1.378 0 2.148.243 2.593 1.12h-.648c-.283-.756-.917-1.585-2.828-1.585zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18.5c-4.694 0-8.5-3.806-8.5-8.5S7.306 3.5 12 3.5s8.5 3.806 8.5 8.5-3.806 8.5-8.5 8.5z" />
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 2.31-4.64V9.4a6.34 6.34 0 1 0 6.34 6.34V8.7a8.18 8.18 0 0 0 4.65 1.44V6.7a4.84 4.84 0 0 1-2.2-.01z" />
   </SvgIcon>
 );
 
-const socialFromSite = (site) => ({
-  instagram: site?.instagram || 'https://www.instagram.com/nikbag',
-  facebook: site?.facebook || 'https://www.facebook.com/nikbag',
-  etsy: site?.pinterest || 'https://tr.pinterest.com/nikbag'
-});
+const FOOTER_EMAIL = 'nikbagofficial@gmail.com';
+const FOOTER_SOCIAL = {
+  instagram: 'https://www.instagram.com/nikbagofficial',
+  facebook: 'https://www.facebook.com/share/19fe1eojtZ/',
+  tiktok: 'https://www.tiktok.com/@nikbagstore'
+};
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -35,7 +36,7 @@ export default function Footer() {
   const [site, setSite] = useState(null);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [legalDoc, setLegalDoc] = useState('');
-  const socialLinks = socialFromSite(site);
+  const socialLinks = FOOTER_SOCIAL;
 
   useEffect(() => {
     getSitePublic().then(setSite);
@@ -115,8 +116,8 @@ export default function Footer() {
               <IconButton href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" sx={socialIconSx}>
                 <FacebookIcon />
               </IconButton>
-              <IconButton href={socialLinks.etsy} target="_blank" rel="noopener noreferrer" aria-label={t('footer.etsy')} sx={socialIconSx}>
-                <EtsyIcon />
+              <IconButton href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" aria-label={t('footer.tiktok')} sx={socialIconSx}>
+                <TikTokIcon />
               </IconButton>
             </Box>
           </Box>
@@ -139,7 +140,7 @@ export default function Footer() {
               {t('footer.help')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-              <Link href={`mailto:${site?.email || 'info@nikbag.com'}`} sx={footerLinkSx}>{t('footer.contact')}</Link>
+              <Link href={`mailto:${FOOTER_EMAIL}`} sx={footerLinkSx}>{t('footer.contact')}</Link>
               <Box component="button" type="button" onClick={() => setLegalDoc('kargo')} sx={legalBtnSx}>{t('footer.shipping')}</Box>
               <Box component="button" type="button" onClick={() => setLegalDoc('iade')} sx={legalBtnSx}>{t('footer.returns')}</Box>
               <Box component="button" type="button" onClick={() => setLegalDoc('gizlilik')} sx={legalBtnSx}>{t('footer.privacy')}</Box>
@@ -154,10 +155,10 @@ export default function Footer() {
               {t('footer.reachUs')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, mb: 3 }}>
-              <Typography variant="body2" sx={contactRowSx}>
+              <Link href={`mailto:${FOOTER_EMAIL}`} variant="body2" sx={{ ...contactRowSx, textDecoration: 'none' }}>
                 <EmailOutlinedIcon fontSize="small" sx={{ color: '#946D6D' }} />
-                {site?.email || 'info@nikbag.com'}
-              </Typography>
+                {FOOTER_EMAIL}
+              </Link>
               {site?.phone ? (
               <Typography variant="body2" sx={contactRowSx}>
                 <PhoneOutlinedIcon fontSize="small" sx={{ color: '#946D6D' }} />

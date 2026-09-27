@@ -92,15 +92,16 @@ const contact = () => ({
   companyName: process.env.COMPANY_NAME || 'Nik Bag',
   legalName: process.env.COMPANY_LEGAL_NAME || process.env.COMPANY_NAME || 'Nik Bag',
   address: process.env.COMPANY_ADDRESS || '',
-  email: process.env.CONTACT_EMAIL || 'info@nikbag.com',
+  email: process.env.CONTACT_EMAIL || 'nikbagofficial@gmail.com',
   phone: process.env.CONTACT_PHONE || '0554 379 32 35',
   whatsapp: String(process.env.WHATSAPP_NUMBER || '905543793235').replace(/\D/g, ''),
   city: process.env.COMPANY_CITY || 'İstanbul',
   taxOffice: process.env.TAX_OFFICE || '',
   taxNumber: process.env.TAX_NUMBER || '',
   mersis: process.env.MERSIS_NO || '',
-  instagram: process.env.INSTAGRAM_URL || '',
-  facebook: process.env.FACEBOOK_URL || '',
+  instagram: process.env.INSTAGRAM_URL || 'https://www.instagram.com/nikbagofficial',
+  facebook: process.env.FACEBOOK_URL || 'https://www.facebook.com/share/19fe1eojtZ/',
+  tiktok: process.env.TIKTOK_URL || 'https://www.tiktok.com/@nikbagstore',
   pinterest: process.env.PINTEREST_URL || ''
 });
 
