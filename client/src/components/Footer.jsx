@@ -262,6 +262,7 @@ export default function Footer() {
           </Typography>
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+            {/* Iyzico / kart rozetleri kapalı
             {['VISA', 'MasterCard', 'TROY', 'IYZICO'].map((label) => (
               <Box
                 key={label}
@@ -274,6 +275,25 @@ export default function Footer() {
                   py: 0.45,
                   color: label === 'IYZICO' ? '#FFF' : '#946D6D',
                   backgroundColor: label === 'IYZICO' ? '#946D6D' : '#FFFFFF',
+                  letterSpacing: '0.4px'
+                }}
+              >
+                {label}
+              </Box>
+            ))}
+            */}
+            {['Havale / EFT', 'WhatsApp'].map((label) => (
+              <Box
+                key={label}
+                sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  border: '1px solid rgba(148, 109, 109, 0.22)',
+                  borderRadius: '8px',
+                  px: 1.15,
+                  py: 0.45,
+                  color: '#946D6D',
+                  backgroundColor: '#FFFFFF',
                   letterSpacing: '0.4px'
                 }}
               >

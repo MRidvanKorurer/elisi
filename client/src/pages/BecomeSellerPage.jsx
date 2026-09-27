@@ -610,7 +610,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
 
               {[
                 { icon: <VerifiedOutlined />, title: 'Güvenli hesap', text: 'Oturum ve başvuru bilgilerin korunur.' },
-                { icon: <PaymentsOutlined />, title: 'Tek şeffaf pay', text: 'Ürün satışından %10 (Iyzico dahil). 90 günde 50.000 ₺ ciroda %8. Kargo komisyona girmez.' },
+                { icon: <PaymentsOutlined />, title: 'Tek şeffaf pay', text: 'Ürün satışından %10. 90 günde 50.000 ₺ ciroda %8. Kargo komisyona girmez.' },
                 { icon: <LocalShippingOutlined />, title: 'Kendi tempo', text: 'Üretim ve kargo takvimini sen kurarsın.' }
               ].map((item) => (
                 <Box key={item.title} sx={{ display: 'flex', gap: 1.8, mb: 2.2 }}>

@@ -23,7 +23,7 @@ import {
 import SiteContainer from '../components/SiteContainer';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
-import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
+// import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -245,7 +245,7 @@ function PayOption({ selected, icon, title, subtitle, onClick }) {
 export default function CheckoutPage({ user }) {
   const { t } = useTranslation('checkout');
   const navigate = useLocaleNavigate();
-  const [paymentMethod, setPaymentMethod] = useState('credit_card');
+  const [paymentMethod, setPaymentMethod] = useState('transfer');
   const [loading, setLoading] = useState(false);
   const [whatsappLoading, setWhatsappLoading] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
@@ -583,9 +583,10 @@ export default function CheckoutPage({ user }) {
     if (!formData.address.trim()) next.address = 'Adres zorunlu';
     if (!formData.city.trim()) next.city = 'İl zorunlu';
     if (!formData.district.trim()) next.district = 'İlçe zorunlu';
-    if (paymentMethod === 'credit_card' && formData.identityNumber.replace(/\D/g, '').length !== 11) {
-      next.identityNumber = 'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli';
-    }
+    // Iyzico kapalı
+    // if (paymentMethod === 'credit_card' && formData.identityNumber.replace(/\D/g, '').length !== 11) {
+    //   next.identityNumber = 'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli';
+    // }
     if (paymentMethod === 'transfer' && !hasBankAccount(site?.bank)) {
       next.payment = t('bankMissing');
     }
@@ -733,10 +734,11 @@ export default function CheckoutPage({ user }) {
         }));
       } catch { /* ignore */ }
 
-      if (paymentMethod === 'credit_card' && response.paymentUrl && !response.usedSavedCard) {
-        window.location.href = response.paymentUrl;
-        return;
-      }
+      // Iyzico kapalı
+      // if (paymentMethod === 'credit_card' && response.paymentUrl && !response.usedSavedCard) {
+      //   window.location.href = response.paymentUrl;
+      //   return;
+      // }
 
       await cartService.clearCart();
       window.dispatchEvent(new Event('cartUpdated'));
@@ -788,9 +790,11 @@ export default function CheckoutPage({ user }) {
     }
   };
 
-  const payLabel = paymentMethod === 'credit_card'
-    ? (selectedCardId === 'new' ? t('payIyzico') : t('paySaved'))
-    : t('payComplete');
+  // Iyzico kapalı
+  // const payLabel = paymentMethod === 'credit_card'
+  //   ? (selectedCardId === 'new' ? t('payIyzico') : t('paySaved'))
+  //   : t('payComplete');
+  const payLabel = t('payComplete');
   const transferBlocked = paymentMethod === 'transfer' && !hasBankAccount(site?.bank);
   const payDisabled = loading || !cartItems.length || transferBlocked;
 
@@ -808,7 +812,7 @@ export default function CheckoutPage({ user }) {
           </Button>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.35rem', sm: '1.5rem', md: '2rem' } }}>Güvenli ödeme</Typography>
-            <Typography variant="body2" sx={{ color: '#6E5252', pr: { xs: 6, sm: 0 } }}>Kart numarası sitede saklanmaz. Tam ödeme İyzico altyapısıyla tamamlanır.</Typography>
+            <Typography variant="body2" sx={{ color: '#6E5252', pr: { xs: 6, sm: 0 } }}>Siparişi havale/EFT ile tamamlayın veya WhatsApp üzerinden iletin.</Typography>
           </Box>
         </Box>
 
@@ -884,6 +888,7 @@ export default function CheckoutPage({ user }) {
 
             <Paper elevation={0} sx={cardSx}>
               <SectionTitle step="3" title={t('payment')} hint={t('paymentHint')} />
+              {/* Iyzico / kredi kartı ödemesi kapalı
               <PayOption
                 selected={paymentMethod === 'credit_card'}
                 onClick={() => setPaymentMethod('credit_card')}
@@ -909,6 +914,7 @@ export default function CheckoutPage({ user }) {
                   />
                 </Box>
               </Collapse>
+              */}
 
               <PayOption
                 selected={paymentMethod === 'transfer'}
@@ -1224,7 +1230,7 @@ export default function CheckoutPage({ user }) {
             ...darkBtnSx
           }}
         >
-          {loading ? 'İşleniyor...' : (paymentMethod === 'credit_card' ? 'Güvenli öde' : 'Tamamla')}
+          {loading ? 'İşleniyor...' : 'Tamamla'}
         </Button>
       </Paper>
       <LegalTextDialog

@@ -6,7 +6,7 @@
     "sections": [
       { "h": "Toplanan veriler", "p": "Ad soyad, e-posta, telefon, teslimat adresi, sipariş içeriği ve ödeme sonucu (kart numarası bizde saklanmaz). Google ile girişte Google’ın doğruladığı e-posta ve ad." },
       { "h": "Amaç", "p": "Siparişi hazırlamak, kargoya vermek, destek vermek, yasal saklama yükümlülüklerini yerine getirmek ve — onay verirseniz — bülten göndermek." },
-      { "h": "Aktarım", "p": "Ödeme kuruluşu (İyzico), kargo firması ve barındırma sağlayıcısı, işlemin gerektirdiği kadar veriyi görür. Veriler reklam ağlarına satılmaz." },
+      { "h": "Aktarım", "p": "Havale/EFT hesabı, kargo firması ve barındırma sağlayıcısı, işlemin gerektirdiği kadar veriyi görür. Veriler reklam ağlarına satılmaz." },
       { "h": "Saklama", "p": "Sipariş kayıtları vergi ve tüketici mevzuatının öngördüğü süre boyunca tutulur. Hesap silme talebi {{email}} adresine yazılabilir." },
       { "h": "Çerezler", "p": "Oturum çerezi (HttpOnly) girişinizi tutar. Zorunlu olmayan pazarlama çerezi kullanılmaz." }
     ]
@@ -25,7 +25,7 @@
     "lead": "Bu sözleşme, {{company}} ile alıcı arasında elektronik ortamda kurulan satışa uygulanır.",
     "sections": [
       { "h": "Konu", "p": "Alıcının siteden sipariş verdiği el yapımı ürünlerin satışı ve teslimidir. El emeği parçalarda renk ve ölçü küçük farklılıklar gösterebilir; bu, ürünün ayıplı olduğu anlamına gelmez." },
-      { "h": "Bedel ve ödeme", "p": "Toplam bedel sipariş özetinde gösterilir. Kart ödemesi İyzico üzerinden alınır. Havale, ödemenin hesaba geçmesi ve onaylanmasıyla kesinleşir. Ödeme onaylanmadan ürün kargoya verilmez." },
+      { "h": "Bedel ve ödeme", "p": "Toplam bedel sipariş özetinde gösterilir. Ödeme havale/EFT veya WhatsApp siparişi ile yapılır. Havale, ödemenin hesaba geçmesi ve onaylanmasıyla kesinleşir. Ödeme onaylanmadan ürün kargoya verilmez." },
       { "h": "Teslimat", "p": "Kargo süresi ürün sayfasında ve kargo koşullarında belirtilir. Siparişe özel üretim süreleri ayrıca gösterilir." },
       { "h": "Cayma", "p": "Hazır ürünlerde teslimden itibaren 14 gün içinde cayma hakkı vardır. Kişiye özel üretilen veya hijyen gerekçesiyle iadesi uygun olmayan ürünlerde cayma hakkı kullanılamayabilir; bu durum ürün sayfasında belirtilir." }
     ]
@@ -36,7 +36,7 @@
     "sections": [
       { "h": "Satıcı", "p": "{{company}}\n{{address}}\n{{email}} {{phone}}" },
       { "h": "Ürün ve fiyat", "p": "Ürün adı, adet, birim fiyat, indirim, kargo ve toplam tutar ödeme adımındaki özette yer alır. Sipariş vererek bu özeti kabul etmiş olursunuz." },
-      { "h": "Ödeme ve teslim", "p": "Kart bilgisi İyzico sayfasında girilir. Havale talimatı, hesap tanımlıysa sipariş sonrası gösterilir. Teslimat adresi sizin yazdığınız adrestir." }
+      { "h": "Ödeme ve teslim", "p": "Sipariş havale/EFT veya WhatsApp ile tamamlanır. Havale talimatı, hesap tanımlıysa sipariş sonrası gösterilir. Teslimat adresi sizin yazdığınız adrestir." }
     ]
   },
   "iade": {

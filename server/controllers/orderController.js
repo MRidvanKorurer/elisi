@@ -1,8 +1,9 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Cart = require('../models/Cart');
-const iyzipay = require('../config/iyzipay');
-const Iyzipay = require('iyzipay');
+// Iyzico kapalı
+// const iyzipay = require('../config/iyzipay');
+// const Iyzipay = require('iyzipay');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts, releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
@@ -10,8 +11,9 @@ const { evaluatePromo, releasePromoUse } = require('../utils/promoCode');
 const PromoCode = require('../models/PromoCode');
 const Seller = require('../models/Seller');
 const { settlementsFromItems, ratesForSellers, allocateOrderDiscounts } = require('../utils/commission');
-const { clientUrl, serverUrl, isProd } = require('../utils/runtime');
-const { applyPaidStock } = require('../utils/orderStock');
+// Iyzico kapalı
+// const { clientUrl } = require('../utils/runtime');
+// const { applyPaidStock } = require('../utils/orderStock');
 const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillment');
 const { resolveBank, hasBankAccount } = require('../utils/bank');
 const { buildOrderPayouts } = require('../utils/orderPayouts');
@@ -31,6 +33,7 @@ const deleteOrderAndReleaseCoupon = async (order) => {
     await Order.findByIdAndDelete(order._id);
 };
 
+/* Iyzico kapalı
 const buildIyzicoBasket = (items, couponDiscount, shippingCost) => {
     const subtotal = money(items.reduce((sum, item) => sum + (item.price * item.quantity), 0));
     const discounted = money(Math.max(0, subtotal - couponDiscount));
@@ -86,6 +89,7 @@ const retrievePayment = (token) => {
         });
     });
 };
+*/
 
 const unitPriceOf = (product) => {
     const discountRate = Number(product.discountPercentage || 0);
@@ -101,16 +105,17 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Sepetiniz boş.' });
         }
 
-        const allowedMethods = ['credit_card', 'transfer', 'whatsapp'];
+        const allowedMethods = [/* 'credit_card', */ 'transfer', 'whatsapp'];
         if (!allowedMethods.includes(paymentMethod)) {
-            return res.status(400).json({ success: false, message: 'Geçersiz ödeme yöntemi.' });
+            return res.status(400).json({ success: false, message: 'Kart ödemesi kapalı. Havale/EFT veya WhatsApp ile devam edin.' });
         }
         if (savedCardId) {
             return res.status(400).json({
                 success: false,
-                message: 'Kayıtlı kart ödemesi kapalı. Kartla ödemede İyzico sayfasına yönlendirilirsiniz.'
+                message: 'Kart ödemesi kapalı. Havale/EFT veya WhatsApp ile devam edin.'
             });
         }
+        /* Iyzico kapalı
         if (paymentMethod === 'credit_card') {
             const identity = String(customerInfo?.identityNumber || '').replace(/\D/g, '');
             if (identity.length !== 11) {
@@ -120,6 +125,7 @@ exports.createOrder = async (req, res) => {
                 return res.status(503).json({ success: false, message: 'Kart ödemesi henüz yapılandırılmamış.' });
             }
         }
+        */
         let transferAccount = null;
         if (paymentMethod === 'transfer') {
             transferAccount = await resolveBank();
@@ -283,6 +289,7 @@ exports.createOrder = async (req, res) => {
             await PromoCode.findOneAndUpdate({ code: appliedPromo }, { $inc: { usedCount: 1 } });
         }
 
+        /* Iyzico kapalı
         if (paymentMethod === 'credit_card' && savedCardId) {
             if (!req.user) {
                 await deleteOrderAndReleaseCoupon(savedOrder);
@@ -371,6 +378,7 @@ exports.createOrder = async (req, res) => {
                 });
             }
         }
+        */
 
         if (req.user) {
             await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
@@ -390,6 +398,7 @@ exports.createOrder = async (req, res) => {
     }
 };
 
+/* Iyzico kapalı
 const finishPaymentCallback = async (req, res) => {
     try {
         const token = req.body.token || req.query.token;
@@ -434,6 +443,7 @@ const finishPaymentCallback = async (req, res) => {
 };
 
 exports.iyzicoCallback = finishPaymentCallback;
+*/
 
 const guestEmailMatches = (order, email) => {
     const given = String(email || '').trim().toLowerCase();

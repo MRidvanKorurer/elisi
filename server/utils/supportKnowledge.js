@@ -13,8 +13,7 @@ KARGO
 - İade onayı ve kargo kodu insan destek (WhatsApp) üzerinden netleşir.
 
 ÖDEME
-- Kredi/banka kartı: İyzico güvenli ödeme sayfası.
-- Kayıtlı kart: numarası sitede saklanmaz, sadece son 4 hane ve token tutulur.
+- Kart ödemesi kapalı.
 - Havale/EFT: sipariş sonrası banka bilgisi gösterilir; açıklamaya sipariş kodu yazılır.
 - WhatsApp ile sipariş de mümkün.
 
@@ -26,7 +25,7 @@ SATICI
 - Satıcı Ol sayfasından başvuru yapılır, inceleme sonrası onaylanır.
 - Satıcı kendi gelen siparişlerinin üretim durumunu panelinden günceller.
 - Platform payı, alıcının ödediği son tutarın %10’udur. Kargo ücreti varsa (ör. 300 ₺ ürün + 100 ₺ kargo) pay 40 ₺’dir. Kargo ücretsizse pay yalnızca ürün tutarındandır. Alıcı tek ödeme yapar; komisyon sitede kalır.
-- Kart: İyzico üye işyeri (site) tahsil eder. Havale/WhatsApp: alıcı site IBAN’ına tüm tutarı yatırır.
+- Alıcı site IBAN’ına tüm tutarı yatırır (havale) veya WhatsApp ile sipariş iletir.
 
 HESAP
 - Kayıt/giriş /giris sayfasındadır.
@@ -46,7 +45,7 @@ const FAQS = [
   },
   {
     keys: ['ödeme', 'odeme', 'kart', 'iyzico', 'havale', 'eft', 'taksit'],
-    answer: 'Kart ödemesi İyzico güvenli sayfasında alınır; kart numarası sitede saklanmaz. Havale/EFT’de sipariş kodunu açıklamaya yazarsın, ödeme görününce üretim başlar. Taksit seçenekleri İyzico sayfasında çıkar.'
+    answer: 'Ödeme havale/EFT veya WhatsApp siparişi ile alınır. Havale/EFT’de sipariş kodunu açıklamaya yazarsın; ödeme görününce üretim başlar.'
   },
   {
     keys: ['sipariş', 'siparis', 'kargo takip', 'nerede', 'durum'],
