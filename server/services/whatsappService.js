@@ -236,6 +236,9 @@ const ensureClient = () => {
     puppeteer: {
       headless: true,
       timeout: 120000,
+      handleSIGINT: false,
+      handleSIGTERM: false,
+      handleSIGHUP: false,
       executablePath,
       env: {
         ...process.env,
@@ -252,7 +255,12 @@ const ensureClient = () => {
           '--disable-software-rasterizer',
           '--font-render-hinting=none',
           ...(process.platform === 'win32' ? [] : ['--no-first-run'])
-        ])
+        ]),
+        '--disable-extensions',
+        '--disable-background-networking',
+        '--disable-sync',
+        '--metrics-recording-only',
+        '--mute-audio'
       ]
     }
   });
@@ -296,16 +304,10 @@ const ensureClient = () => {
   });
 
   client.on('disconnected', (reason) => {
-    console.warn('WhatsApp bağlantısı koptu:', reason);
-    destroyClient()
-      .then(() => {
-        setTimeout(() => {
-          initWhatsApp().catch((error) => {
-            console.error('WhatsApp yeniden bağlanamadı:', error.message);
-          });
-        }, 4000);
-      })
-      .catch(() => {});
+    console.warn('WhatsApp bağlantısı koptu (otomatik yeniden açılmayacak):', reason);
+    lastError = 'WhatsApp koptu. Site hızı için Chrome yeniden açılmıyor; panelden başlatın.';
+    nextRetryAt = Date.now() + 10 * 60 * 1000;
+    destroyClient().catch(() => {});
   });
 
   return client;
@@ -390,8 +392,13 @@ const initWhatsApp = async () => {
     starting = false;
   } catch (error) {
     const message = error.message || String(error);
+    lastError = message;
+    if (/Target closed|Protocol error|Runtime\.evaluate/i.test(message)) {
+      nextRetryAt = Date.now() + 15 * 60 * 1000;
+      lastError = 'Tarayıcı kapandı (Target closed). Chrome API ile aynı bellekten yeniyor; panelden sonra tekrar deneyin.';
+    }
     if (/ETXTBSY|V8 startup snapshot|Failed to launch the browser/i.test(message)) {
-      nextRetryAt = Date.now() + 20000;
+      nextRetryAt = Date.now() + 120000;
       try {
         fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
       } catch {
@@ -415,8 +422,7 @@ const initWhatsApp = async () => {
         return;
       }
     }
-    lastError = message;
-    console.error('WhatsApp başlatılamadı:', message);
+    console.error('WhatsApp başlatılamadı:', lastError || message);
     await destroyClient();
   }
 };
@@ -435,20 +441,39 @@ const restartWhatsApp = async () => {
   return initWhatsApp();
 };
 
+const MAX_PENDING = 30;
+const pendingSends = [];
+
+const enqueuePending = (chatId, text) => {
+  if (pendingSends.length >= MAX_PENDING) pendingSends.shift();
+  pendingSends.push({ chatId, text });
+};
+
 const sendText = async (phone, text) => {
   const chatId = formatPhoneNumber(phone);
   if (!chatId || !text) return false;
   if (!ready || !client) {
-    pendingSends.push({ chatId, text });
+    enqueuePending(chatId, text);
+    lastError = lastError || 'Sipariş kuyrukta: WhatsApp henüz bağlı değil (QR taranıp yeşil Bağlı olmalı).';
     console.warn('WhatsApp hazır değil, mesaj kuyruğa alındı:', chatId);
     return false;
   }
-  await client.sendMessage(chatId, text);
-  console.log('WhatsApp mesajı gitti:', chatId);
-  return true;
+  try {
+    await Promise.race([
+      client.sendMessage(chatId, text),
+      sleep(12000).then(() => {
+        throw new Error('WhatsApp gönderim 12 sn aştı');
+      })
+    ]);
+    console.log('WhatsApp mesajı gitti:', chatId);
+    return true;
+  } catch (error) {
+    enqueuePending(chatId, text);
+    console.error('WhatsApp gönderilemedi:', chatId, error.message);
+    lastError = error.message;
+    return false;
+  }
 };
-
-const pendingSends = [];
 
 const flushPending = async () => {
   while (pendingSends.length && ready && client) {
@@ -511,14 +536,24 @@ const notifyNewOrder = async ({
       `*Toplam:* *${formatTry(totalPrice)}*`
     ].join('\n');
 
-    const targets = uniquePhones(
+    const extraNotify = String(process.env.WHATSAPP_NOTIFY_PHONES || '').split(/[,;\s]+/).filter(Boolean);
+    const fromChat = formatPhoneNumber(expectedFromDigits());
+    let targets = uniquePhones(
       sellerPhones,
       sellerPhone,
       superAdminPhone,
       process.env.SELLER_PHONE,
       process.env.SUPER_ADMIN_PHONE,
-      expectedFromDigits()
+      extraNotify
     );
+    if (fromChat && !targets.includes(fromChat)) targets.push(fromChat);
+
+    console.log('WhatsApp sipariş bildirimi', {
+      ready,
+      starting,
+      targets,
+      queued: pendingSends.length
+    });
 
     if (!targets.length) {
       console.warn('WhatsApp sipariş bildirimi: gönderilecek telefon yok.');
@@ -643,7 +678,11 @@ const getWhatsAppStatus = () => ({
   qr: lastQr || '',
   pending: pendingSends.length,
   error: lastError || '',
-  note: chromeNote || '',
+  note: chromeNote || (ready
+    ? 'Oturum açık; sipariş mesajı gidebilir.'
+    : lastQr
+      ? 'QR görünmesi bağlı olmak değildir. Telefondan tarayıp yeşil Bağlı yazana kadar sipariş WhatsApp’ı gitmez.'
+      : 'Chrome kapalı. Site hızlı kalsın diye açılışta WhatsApp başlamaz; aşağıdaki düğmeyle açın.'),
   chrome: preparedChromePath || resolveChromeExecutable() || ''
 });
 

@@ -22,7 +22,6 @@ const connectDB = require('./config/db');
 connectDB();
 
 const { corsOriginDelegate, warnProductionConfig } = require('./utils/runtime');
-const { initWhatsApp } = require('./services/whatsappService');
 const { configured: mediaConfigured } = require('./utils/mediaStore');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -108,11 +107,7 @@ const PORT = process.env.PORT || 5000;
 warnProductionConfig();
 app.listen(PORT, () => {
   console.log(`✅ Sunucu ${PORT} portunda güvenli şekilde çalışıyor...`);
-  setTimeout(() => {
-    initWhatsApp().catch((error) => {
-      console.error('WhatsApp başlatılamadı, site açık kalacak:', error.message);
-    });
-  }, 8000);
+  console.log('WhatsApp Chrome açılışta kapalı; panelden “WhatsApp’ı başlat” ile açılır (site yavaşlamasın diye).');
   if (process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY) {
     console.log('✅ Destek asistanı LLM anahtarı yüklendi');
   }

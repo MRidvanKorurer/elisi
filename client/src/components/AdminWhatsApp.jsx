@@ -22,8 +22,8 @@ export default function AdminWhatsApp() {
         if (!cancelled) setError(err.response?.data?.mesaj || 'WhatsApp durumu alınamadı.');
       }
     };
-    load();
-    const timer = window.setInterval(load, 3000);
+        load();
+    const timer = window.setInterval(load, 8000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -52,7 +52,7 @@ export default function AdminWhatsApp() {
       <SectionTitle
         overline="WHATSAPP"
         title="Canlı bildirim oturumu"
-        subtitle="QR çıkınca 0554 379 32 35 telefonundan WhatsApp → Bağlı cihazlar ile tara."
+        subtitle="QR çıkması bağlı olmak değildir. 0554 379 32 35 ile tara; chip yeşil Bağlı olunca sipariş mesajı gider. Chrome mağaza API’sini yavaşlattığı için sunucu açılışında kapalıdır — buradan başlatın."
       />
       {error ? <Alert severity="error" sx={{ mb: 2, borderRadius: '14px' }}>{error}</Alert> : null}
       {status?.note ? <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>{status.note}</Alert> : null}
@@ -78,22 +78,27 @@ export default function AdminWhatsApp() {
             Bağlı hesap: {status.connected}
           </Typography>
         ) : null}
+        {status?.pending ? (
+          <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1.5 }}>
+            Kuyrukta bekleyen mesaj: {status.pending} (bağlı olunca gider)
+          </Typography>
+        ) : null}
         {qrSrc ? (
           <Box sx={{ mt: 1 }}>
             <Box component="img" src={qrSrc} alt="WhatsApp QR" sx={{ width: 280, height: 280, display: 'block' }} />
             <Typography sx={{ color: T.muted, mt: 1, fontWeight: 600 }}>
-              WhatsApp → Ayarlar → Bağlı cihazlar → Cihaz bağla
+              WhatsApp → Ayarlar → Bağlı cihazlar → Cihaz bağla. Taramadan sonra bu QR kaybolup Bağlı yazmalı.
             </Typography>
           </Box>
         ) : status?.ready ? (
           <Typography sx={{ color: T.navy, fontWeight: 800 }}>Oturum açık. Canlı sipariş denemesi yapabilirsin.</Typography>
         ) : (
           <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1.5 }}>
-            QR henüz oluşmadı. Render’da Chrome açılmazsa bu ekran takılı kalır; kırmızı hata veya Yeniden dene kullan.
+            WhatsApp kapalı. Siteyi yavaşlatmamak için Chrome otomatik açılmaz. Aşağıdaki düğmeyle başlatın.
           </Typography>
         )}
         <Button variant="contained" onClick={restart} disabled={busy} sx={{ ...primaryButton, mt: 2 }}>
-          {busy ? 'Başlatılıyor…' : 'Yeniden dene'}
+          {busy ? 'Başlatılıyor…' : status?.ready || status?.qr || status?.starting ? 'Yeniden dene' : 'WhatsApp’ı başlat'}
         </Button>
       </PanelCard>
     </Box>

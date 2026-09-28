@@ -397,16 +397,6 @@ exports.createOrder = async (req, res) => {
             ].filter(Boolean);
         }
 
-        notifyNewOrder({
-            orderId: savedOrder._id,
-            customerName: `${savedOrder.customerInfo.firstName} ${savedOrder.customerInfo.lastName}`.trim(),
-            customerPhone: savedOrder.customerInfo.phone,
-            items: savedOrder.orderItems,
-            totalPrice,
-            sellerPhones,
-            superAdminPhone: process.env.SUPER_ADMIN_PHONE
-        }).catch((error) => console.error('WhatsApp sipariş bildirimi:', error.message));
-
         res.status(201).json({
             success: true,
             message: 'Sipariş başarıyla oluşturuldu.',
@@ -414,6 +404,18 @@ exports.createOrder = async (req, res) => {
             paymentMethod,
             totalPrice,
             bank: transferAccount ? publicBank(transferAccount) : undefined
+        });
+
+        setImmediate(() => {
+            notifyNewOrder({
+                orderId: savedOrder._id,
+                customerName: `${savedOrder.customerInfo.firstName} ${savedOrder.customerInfo.lastName}`.trim(),
+                customerPhone: savedOrder.customerInfo.phone,
+                items: savedOrder.orderItems,
+                totalPrice,
+                sellerPhones,
+                superAdminPhone: process.env.SUPER_ADMIN_PHONE
+            }).catch((error) => console.error('WhatsApp sipariş bildirimi:', error.message));
         });
     } catch (error) {
         console.error('Sipariş oluşturma hatası:', error);
