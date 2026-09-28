@@ -385,12 +385,6 @@ exports.createOrder = async (req, res) => {
             await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
         }
 
-        const sellerIds = [...new Set(
-            (savedOrder.orderItems || [])
-                .map((item) => item.seller)
-                .filter(Boolean)
-                .map((id) => String(id))
-        )];
         let sellerPhones = [];
         if (sellerIds.length) {
             const [sellerProfiles, sellerUsers] = await Promise.all([
