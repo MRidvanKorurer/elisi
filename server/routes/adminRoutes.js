@@ -19,7 +19,8 @@ const {
   updateOrder,
   markOrderPayout,
   markSellerPayouts,
-  getWhatsApp
+  getWhatsApp,
+  restartWhatsAppSession
 } = require('../controllers/adminController');
 const { listPromos, createPromo, updatePromo, deletePromo } = require('../controllers/promoController');
 const { listAdminFeatured, reviewFeatured, removeFeatured, giftFeatured, updateFeaturedSettings } = require('../controllers/featuredController');
@@ -37,6 +38,7 @@ router.use(protect, superAdmin);
 
 router.get('/overview', getOverview);
 router.get('/whatsapp', getWhatsApp);
+router.post('/whatsapp/restart', restartWhatsAppSession);
 router.get('/reports', getAdminReports);
 router.get('/reports/sellers/:sellerId', getAdminSellerReport);
 router.get('/ads', getAdsBoard);

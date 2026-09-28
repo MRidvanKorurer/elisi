@@ -138,12 +138,16 @@ let ready = false;
 let starting = false;
 let lastQr = '';
 let connectedDigits = '';
+let lastError = '';
+let startedAt = 0;
+let chromeNote = '';
 
 const destroyClient = async () => {
   ready = false;
   starting = false;
   lastQr = '';
   connectedDigits = '';
+  startedAt = 0;
   const current = client;
   client = null;
   if (!current) return;
@@ -179,13 +183,16 @@ const ensureClient = () => {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu'
+        '--disable-gpu',
+        ...(process.platform === 'win32' ? [] : ['--single-process', '--no-first-run'])
       ]
     }
   });
 
   client.on('qr', (qr) => {
     lastQr = qr;
+    lastError = '';
+    starting = false;
     ready = false;
     console.log(`WhatsApp QR hazır. Panel > WhatsApp veya 0554 379 32 35 ile Bağlı cihazlar.`);
     qrcode.generate(qr, { small: true });
@@ -204,6 +211,8 @@ const ensureClient = () => {
     }
     lastQr = '';
     ready = true;
+    starting = false;
+    lastError = '';
     console.log(`WhatsApp bağlandı (whatsapp-web.js). Gönderen: ${connected || expected}`);
     flushPending().catch((error) => console.error('WhatsApp kuyruk hatası:', error.message));
   });
@@ -214,6 +223,7 @@ const ensureClient = () => {
 
   client.on('auth_failure', (message) => {
     ready = false;
+    lastError = `Kimlik doğrulama hatası: ${message}`;
     console.error('WhatsApp kimlik doğrulama hatası:', message);
   });
 
@@ -233,17 +243,52 @@ const ensureClient = () => {
   return client;
 };
 
+const ensureChromeInstalled = async () => {
+  const existing = resolveChromeExecutable();
+  if (existing) return existing;
+  chromeNote = 'Chrome indiriliyor, bir dakika sürebilir…';
+  const { execFile } = require('child_process');
+  const { promisify } = require('util');
+  const exec = promisify(execFile);
+  try {
+    await exec('npx', ['--yes', 'puppeteer', 'browsers', 'install', 'chrome'], {
+      timeout: 180000,
+      shell: process.platform === 'win32'
+    });
+  } finally {
+    chromeNote = '';
+  }
+  const next = resolveChromeExecutable();
+  if (!next) {
+    throw new Error('Canlı sunucuda Chrome yok. Render build’de Puppeteer Chrome kurulmalı.');
+  }
+  return next;
+};
+
 const initWhatsApp = async () => {
   if (process.env.WHATSAPP_DISABLED === '1') {
-    console.log('WhatsApp bildirimleri kapalı (WHATSAPP_DISABLED=1).');
+    lastError = 'WhatsApp kapalı (WHATSAPP_DISABLED=1).';
+    console.log(lastError);
     return;
   }
-  if (starting || ready) return;
+  if (ready) return;
+  if (starting && Date.now() - startedAt < 120000) return;
+  if (starting) await destroyClient();
+
   starting = true;
+  startedAt = Date.now();
+  lastError = '';
   releaseSessionBrowser();
   try {
+    await ensureChromeInstalled();
     const wa = ensureClient();
-    await wa.initialize();
+    await Promise.race([
+      wa.initialize(),
+      sleep(90000).then(() => {
+        throw new Error('Tarayıcı 90 saniyede açılmadı. Render’da Chrome bellek/izin nedeniyle takılıyor olabilir.');
+      })
+    ]);
+    starting = false;
   } catch (error) {
     const busy = /already running/i.test(error.message || '');
     if (busy) {
@@ -253,18 +298,25 @@ const initWhatsApp = async () => {
       try {
         const wa = ensureClient();
         await wa.initialize();
+        starting = false;
         return;
       } catch (retryError) {
-        starting = false;
-        client = null;
+        lastError = retryError.message;
         console.error('WhatsApp başlatılamadı:', retryError.message);
+        await destroyClient();
         return;
       }
     }
-    starting = false;
-    client = null;
+    lastError = error.message;
     console.error('WhatsApp başlatılamadı:', error.message);
+    await destroyClient();
   }
+};
+
+const restartWhatsApp = async () => {
+  await destroyClient();
+  lastError = '';
+  return initWhatsApp();
 };
 
 const sendText = async (phone, text) => {
@@ -469,14 +521,19 @@ const notifyFavoritesIfDiscounted = async (product, previous = {}) => {
 
 const getWhatsAppStatus = () => ({
   ready,
+  starting,
   from: expectedFromDigits(),
   connected: connectedDigits || '',
   qr: lastQr || '',
-  pending: pendingSends.length
+  pending: pendingSends.length,
+  error: lastError || '',
+  note: chromeNote || '',
+  chrome: resolveChromeExecutable() || ''
 });
 
 module.exports = {
   initWhatsApp,
+  restartWhatsApp,
   waitUntilReady,
   sendText,
   destroyClient,

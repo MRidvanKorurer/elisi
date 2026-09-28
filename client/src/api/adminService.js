@@ -39,5 +39,6 @@ export const adminService = {
   updateCategory: async (id, payload) =>
     (await API.put(`/admin/categories/${id}`, payload, payload instanceof FormData ? multipart : undefined)).data,
   deleteCategory: async (id) => (await API.delete(`/admin/categories/${id}`)).data,
-  whatsapp: async () => (await API.get('/admin/whatsapp')).data
+  whatsapp: async () => (await API.get('/admin/whatsapp')).data,
+  restartWhatsApp: async () => (await API.post('/admin/whatsapp/restart')).data
 };
