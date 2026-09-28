@@ -63,30 +63,38 @@ const resolveChromeExecutable = () => {
 
 const CHROME_CLONE_DIR = path.join(os.tmpdir(), 'nikbag-chrome');
 
-const spawnableChrome = (sourcePath, force = false) => {
-  if (!sourcePath) return undefined;
+const waitFileIdle = async (file) => {
+  if (!file || !fs.existsSync(file)) return;
+  let last = -1;
+  for (let i = 0; i < 25; i += 1) {
+    const size = fs.statSync(file).size;
+    if (size === last && size > 5_000_000) return;
+    last = size;
+    await sleep(400);
+  }
+};
+
+const copyChromeAsync = async (sourcePath) => {
+  if (!sourcePath) throw new Error('Chrome yolu yok.');
   if (process.platform === 'win32') return sourcePath;
   const srcDir = path.dirname(sourcePath);
-  const binName = path.basename(sourcePath);
-  const destBin = path.join(CHROME_CLONE_DIR, binName);
-  try {
-    if (force && fs.existsSync(CHROME_CLONE_DIR)) {
-      fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
-    }
-    if (!fs.existsSync(destBin)) {
-      fs.cpSync(srcDir, CHROME_CLONE_DIR, { recursive: true });
-    }
-    fs.chmodSync(destBin, 0o755);
-    return destBin;
-  } catch (error) {
-    console.warn('Chrome kopyalanamadı:', error.message);
+  const destBin = path.join(CHROME_CLONE_DIR, path.basename(sourcePath));
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
     try {
-      fs.chmodSync(sourcePath, 0o755);
-    } catch {
-      /* chmod gerekmeyebilir */
+      fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
+      fs.mkdirSync(CHROME_CLONE_DIR, { recursive: true });
+      execFileSync('cp', ['-a', `${srcDir}/.`, `${CHROME_CLONE_DIR}/`], { timeout: 180000 });
+      fs.chmodSync(destBin, 0o755);
+      await sleep(800);
+      if (!fs.existsSync(destBin)) throw new Error('kopya ikili yok');
+      console.log('WhatsApp tarayıcı (tmp):', destBin);
+      return destBin;
+    } catch (error) {
+      console.warn(`Chrome kopya ${attempt}/8:`, error.message);
+      await sleep(1000 * attempt);
     }
-    return sourcePath;
   }
+  throw new Error('Chrome /tmp kopyası alınamadı (ETXTBSY). Render cache dosyası kilitli.');
 };
 
 const releaseSessionBrowser = () => {
@@ -170,7 +178,7 @@ let lastError = '';
 let startedAt = 0;
 let chromeNote = '';
 let nextRetryAt = 0;
-let forceChromeCopy = false;
+let preparedChromePath = '';
 
 const destroyClient = async () => {
   ready = false;
@@ -194,13 +202,14 @@ const ensureClient = () => {
     throw new Error('whatsapp-web.js bu ortamda yüklenemedi.');
   }
 
-  const executablePath = spawnableChrome(resolveChromeExecutable(), forceChromeCopy);
-  forceChromeCopy = false;
-  if (executablePath) {
-    console.log('WhatsApp tarayıcı:', executablePath);
-  } else {
-    console.warn('Sistem Chrome yok; Puppeteer kendi Chrome’unu deneyecek.');
+  const executablePath = preparedChromePath || (process.platform === 'win32' ? resolveChromeExecutable() : '');
+  if (!executablePath) {
+    throw new Error('WhatsApp tarayıcı yolu hazır değil.');
   }
+  if (process.platform !== 'win32' && executablePath.includes(`${path.sep}.cache${path.sep}puppeteer${path.sep}`)) {
+    throw new Error('Chrome cache üzerinden açılamaz; /tmp kopyası gerekli.');
+  }
+  console.log('WhatsApp tarayıcı:', executablePath);
 
   client = new Client({
     authStrategy: new LocalAuth({
@@ -312,7 +321,9 @@ const initWhatsApp = async () => {
   lastError = '';
   releaseSessionBrowser();
   try {
-    await ensureChromeInstalled();
+    const source = await ensureChromeInstalled();
+    await waitFileIdle(source);
+    preparedChromePath = await copyChromeAsync(source);
     const wa = ensureClient();
     await Promise.race([
       wa.initialize(),
@@ -323,10 +334,13 @@ const initWhatsApp = async () => {
     starting = false;
   } catch (error) {
     const message = error.message || String(error);
-    const busyFile = /ETXTBSY|V8 startup snapshot|Failed to launch the browser/i.test(message);
-    if (busyFile) {
-      forceChromeCopy = true;
+    if (/ETXTBSY|V8 startup snapshot|Failed to launch the browser/i.test(message)) {
       nextRetryAt = Date.now() + 20000;
+      try {
+        fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
+      } catch {
+        /* tmp temizliği */
+      }
     }
     const busy = /already running/i.test(message);
     if (busy) {
@@ -353,7 +367,12 @@ const initWhatsApp = async () => {
 
 const restartWhatsApp = async () => {
   nextRetryAt = 0;
-  forceChromeCopy = true;
+  preparedChromePath = '';
+  try {
+    fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
+  } catch {
+    /* yok */
+  }
   await destroyClient();
   lastError = '';
   return initWhatsApp();
@@ -568,7 +587,7 @@ const getWhatsAppStatus = () => ({
   pending: pendingSends.length,
   error: lastError || '',
   note: chromeNote || '',
-  chrome: resolveChromeExecutable() || ''
+  chrome: preparedChromePath || resolveChromeExecutable() || ''
 });
 
 module.exports = {
