@@ -116,7 +116,7 @@ function StatCard({ icon: Icon, title, value, hint, tone = T.rose }) {
 }
 
 export default function AdminPanel({ user, handleLogout }) {
-  const [view, setView] = useState('dashboard');
+  const [view, setView] = useState('whatsapp');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [overview, setOverview] = useState(null);
@@ -551,6 +551,7 @@ export default function AdminPanel({ user, handleLogout }) {
   };
 
   const nav = [
+    { id: 'whatsapp', label: 'WhatsApp QR', icon: WhatsApp },
     { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },
@@ -560,7 +561,6 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'commission', label: 'Satıcı ödemeleri', icon: AccountBalanceOutlined },
     { id: 'bank', label: 'IBAN hesapları', icon: PaymentsOutlined },
-    { id: 'whatsapp', label: 'WhatsApp', icon: WhatsApp },
     { id: 'products', label: 'Ürünler', icon: Inventory2Outlined },
     { id: 'categories', label: 'Kategoriler', icon: CategoryOutlined },
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
@@ -607,6 +607,9 @@ export default function AdminPanel({ user, handleLogout }) {
             title="Günlük durum"
             subtitle="Ödeme onayı, ürün incelemesi ve satıcı başvurularını buradan yönetin. Sipariş kargosunu satıcı ilerletir."
           />
+          <Box sx={{ mb: 2.4 }}>
+            <AdminWhatsApp />
+          </Box>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, 1fr)' }, gap: 1.8, mb: 2 }}>
             <StatCard icon={ShoppingBagOutlined} title="Bugünkü sipariş" value={overview.todayOrders} hint="Adet" tone={T.navy} />
