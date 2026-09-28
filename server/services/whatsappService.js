@@ -198,6 +198,7 @@ let startedAt = 0;
 let chromeNote = '';
 let nextRetryAt = 0;
 let preparedChromePath = '';
+let preparedChromeArgs = [];
 
 const destroyClient = async () => {
   ready = false;
@@ -225,9 +226,6 @@ const ensureClient = () => {
   if (!executablePath) {
     throw new Error('WhatsApp tarayıcı yolu hazır değil.');
   }
-  if (process.platform !== 'win32' && executablePath.includes(`${path.sep}.cache${path.sep}puppeteer${path.sep}`)) {
-    throw new Error('Chrome cache üzerinden açılamaz; /tmp kopyası gerekli.');
-  }
   console.log('WhatsApp tarayıcı:', executablePath);
 
   client = new Client({
@@ -238,7 +236,7 @@ const ensureClient = () => {
     puppeteer: {
       headless: true,
       timeout: 120000,
-      ...(executablePath ? { executablePath } : {}),
+      executablePath,
       env: {
         ...process.env,
         HOME: CHROME_HOME_DIR,
@@ -246,13 +244,15 @@ const ensureClient = () => {
         FONTCONFIG_PATH: '/etc/fonts'
       },
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--font-render-hinting=none',
-        ...(process.platform === 'win32' ? [] : ['--no-first-run'])
+        ...(preparedChromeArgs.length ? preparedChromeArgs : [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--font-render-hinting=none',
+          ...(process.platform === 'win32' ? [] : ['--no-first-run'])
+        ])
       ]
     }
   });
@@ -333,6 +333,34 @@ const ensureChromeInstalled = async () => {
   return next;
 };
 
+const resolveLiveBrowser = async () => {
+  if (process.platform === 'win32') {
+    return { executablePath: resolveChromeExecutable(), args: [] };
+  }
+  try {
+    const chromium = require('@sparticuz/chromium');
+    if ('setGraphicsMode' in chromium) chromium.setGraphicsMode = false;
+    fs.mkdirSync(CHROME_HOME_DIR, { recursive: true });
+    const executablePath = await chromium.executablePath();
+    if (!executablePath || !fs.existsSync(executablePath)) {
+      throw new Error('sparticuz chromium yolu boş');
+    }
+    console.log('WhatsApp tarayıcı (sparticuz):', executablePath);
+    return {
+      executablePath,
+      args: [...(chromium.args || []), '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    };
+  } catch (error) {
+    console.warn('sparticuz chromium kullanılamadı:', error.message);
+    const source = await ensureChromeInstalled();
+    await waitFileIdle(source);
+    return {
+      executablePath: await copyChromeAsync(source),
+      args: []
+    };
+  }
+};
+
 const initWhatsApp = async () => {
   if (process.env.WHATSAPP_DISABLED === '1') {
     lastError = 'WhatsApp kapalı (WHATSAPP_DISABLED=1).';
@@ -349,9 +377,9 @@ const initWhatsApp = async () => {
   lastError = '';
   releaseSessionBrowser();
   try {
-    const source = await ensureChromeInstalled();
-    await waitFileIdle(source);
-    preparedChromePath = await copyChromeAsync(source);
+    const browser = await resolveLiveBrowser();
+    preparedChromePath = browser.executablePath;
+    preparedChromeArgs = browser.args || [];
     const wa = ensureClient();
     await Promise.race([
       wa.initialize(),
@@ -396,6 +424,7 @@ const initWhatsApp = async () => {
 const restartWhatsApp = async () => {
   nextRetryAt = 0;
   preparedChromePath = '';
+  preparedChromeArgs = [];
   try {
     fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
   } catch {

@@ -24,7 +24,7 @@ const systemChrome = () => {
   ].find(exists);
 };
 
-if (process.env.WHATSAPP_SKIP_CHROME === '1') process.exit(0);
+if (process.env.WHATSAPP_SKIP_CHROME === '1' || process.env.RENDER === 'true') process.exit(0);
 if (systemChrome()) process.exit(0);
 
 try {
