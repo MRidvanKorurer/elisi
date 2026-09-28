@@ -22,8 +22,8 @@ export default function AdminWhatsApp() {
         if (!cancelled) setError(err.response?.data?.mesaj || 'WhatsApp durumu alınamadı.');
       }
     };
-        load();
-    const timer = window.setInterval(load, 8000);
+    load();
+    const timer = window.setInterval(load, 12000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -37,68 +37,52 @@ export default function AdminWhatsApp() {
       setStatus(data);
       setError(data.error || '');
     } catch (err) {
-      setError(err.response?.data?.mesaj || 'Yeniden başlatılamadı.');
+      setError(err.response?.data?.mesaj || 'Test gönderilemedi.');
     } finally {
       setBusy(false);
     }
   };
 
-  const qrSrc = status?.qr
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(status.qr)}`
-    : '';
+  const cloud = status?.provider === 'cloud' || status?.configured;
 
   return (
     <Box>
       <SectionTitle
         overline="WHATSAPP"
-        title="Canlı bildirim oturumu"
-        subtitle="QR çıkması bağlı olmak değildir. 0554 379 32 35 ile tara; chip yeşil Bağlı olunca sipariş mesajı gider. Chrome mağaza API’sini yavaşlattığı için sunucu açılışında kapalıdır — buradan başlatın."
+        title="Meta Cloud API"
+        subtitle="QR ve Chrome canlıda kullanılmıyor. Bildirimler Meta’nın resmi WhatsApp API’si ile gider; mağaza hızı etkilenmez."
       />
       {error ? <Alert severity="error" sx={{ mb: 2, borderRadius: '14px' }}>{error}</Alert> : null}
       {status?.note ? <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>{status.note}</Alert> : null}
-      <PanelCard sx={{ maxWidth: 560 }}>
+      <PanelCard sx={{ maxWidth: 640 }}>
         <Chip
-          label={status?.ready ? 'Bağlı' : status?.qr ? 'QR bekliyor' : status?.starting ? 'Bağlanıyor' : 'Kapalı'}
-          sx={{ fontWeight: 800, mb: 1.5, bgcolor: status?.ready ? '#E8F5E9' : '#FFF8E1' }}
+          label={cloud ? 'Meta Cloud bağlı' : 'Anahtar yok'}
+          sx={{ fontWeight: 800, mb: 1.5, bgcolor: cloud ? '#E8F5E9' : '#FFF8E1' }}
         />
-        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 0.5 }}>
-          Gönderen: {status?.from || '905543793235'}
+        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1 }}>
+          Gönderen numara: {status?.from || '905543793235'}
         </Typography>
-        {status?.chrome ? (
-          <Typography sx={{ color: T.muted, fontWeight: 600, mb: 0.5, fontSize: '0.8rem' }}>
-            Tarayıcı: {status.chrome}
-          </Typography>
-        ) : (
-          <Typography sx={{ color: T.muted, fontWeight: 600, mb: 0.5, fontSize: '0.8rem' }}>
-            Tarayıcı yolu yok — Render Chrome kurmaya çalışıyor olabilir.
-          </Typography>
-        )}
-        {status?.connected ? (
-          <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1.5 }}>
-            Bağlı hesap: {status.connected}
-          </Typography>
-        ) : null}
-        {status?.pending ? (
-          <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1.5 }}>
-            Kuyrukta bekleyen mesaj: {status.pending} (bağlı olunca gider)
-          </Typography>
-        ) : null}
-        {qrSrc ? (
-          <Box sx={{ mt: 1 }}>
-            <Box component="img" src={qrSrc} alt="WhatsApp QR" sx={{ width: 280, height: 280, display: 'block' }} />
-            <Typography sx={{ color: T.muted, mt: 1, fontWeight: 600 }}>
-              WhatsApp → Ayarlar → Bağlı cihazlar → Cihaz bağla. Taramadan sonra bu QR kaybolup Bağlı yazmalı.
-            </Typography>
-          </Box>
-        ) : status?.ready ? (
-          <Typography sx={{ color: T.navy, fontWeight: 800 }}>Oturum açık. Canlı sipariş denemesi yapabilirsin.</Typography>
-        ) : (
-          <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1.5 }}>
-            WhatsApp kapalı. Siteyi yavaşlatmamak için Chrome otomatik açılmaz. Aşağıdaki düğmeyle başlatın.
-          </Typography>
-        )}
-        <Button variant="contained" onClick={restart} disabled={busy} sx={{ ...primaryButton, mt: 2 }}>
-          {busy ? 'Başlatılıyor…' : status?.ready || status?.qr || status?.starting ? 'Yeniden dene' : 'WhatsApp’ı başlat'}
+        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1 }}>
+          Sipariş şablonu: {status?.template || 'siparis_geldi'} (tr)
+        </Typography>
+        <Typography sx={{ color: T.navy, fontWeight: 700, mb: 1 }}>Render’a eklenecekler</Typography>
+        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 0.5, display: 'block' }}>
+          WHATSAPP_TOKEN — Meta kalıcı erişim jetonu
+        </Typography>
+        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 0.5, display: 'block' }}>
+          WHATSAPP_PHONE_NUMBER_ID — Cloud API telefon kimliği
+        </Typography>
+        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 1.5, display: 'block' }}>
+          WHATSAPP_TEST_PHONE — testin gideceği cep (iş numarasının kendisi olmasın)
+        </Typography>
+        <Typography sx={{ color: T.muted, fontWeight: 600, mb: 2 }}>
+          Meta Business’ta UTILITY şablon: siparis_geldi, dil tr, gövde değişkenleri:
+          {' '}
+          {'{{1}}'} sipariş no, {'{{2}}'} müşteri, {'{{3}}'} telefon, {'{{4}}'} sepet, {'{{5}}'} toplam.
+          Onaylanmadan ilk mesaj gitmez. Bu numarayı Cloud API’ye alınca telefondaki normal WhatsApp kapanır.
+        </Typography>
+        <Button variant="contained" onClick={restart} disabled={busy || !cloud} sx={{ ...primaryButton, mt: 1 }}>
+          {busy ? 'Gönderiliyor…' : 'Test mesajı gönder'}
         </Button>
       </PanelCard>
     </Box>

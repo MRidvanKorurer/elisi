@@ -551,7 +551,7 @@ export default function AdminPanel({ user, handleLogout }) {
   };
 
   const nav = [
-    { id: 'whatsapp', label: 'WhatsApp QR', icon: WhatsApp },
+    { id: 'whatsapp', label: 'WhatsApp', icon: WhatsApp },
     { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },

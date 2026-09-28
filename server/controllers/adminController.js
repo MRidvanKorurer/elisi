@@ -671,10 +671,10 @@ const getWhatsApp = async (_req, res) => {
 
 const restartWhatsAppSession = async (_req, res) => {
   try {
-    restartWhatsApp().catch((error) => console.error('WhatsApp restart:', error.message));
-    return res.json({ success: true, ...getWhatsAppStatus(), mesaj: 'WhatsApp yeniden başlatılıyor.' });
+    await restartWhatsApp();
+    return res.json({ success: true, ...getWhatsAppStatus(), mesaj: 'WhatsApp güncellendi.' });
   } catch (error) {
-    return res.status(500).json({ success: false, mesaj: 'WhatsApp yeniden başlatılamadı.', hata: error.message });
+    return res.status(500).json({ success: false, mesaj: 'WhatsApp güncellenemedi.', hata: error.message });
   }
 };
 

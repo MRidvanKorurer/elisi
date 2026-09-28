@@ -5,6 +5,7 @@ const { execFileSync } = require('child_process');
 const qrcode = require('qrcode-terminal');
 const User = require('../models/User');
 const { siteUrl } = require('../utils/runtime');
+const whatsappCloud = require('./whatsappCloud');
 
 let Client = null;
 let LocalAuth = null;
@@ -363,10 +364,22 @@ const resolveLiveBrowser = async () => {
   }
 };
 
+const allowWebJs = () =>
+  process.env.WHATSAPP_ALLOW_WEBJS === '1' || process.platform === 'win32';
+
 const initWhatsApp = async () => {
   if (process.env.WHATSAPP_DISABLED === '1') {
     lastError = 'WhatsApp kapalı (WHATSAPP_DISABLED=1).';
     console.log(lastError);
+    return;
+  }
+  if (whatsappCloud.configured()) {
+    lastError = '';
+    console.log('WhatsApp Meta Cloud API hazır (Chrome/QR yok).');
+    return;
+  }
+  if (!allowWebJs()) {
+    lastError = 'Canlıda QR/Chrome yok. Render Environment: WHATSAPP_TOKEN ve WHATSAPP_PHONE_NUMBER_ID.';
     return;
   }
   if (ready) return;
@@ -428,6 +441,23 @@ const initWhatsApp = async () => {
 };
 
 const restartWhatsApp = async () => {
+  if (whatsappCloud.configured()) {
+    lastError = '';
+    const testTo = process.env.WHATSAPP_TEST_PHONE || process.env.SELLER_PHONE || expectedFromDigits();
+    try {
+      await sendText(testTo, 'Nikbagstore test: Meta Cloud API çalışıyor.', { kind: 'test' });
+      lastError = '';
+      console.log('WhatsApp Cloud test gitti:', testTo);
+    } catch (error) {
+      lastError = error.message;
+      console.error('WhatsApp Cloud test:', error.message);
+    }
+    return;
+  }
+  if (!allowWebJs()) {
+    lastError = 'Canlıda QR/Chrome yok. Meta Cloud API anahtarlarını Render’a ekleyin.';
+    return;
+  }
   nextRetryAt = 0;
   preparedChromePath = '';
   preparedChromeArgs = [];
@@ -449,7 +479,19 @@ const enqueuePending = (chatId, text) => {
   pendingSends.push({ chatId, text });
 };
 
-const sendText = async (phone, text) => {
+const sendText = async (phone, text, extra = {}) => {
+  if (whatsappCloud.configured()) {
+    try {
+      await whatsappCloud.send(phone, text, extra);
+      console.log('WhatsApp Cloud mesajı gitti:', whatsappCloud.toDigits(phone));
+      lastError = '';
+      return true;
+    } catch (error) {
+      lastError = error.message;
+      console.error('WhatsApp Cloud gönderilemedi:', error.message);
+      return false;
+    }
+  }
   const chatId = formatPhoneNumber(phone);
   if (!chatId || !text) return false;
   if (!ready || !client) {
@@ -490,6 +532,10 @@ const flushPending = async () => {
 
 const waitUntilReady = (timeoutMs = 180000) =>
   new Promise((resolve, reject) => {
+    if (whatsappCloud.configured()) {
+      resolve(true);
+      return;
+    }
     const started = Date.now();
     const tick = () => {
       if (ready && client) {
@@ -548,8 +594,17 @@ const notifyNewOrder = async ({
     );
     if (fromChat && !targets.includes(fromChat)) targets.push(fromChat);
 
+    const orderParams = [
+      String(orderId || '-'),
+      customerName || '-',
+      customerPhone || '-',
+      (lines || '-').slice(0, 400),
+      formatTry(totalPrice)
+    ];
+
     console.log('WhatsApp sipariş bildirimi', {
-      ready,
+      provider: whatsappCloud.configured() ? 'cloud' : 'webjs',
+      ready: whatsappCloud.configured() || ready,
       starting,
       targets,
       queued: pendingSends.length
@@ -561,7 +616,7 @@ const notifyNewOrder = async ({
     }
 
     for (const chatId of targets) {
-      await sendText(chatId, message);
+      await sendText(chatId, message, { kind: 'order', params: orderParams });
       if (targets.length > 1) await sleep(MESSAGE_GAP_MS());
     }
   } catch (error) {
@@ -611,7 +666,10 @@ const notifyOrderStatusUpdate = async ({
       copy.body
     ].join('\n');
 
-    await sendText(customerPhone, message);
+    await sendText(customerPhone, message, {
+      kind: 'status',
+      params: [customerName || '-', String(orderId || '-'), copy.title, copy.body]
+    });
   } catch (error) {
     console.error('notifyOrderStatusUpdate hatası:', error.message);
   }
@@ -635,7 +693,10 @@ const notifyDiscountToUsers = async ({
     ].filter(Boolean).join('\n');
 
     for (let i = 0; i < phones.length; i += 1) {
-      await sendText(phones[i], message);
+      await sendText(phones[i], message, {
+        kind: 'discount',
+        params: [productName || 'Ürün', formatTry(oldPrice), formatTry(newPrice)]
+      });
       if (i < phones.length - 1) await sleep(MESSAGE_GAP_MS());
     }
   } catch (error) {
@@ -670,21 +731,25 @@ const notifyFavoritesIfDiscounted = async (product, previous = {}) => {
   }
 };
 
-const getWhatsAppStatus = () => ({
-  ready,
-  starting,
-  from: expectedFromDigits(),
-  connected: connectedDigits || '',
-  qr: lastQr || '',
-  pending: pendingSends.length,
-  error: lastError || '',
-  note: chromeNote || (ready
-    ? 'Oturum açık; sipariş mesajı gidebilir.'
-    : lastQr
-      ? 'QR görünmesi bağlı olmak değildir. Telefondan tarayıp yeşil Bağlı yazana kadar sipariş WhatsApp’ı gitmez.'
-      : 'Chrome kapalı. Site hızlı kalsın diye açılışta WhatsApp başlamaz; aşağıdaki düğmeyle açın.'),
-  chrome: preparedChromePath || resolveChromeExecutable() || ''
-});
+const getWhatsAppStatus = () => {
+  const cloud = whatsappCloud.configured();
+  return {
+    provider: cloud ? 'cloud' : 'webjs',
+    ready: cloud || ready,
+    starting: cloud ? false : starting,
+    from: expectedFromDigits(),
+    connected: cloud ? expectedFromDigits() : (connectedDigits || ''),
+    qr: cloud ? '' : (lastQr || ''),
+    pending: cloud ? 0 : pendingSends.length,
+    error: lastError || '',
+    configured: cloud,
+    template: process.env.WHATSAPP_TEMPLATE_ORDER || 'siparis_geldi',
+    note: chromeNote || (cloud
+      ? 'Meta Cloud API açık. Chrome/QR yok; sipariş bildirimi şablon onayından sonra gider.'
+      : 'Canlı mağazada QR yöntemi durduruldu. Render’a WHATSAPP_TOKEN ve WHATSAPP_PHONE_NUMBER_ID ekleyin.'),
+    chrome: cloud ? '' : (preparedChromePath || resolveChromeExecutable() || '')
+  };
+};
 
 module.exports = {
   initWhatsApp,
