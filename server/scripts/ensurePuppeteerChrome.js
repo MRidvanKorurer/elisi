@@ -38,4 +38,7 @@ const result = spawnSync('npx', ['--yes', 'puppeteer', 'browsers', 'install', 'c
   stdio: 'inherit',
   shell: process.platform === 'win32'
 });
-process.exit(result.status || 0);
+if (result.status) {
+  console.warn('Puppeteer Chrome indirilemedi; canlıda sistem tarayıcısı veya sonraki deneme kullanılacak.');
+}
+process.exit(0);

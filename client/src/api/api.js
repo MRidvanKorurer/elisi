@@ -8,7 +8,7 @@ const API = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 10000 // 10 saniye zaman aşımı
+  timeout: 25000
 });
 
 // 2. Request Interceptor: İstek öncesi kontroller
