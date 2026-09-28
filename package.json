@@ -4,7 +4,7 @@
   "description": "Render kök dizin repo ise API server/ altından çalışır.",
   "scripts": {
     "start": "node server/server.js",
-    "postinstall": "npm install --omit=dev --prefix server"
+    "build": "npm install --prefix server"
   },
   "engines": {
     "node": ">=20"

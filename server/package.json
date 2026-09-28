@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "build": "node -e \"console.log('render-ok')\"",
     "dev": "nodemon server.js",
     "seed:products": "node scripts/seedProducts.js",
     "seed:categories": "node scripts/seedCategories.js",
