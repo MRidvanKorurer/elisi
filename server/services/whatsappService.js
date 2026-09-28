@@ -62,6 +62,7 @@ const resolveChromeExecutable = () => {
 };
 
 const CHROME_CLONE_DIR = path.join(os.tmpdir(), 'nikbag-chrome');
+const CHROME_HOME_DIR = path.join(os.tmpdir(), 'nikbag-chrome-home');
 
 const waitFileIdle = async (file) => {
   if (!file || !fs.existsSync(file)) return;
@@ -74,6 +75,18 @@ const waitFileIdle = async (file) => {
   }
 };
 
+const assertChromeBundle = (dir, sourceDir) => {
+  ['chrome', 'icudtl.dat'].forEach((name) => {
+    const dest = path.join(dir, name);
+    const src = path.join(sourceDir, name);
+    if (!fs.existsSync(dest)) throw new Error(`Chrome paketinde ${name} yok`);
+    if (fs.existsSync(src) && fs.statSync(dest).size !== fs.statSync(src).size) {
+      throw new Error(`Chrome paketinde ${name} bozuk (boyut uyuşmuyor)`);
+    }
+    if (fs.statSync(dest).size < 1000) throw new Error(`Chrome paketinde ${name} boş`);
+  });
+};
+
 const copyChromeAsync = async (sourcePath) => {
   if (!sourcePath) throw new Error('Chrome yolu yok.');
   if (process.platform === 'win32') return sourcePath;
@@ -83,10 +96,16 @@ const copyChromeAsync = async (sourcePath) => {
     try {
       fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
       fs.mkdirSync(CHROME_CLONE_DIR, { recursive: true });
-      execFileSync('cp', ['-a', `${srcDir}/.`, `${CHROME_CLONE_DIR}/`], { timeout: 180000 });
+      fs.mkdirSync(CHROME_HOME_DIR, { recursive: true });
+      try {
+        execFileSync('cp', ['-aL', `${srcDir}/.`, `${CHROME_CLONE_DIR}/`], { timeout: 180000 });
+      } catch {
+        execFileSync('cp', ['-a', `${srcDir}/.`, `${CHROME_CLONE_DIR}/`], { timeout: 180000 });
+      }
+      execFileSync('chmod', ['-R', 'u+rwX,go+rX', CHROME_CLONE_DIR]);
       fs.chmodSync(destBin, 0o755);
-      await sleep(800);
-      if (!fs.existsSync(destBin)) throw new Error('kopya ikili yok');
+      assertChromeBundle(CHROME_CLONE_DIR, srcDir);
+      await sleep(500);
       console.log('WhatsApp tarayıcı (tmp):', destBin);
       return destBin;
     } catch (error) {
@@ -94,7 +113,7 @@ const copyChromeAsync = async (sourcePath) => {
       await sleep(1000 * attempt);
     }
   }
-  throw new Error('Chrome /tmp kopyası alınamadı (ETXTBSY). Render cache dosyası kilitli.');
+  throw new Error('Chrome /tmp kopyası alınamadı (ICU/ETXTBSY).');
 };
 
 const releaseSessionBrowser = () => {
@@ -218,12 +237,21 @@ const ensureClient = () => {
     }),
     puppeteer: {
       headless: true,
+      timeout: 120000,
       ...(executablePath ? { executablePath } : {}),
+      env: {
+        ...process.env,
+        HOME: CHROME_HOME_DIR,
+        LANG: 'en_US.UTF-8',
+        FONTCONFIG_PATH: '/etc/fonts'
+      },
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--font-render-hinting=none',
         ...(process.platform === 'win32' ? [] : ['--no-first-run'])
       ]
     }
