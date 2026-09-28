@@ -2,10 +2,23 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const User = require('../models/User');
 const { siteUrl } = require('../utils/runtime');
+
+let Client = null;
+let LocalAuth = null;
+
+const loadWhatsAppLib = () => {
+  if (Client && LocalAuth) return true;
+  try {
+    ({ Client, LocalAuth } = require('whatsapp-web.js'));
+    return true;
+  } catch (error) {
+    console.error('whatsapp-web.js yüklenemedi:', error.message);
+    return false;
+  }
+};
 
 const chromeCandidates = () => {
   if (process.platform === 'win32') {
@@ -143,6 +156,9 @@ const destroyClient = async () => {
 
 const ensureClient = () => {
   if (client) return client;
+  if (!loadWhatsAppLib()) {
+    throw new Error('whatsapp-web.js bu ortamda yüklenemedi.');
+  }
 
   const executablePath = resolveChromeExecutable();
   if (executablePath) {
@@ -163,9 +179,7 @@ const ensureClient = () => {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--no-zygote'
+        '--disable-gpu'
       ]
     }
   });

@@ -108,11 +108,22 @@ const PORT = process.env.PORT || 5000;
 warnProductionConfig();
 app.listen(PORT, () => {
   console.log(`✅ Sunucu ${PORT} portunda güvenli şekilde çalışıyor...`);
-  initWhatsApp();
+  setTimeout(() => {
+    initWhatsApp().catch((error) => {
+      console.error('WhatsApp başlatılamadı, site açık kalacak:', error.message);
+    });
+  }, 2500);
   if (process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY) {
     console.log('✅ Destek asistanı LLM anahtarı yüklendi');
   }
   if (!mediaConfigured()) {
     console.warn('⚠️  Görsel deposu yok. Yeni yüklemeler diske yazılmaz; Cloudinary anahtarları gerekli.');
   }
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Yakalanmayan promise:', reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('Yakalanmayan hata (sunucu kapanmayacak):', error?.message || error);
 });
