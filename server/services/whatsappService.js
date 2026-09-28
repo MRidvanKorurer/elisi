@@ -61,6 +61,34 @@ const resolveChromeExecutable = () => {
   return undefined;
 };
 
+const CHROME_CLONE_DIR = path.join(os.tmpdir(), 'nikbag-chrome');
+
+const spawnableChrome = (sourcePath, force = false) => {
+  if (!sourcePath) return undefined;
+  if (process.platform === 'win32') return sourcePath;
+  const srcDir = path.dirname(sourcePath);
+  const binName = path.basename(sourcePath);
+  const destBin = path.join(CHROME_CLONE_DIR, binName);
+  try {
+    if (force && fs.existsSync(CHROME_CLONE_DIR)) {
+      fs.rmSync(CHROME_CLONE_DIR, { recursive: true, force: true });
+    }
+    if (!fs.existsSync(destBin)) {
+      fs.cpSync(srcDir, CHROME_CLONE_DIR, { recursive: true });
+    }
+    fs.chmodSync(destBin, 0o755);
+    return destBin;
+  } catch (error) {
+    console.warn('Chrome kopyalanamadı:', error.message);
+    try {
+      fs.chmodSync(sourcePath, 0o755);
+    } catch {
+      /* chmod gerekmeyebilir */
+    }
+    return sourcePath;
+  }
+};
+
 const releaseSessionBrowser = () => {
   try {
     if (process.platform === 'win32') {
@@ -141,6 +169,8 @@ let connectedDigits = '';
 let lastError = '';
 let startedAt = 0;
 let chromeNote = '';
+let nextRetryAt = 0;
+let forceChromeCopy = false;
 
 const destroyClient = async () => {
   ready = false;
@@ -164,7 +194,8 @@ const ensureClient = () => {
     throw new Error('whatsapp-web.js bu ortamda yüklenemedi.');
   }
 
-  const executablePath = resolveChromeExecutable();
+  const executablePath = spawnableChrome(resolveChromeExecutable(), forceChromeCopy);
+  forceChromeCopy = false;
   if (executablePath) {
     console.log('WhatsApp tarayıcı:', executablePath);
   } else {
@@ -184,7 +215,7 @@ const ensureClient = () => {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        ...(process.platform === 'win32' ? [] : ['--single-process', '--no-first-run'])
+        ...(process.platform === 'win32' ? [] : ['--no-first-run'])
       ]
     }
   });
@@ -272,6 +303,7 @@ const initWhatsApp = async () => {
     return;
   }
   if (ready) return;
+  if (Date.now() < nextRetryAt) return;
   if (starting && Date.now() - startedAt < 120000) return;
   if (starting) await destroyClient();
 
@@ -290,7 +322,13 @@ const initWhatsApp = async () => {
     ]);
     starting = false;
   } catch (error) {
-    const busy = /already running/i.test(error.message || '');
+    const message = error.message || String(error);
+    const busyFile = /ETXTBSY|V8 startup snapshot|Failed to launch the browser/i.test(message);
+    if (busyFile) {
+      forceChromeCopy = true;
+      nextRetryAt = Date.now() + 20000;
+    }
+    const busy = /already running/i.test(message);
     if (busy) {
       client = null;
       releaseSessionBrowser();
@@ -307,13 +345,15 @@ const initWhatsApp = async () => {
         return;
       }
     }
-    lastError = error.message;
-    console.error('WhatsApp başlatılamadı:', error.message);
+    lastError = message;
+    console.error('WhatsApp başlatılamadı:', message);
     await destroyClient();
   }
 };
 
 const restartWhatsApp = async () => {
+  nextRetryAt = 0;
+  forceChromeCopy = true;
   await destroyClient();
   lastError = '';
   return initWhatsApp();

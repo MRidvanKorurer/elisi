@@ -112,7 +112,7 @@ app.listen(PORT, () => {
     initWhatsApp().catch((error) => {
       console.error('WhatsApp başlatılamadı, site açık kalacak:', error.message);
     });
-  }, 2500);
+  }, 8000);
   if (process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY) {
     console.log('✅ Destek asistanı LLM anahtarı yüklendi');
   }

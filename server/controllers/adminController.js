@@ -663,7 +663,6 @@ const markSellerPayouts = async (req, res) => {
 
 const getWhatsApp = async (_req, res) => {
   try {
-    initWhatsApp().catch((error) => console.error('WhatsApp init:', error.message));
     return res.json({ success: true, ...getWhatsAppStatus() });
   } catch (error) {
     return res.status(500).json({ success: false, mesaj: 'WhatsApp durumu alınamadı.', hata: error.message });
