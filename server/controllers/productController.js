@@ -11,6 +11,7 @@ const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
 const { buildFulfillment } = require('../utils/productFulfillment');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
+const { notifyFavoritesIfDiscounted } = require('../services/whatsappService');
 
 const getCatalogCategoryIds = async () => {
     const docs = await Category.find({ isActive: true }).sort({ order: 1 }).select('categoryId').lean();
@@ -501,6 +502,10 @@ const updateMyProduct = async (req, res) => {
         if (!product) {
             return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
         }
+        const previousPricing = {
+            price: product.price,
+            discountPercentage: product.discountPercentage
+        };
 
         const body = req.body || {};
         const onlyToggle = body.isActive !== undefined && Object.keys(body).every((key) =>
@@ -563,6 +568,8 @@ const updateMyProduct = async (req, res) => {
         }
 
         await product.save();
+        notifyFavoritesIfDiscounted(product, previousPricing)
+            .catch((error) => console.error('WhatsApp indirim bildirimi:', error.message));
         return res.json({
             success: true,
             mesaj: product.approvalStatus === 'pending'

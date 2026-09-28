@@ -37,6 +37,7 @@ const { CATEGORY_LABELS } = require('../constants/categories');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { magazaTuruEtiket, normalizeMagazaTurleri } = require('../utils/sellerCategories');
 const { unansweredQuery, overdueQuery } = require('../utils/questionDeadline');
+const { notifyOrderStatusUpdate } = require('../services/whatsappService');
 
 const isLocalUpload = (src = '') => String(src).startsWith('/uploads/') || String(src).includes('/uploads/');
 
@@ -650,6 +651,15 @@ const updateMyOrder = async (req, res) => {
             await releaseWelcomeCoupon(order);
             await releasePromoUse(order);
         }
+
+        const cargoTrackingCode = req.body.cargoTrackingCode || req.body.trackingCode || '';
+        notifyOrderStatusUpdate({
+            customerPhone: order.customerInfo?.phone,
+            customerName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim(),
+            orderId: order._id,
+            status: orderStatus,
+            cargoTrackingCode
+        }).catch((error) => console.error('WhatsApp durum bildirimi:', error.message));
 
         const serialized = buildSellerOrders([order.toObject()], productIds, req.user._id, catalogMapOf(products))[0];
         return res.json({

@@ -1,4 +1,4 @@
 {
-  "watch": ["*.js", "config", "controllers", "middleware", "models", "routes", "utils"],
-  "ignore": ["uploads", "scripts", "node_modules"]
+  "watch": ["*.js", "config", "controllers", "middleware", "models", "routes", "utils", "services"],
+  "ignore": ["uploads", "scripts", "node_modules", ".wwebjs_auth", ".wwebjs_cache"]
 }

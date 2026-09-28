@@ -14,6 +14,10 @@ dist/
 .DS_Store
 Thumbs.db
 
+# WhatsApp Web oturumu (LocalAuth)
+server/.wwebjs_auth/
+server/.wwebjs_cache/
+
 # Yüklenen medya (kullanıcı yüklemeleri depoya girmez)
 server/uploads/*
 !server/uploads/products/

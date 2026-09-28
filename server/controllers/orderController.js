@@ -17,6 +17,7 @@ const { settlementsFromItems, ratesForSellers, allocateOrderDiscounts } = requir
 const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillment');
 const { resolveBank, hasBankAccount } = require('../utils/bank');
 const { buildOrderPayouts } = require('../utils/orderPayouts');
+const { notifyNewOrder } = require('../services/whatsappService');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
@@ -383,6 +384,34 @@ exports.createOrder = async (req, res) => {
         if (req.user) {
             await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
         }
+
+        const sellerIds = [...new Set(
+            (savedOrder.orderItems || [])
+                .map((item) => item.seller)
+                .filter(Boolean)
+                .map((id) => String(id))
+        )];
+        let sellerPhones = [];
+        if (sellerIds.length) {
+            const [sellerProfiles, sellerUsers] = await Promise.all([
+                Seller.find({ user: { $in: sellerIds } }).select('telefon').lean(),
+                User.find({ _id: { $in: sellerIds } }).select('telefon').lean()
+            ]);
+            sellerPhones = [
+                ...sellerProfiles.map((row) => row.telefon),
+                ...sellerUsers.map((row) => row.telefon)
+            ].filter(Boolean);
+        }
+
+        notifyNewOrder({
+            orderId: savedOrder._id,
+            customerName: `${savedOrder.customerInfo.firstName} ${savedOrder.customerInfo.lastName}`.trim(),
+            customerPhone: savedOrder.customerInfo.phone,
+            items: savedOrder.orderItems,
+            totalPrice,
+            sellerPhones,
+            superAdminPhone: process.env.SUPER_ADMIN_PHONE
+        }).catch((error) => console.error('WhatsApp sipariş bildirimi:', error.message));
 
         res.status(201).json({
             success: true,

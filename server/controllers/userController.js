@@ -41,7 +41,17 @@ exports.updateProfile = async (req, res) => {
 
         const updates = {};
         if (adSoyad) updates.adSoyad = adSoyad;
-        if (telefon) updates.telefon = telefon;
+        if (telefon !== undefined) {
+            const digits = String(telefon).replace(/\D/g, '');
+            const ok = (digits.length === 10 && digits.startsWith('5'))
+                || (digits.length === 11 && digits.startsWith('05'))
+                || (digits.length === 12 && digits.startsWith('90'))
+                || (digits.length === 13 && digits.startsWith('905'));
+            if (!ok) {
+                return res.status(400).json({ success: false, mesaj: 'Geçerli bir telefon numarası girin (05xx xxx xx xx).' });
+            }
+            updates.telefon = String(telefon).trim();
+        }
 
         const user = await User.findByIdAndUpdate(
             uid(req),

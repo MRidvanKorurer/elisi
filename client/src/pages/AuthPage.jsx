@@ -20,6 +20,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import EmailOutlined from '@mui/icons-material/EmailOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
 import PersonOutlineOutlined from '@mui/icons-material/PersonOutlineOutlined';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
@@ -36,6 +37,7 @@ import { SITE_CLIPS } from '../utils/siteVideos';
 import Logo from '../assets/logo.svg?react';
 import Seo from '../components/Seo';
 import { requestGoogleAccessToken } from '../utils/googleAuth';
+import { isValidPhone } from '../utils/sellerValidation';
 
 const NAVY = '#2E3B55';
 const ROSE = '#946D6D';
@@ -132,12 +134,14 @@ export default function AuthPage({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [adSoyad, setAdSoyad] = useState('');
+  const [telefon, setTelefon] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [welcomeCode, setWelcomeCode] = useState('');
   const [copied, setCopied] = useState(false);
   const googleBusyRef = useRef(false);
+  const pendingGoogleTokenRef = useRef('');
   const busy = loading || googleLoading;
 
   const finishAuth = (userData, { isNewUser = false } = {}) => {
@@ -151,18 +155,34 @@ export default function AuthPage({ onLoginSuccess }) {
 
   const handleGoogleClick = async () => {
     if (googleBusyRef.current) return;
+    if (!isValidPhone(telefon)) {
+      setError(t('phoneRequiredGoogle'));
+      return;
+    }
     googleBusyRef.current = true;
     setError('');
     setGoogleLoading(true);
     try {
-      const accessToken = await requestGoogleAccessToken();
-      const data = await authService.google({ accessToken });
+      let accessToken = pendingGoogleTokenRef.current;
+      if (!accessToken) {
+        accessToken = await requestGoogleAccessToken();
+        pendingGoogleTokenRef.current = accessToken;
+      }
+      const data = await authService.google({
+        accessToken,
+        telefon: telefon.trim()
+      });
+      pendingGoogleTokenRef.current = '';
       const userData = data.kullanici || data.user;
       finishAuth(userData, { isNewUser: Boolean(data.isNewUser) });
     } catch (err) {
-      if (err?.code === 'MISSING_CLIENT_ID') {
+      if (err.response?.data?.needsPhone) {
+        setError(err.response.data.mesaj || t('phoneRequiredGoogle'));
+      } else if (err?.code === 'MISSING_CLIENT_ID') {
+        pendingGoogleTokenRef.current = '';
         setError(t('googleUnavailable'));
       } else {
+        pendingGoogleTokenRef.current = '';
         setError(err.response?.data?.mesaj || err.response?.data?.message || err.message || t('googleFailed'));
       }
     } finally {
@@ -176,8 +196,15 @@ export default function AuthPage({ onLoginSuccess }) {
     setError('');
     setLoading(true);
     try {
+      if (tab === 1 && !isValidPhone(telefon)) {
+        setError(t('phoneRequired'));
+        setLoading(false);
+        return;
+      }
       const endpoint = tab === 0 ? '/auth/login' : '/auth/register';
-      const payload = tab === 0 ? { email, sifre: password } : { adSoyad, email, sifre: password };
+      const payload = tab === 0
+        ? { email, sifre: password }
+        : { adSoyad, email, sifre: password, telefon: telefon.trim() };
       const res = await API.post(endpoint, payload);
       const userData = res.data.kullanici || res.data.user;
       finishAuth(userData, { isNewUser: tab === 1 });
@@ -583,6 +610,27 @@ export default function AuthPage({ onLoginSuccess }) {
                         {error}
                       </Alert>
                     )}
+
+                    <TextField
+                      fullWidth
+                      label={t('phone')}
+                      autoComplete="tel"
+                      inputMode="tel"
+                      placeholder={t('phonePlaceholder')}
+                      value={telefon}
+                      onChange={(e) => setTelefon(e.target.value)}
+                      required={tab === 1}
+                      disabled={busy}
+                      helperText={t('phoneHint')}
+                      sx={{ ...fieldSx, mb: 2 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneOutlined sx={{ color: ROSE, fontSize: 22 }} />
+                          </InputAdornment>
+                        )
+                      }}
+                    />
 
                     <Button
                       fullWidth

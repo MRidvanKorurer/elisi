@@ -6,6 +6,22 @@ const { WELCOME_PERCENT, normalizeCode, generateWelcomeCode, couponAlreadyConsum
 const { cookieOptions } = require('../utils/runtime');
 const COOKIE_OPTIONS = cookieOptions();
 
+const isValidPhone = (telefon = '') => {
+    const digits = String(telefon).replace(/\D/g, '');
+    if (digits.length === 10 && digits.startsWith('5')) return true;
+    if (digits.length === 11 && digits.startsWith('05')) return true;
+    if (digits.length === 12 && digits.startsWith('90')) return true;
+    if (digits.length === 13 && digits.startsWith('905')) return true;
+    return false;
+};
+
+const phoneError = () => {
+    const err = new Error('Kayıt için geçerli bir telefon numarası girin (05xx xxx xx xx).');
+    err.status = 400;
+    err.needsPhone = true;
+    return err;
+};
+
 const publicUser = (user) => ({
     id: user._id,
     adSoyad: user.adSoyad,
@@ -34,9 +50,12 @@ const ensureWelcomeCode = async (user) => {
 
 const register = async (req, res) => {
     try {
-        const { adSoyad, email, sifre } = req.body;
+        const { adSoyad, email, sifre, telefon } = req.body;
         if (!sifre || String(sifre).length < 8) {
             return res.status(400).json({ mesaj: 'Şifre en az 8 karakter olmalı.' });
+        }
+        if (!isValidPhone(telefon)) {
+            return res.status(400).json({ mesaj: phoneError().message, needsPhone: true });
         }
 
         const userExists = await User.findOne({ email });
@@ -44,7 +63,7 @@ const register = async (req, res) => {
             return res.status(400).json({ mesaj: 'Bu email adresi zaten kullanımda.' });
         }
 
-        const user = await User.create({ adSoyad, email, sifre });
+        const user = await User.create({ adSoyad, email, sifre, telefon: String(telefon).trim() });
         await ensureWelcomeCode(user);
         user.kampanyaKullanildi = false;
 
@@ -235,6 +254,7 @@ const googleAuth = async (req, res) => {
             return res.status(500).json({ mesaj: 'Google girişi yapılandırılmamış.' });
         }
 
+        const telefon = req.body.telefon || req.body.phone;
         const { googleId, email, adSoyad, avatarUrl } = await resolveGoogleProfile({
             credential,
             accessToken,
@@ -250,19 +270,32 @@ const googleAuth = async (req, res) => {
                 user.googleId = googleId;
                 if (!user.avatarUrl && avatarUrl) user.avatarUrl = avatarUrl;
                 if (!user.adSoyad && adSoyad) user.adSoyad = adSoyad;
+                if (!isValidPhone(user.telefon)) {
+                    if (!isValidPhone(telefon)) throw phoneError();
+                    user.telefon = String(telefon).trim();
+                }
                 await user.save();
             } else {
+                if (!isValidPhone(telefon)) throw phoneError();
                 user = await User.create({
                     adSoyad,
                     email,
                     googleId,
-                    avatarUrl
+                    avatarUrl,
+                    telefon: String(telefon).trim()
                 });
                 isNewUser = true;
             }
-        } else if (!user.avatarUrl && avatarUrl) {
-            user.avatarUrl = avatarUrl;
-            await user.save();
+        } else {
+            if (!isValidPhone(user.telefon)) {
+                if (!isValidPhone(telefon)) throw phoneError();
+                user.telefon = String(telefon).trim();
+                if (!user.avatarUrl && avatarUrl) user.avatarUrl = avatarUrl;
+                await user.save();
+            } else if (!user.avatarUrl && avatarUrl) {
+                user.avatarUrl = avatarUrl;
+                await user.save();
+            }
         }
 
         await ensureWelcomeCode(user);
@@ -282,7 +315,8 @@ const googleAuth = async (req, res) => {
         console.error('Google auth error:', error?.message || error);
         const status = error?.status || 401;
         res.status(status).json({
-            mesaj: error?.status ? error.message : 'Google ile giriş başarısız. Lütfen tekrar deneyin.'
+            mesaj: error?.status ? error.message : 'Google ile giriş başarısız. Lütfen tekrar deneyin.',
+            needsPhone: Boolean(error?.needsPhone)
         });
     }
 };

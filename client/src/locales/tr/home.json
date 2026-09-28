@@ -103,14 +103,14 @@
   "lookbook": {
     "eyebrow": "ATÖLYE",
     "title": "Çantalar hareket halinde",
-    "subtitle": "El örgüsü detay, ahşap sap ve stüdyo ışığı. Koleksiyonun üç karesi.",
+    "subtitle": "El örgüsü detay, ahşap sap ve stüdyo ışığı",
     "knit": "El örgüsü detay",
     "wood": "Ahşap sap detay"
   },
   "film": {
     "eyebrow": "ATÖLYE FİLMİ",
     "title": "Çanta, ışık ve el emeği",
-    "subtitle": "Koleksiyonun stüdyoda çekilmiş tam karesi.",
+    "subtitle": "Koleksiyonun çekilmiş tam karesi.",
     "label": "Atölye filmi"
   },
   "how": {

@@ -36,6 +36,7 @@ import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import AccountBalanceOutlined from '@mui/icons-material/AccountBalanceOutlined';
 import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
+import WhatsApp from '@mui/icons-material/WhatsApp';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
@@ -70,6 +71,7 @@ import BankTransferDetails from '../components/BankTransferDetails';
 import AdminCommission from '../components/AdminCommission';
 import AdminBankAccounts from '../components/AdminBankAccounts';
 import AdminAdsBoard from '../components/AdminAdsBoard';
+import AdminWhatsApp from '../components/AdminWhatsApp';
 
 const emptyForm = {
   title: '',
@@ -558,6 +560,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'reports', label: 'Raporlar', icon: AssessmentOutlined },
     { id: 'commission', label: 'Satıcı ödemeleri', icon: AccountBalanceOutlined },
     { id: 'bank', label: 'IBAN hesapları', icon: PaymentsOutlined },
+    { id: 'whatsapp', label: 'WhatsApp', icon: WhatsApp },
     { id: 'products', label: 'Ürünler', icon: Inventory2Outlined },
     { id: 'categories', label: 'Kategoriler', icon: CategoryOutlined },
     { id: 'sellers', label: 'Satıcılar', icon: StorefrontOutlined, badge: overview?.pendingSellers || 0 },
@@ -1076,6 +1079,8 @@ export default function AdminPanel({ user, handleLogout }) {
           }}
         />
       )}
+
+      {view === 'whatsapp' && <AdminWhatsApp />}
 
       {view === 'orders' && (
         <Box>

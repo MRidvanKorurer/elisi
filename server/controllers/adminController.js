@@ -20,6 +20,7 @@ const {
   ratesForSellers
 } = require('../utils/commission');
 const { endLiveFeaturedForProduct } = require('./featuredController');
+const { notifyFavoritesIfDiscounted, getWhatsAppStatus, initWhatsApp } = require('../services/whatsappService');
 
 const serializeUser = (user) => ({
   id: user._id,
@@ -428,6 +429,10 @@ const updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
     const wasSponsored = Boolean(product.isSponsored);
+    const previousPricing = {
+      price: product.price,
+      discountPercentage: product.discountPercentage
+    };
 
     TEXT_FIELDS.forEach((field) => {
       if (req.body[field] === undefined) return;
@@ -469,6 +474,8 @@ const updateProduct = async (req, res) => {
     }
 
     await product.save();
+    notifyFavoritesIfDiscounted(product, previousPricing)
+      .catch((error) => console.error('WhatsApp indirim bildirimi:', error.message));
     if (req.body.isSponsored !== undefined && !asBool(req.body.isSponsored) && wasSponsored) {
       await endLiveFeaturedForProduct(product._id, req.user?._id, 'Süper admin ürünü vitrinden aldı.');
     }
@@ -654,6 +661,15 @@ const markSellerPayouts = async (req, res) => {
   }
 };
 
+const getWhatsApp = async (_req, res) => {
+  try {
+    initWhatsApp().catch((error) => console.error('WhatsApp init:', error.message));
+    return res.json({ success: true, ...getWhatsAppStatus() });
+  } catch (error) {
+    return res.status(500).json({ success: false, mesaj: 'WhatsApp durumu alınamadı.', hata: error.message });
+  }
+};
+
 module.exports = {
   getOverview,
   listUsers,
@@ -670,5 +686,6 @@ module.exports = {
   getBankAccounts,
   updatePlatformBank,
   markOrderPayout,
-  markSellerPayouts
+  markSellerPayouts,
+  getWhatsApp
 };
