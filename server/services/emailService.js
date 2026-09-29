@@ -1,11 +1,15 @@
+const dns = require('dns');
+const nodemailer = require('nodemailer');
 const templates = require('./emailTemplates');
 
 const clean = (value) => String(value || '').trim().replace(/^['"]|['"]$/g, '');
 
 const smtpConfig = () => {
   const user = clean(process.env.SMTP_USER);
+  const pass = clean(process.env.SMTP_PASS).replace(/\s+/g, '');
   const from = clean(process.env.EMAIL_FROM) || (user.includes('@') ? `Nik Bag <${user}>` : 'Nik Bag <nikbagofficial@gmail.com>');
-  return { user, from };
+  const host = clean(process.env.SMTP_HOST) || 'smtp.gmail.com';
+  return { host, user, pass, from };
 };
 
 const parseFrom = (from) => {
@@ -20,6 +24,13 @@ const parseFrom = (from) => {
 };
 
 const brevoKey = () => clean(process.env.BREVO_API_KEY);
+
+const lookupIpv4 = (host) => new Promise((resolve, reject) => {
+  dns.lookup(host, { family: 4, all: true }, (error, rows) => {
+    if (error) reject(error);
+    else resolve((rows || []).map((row) => row.address).filter(Boolean));
+  });
+});
 
 const sendViaBrevo = async ({ to, subject, html, text }) => {
   const sender = parseFrom(smtpConfig().from);
@@ -39,31 +50,71 @@ const sendViaBrevo = async ({ to, subject, html, text }) => {
     })
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || data.code || `Brevo ${res.status}`);
+  if (!res.ok) throw new Error(data.message || data.code || `Brevo ${res.status}`);
+};
+
+const sendViaSmtp = async ({ to, subject, html, text }) => {
+  const { host, user, pass, from } = smtpConfig();
+  if (!user || !pass) throw new Error('SMTP_USER veya SMTP_PASS yok');
+  const addresses = await lookupIpv4(host);
+  if (!addresses.length) throw new Error('Gmail IPv4 adresi bulunamadı');
+  const ports = [587, 465];
+  const errors = [];
+  for (const address of addresses) {
+    for (const port of ports) {
+      const transport = nodemailer.createTransport({
+        host: address,
+        port,
+        secure: port === 465,
+        requireTLS: port === 587,
+        family: 4,
+        auth: { user, pass },
+        connectionTimeout: 12000,
+        greetingTimeout: 12000,
+        socketTimeout: 20000,
+        tls: { servername: host, minVersion: 'TLSv1.2' }
+      });
+      try {
+        await transport.sendMail({ from, to, subject, text, html });
+        console.log('E-posta SMTP ile gitti:', `${address}:${port}`, '→', to);
+        return true;
+      } catch (error) {
+        errors.push(`${address}:${port} ${error.message}`);
+      } finally {
+        transport.close();
+      }
+    }
   }
+  throw new Error(errors.join(' | ') || 'SMTP bağlantısı kurulamadı');
 };
 
 const verifySmtp = async () => {
-  const { user, from } = smtpConfig();
-  if (brevoKey()) {
-    console.log('E-posta Brevo HTTPS ile gidecek. Gönderen:', from || user);
-    return true;
-  }
-  console.warn('Render 587 portunu kapattığı için Gmail SMTP zaman aşımına düşer. BREVO_API_KEY ekleyin.');
-  return false;
+  const { user, from, pass } = smtpConfig();
+  console.log('E-posta gönderen:', from || user, '| SMTP', Boolean(user && pass), '| Brevo', Boolean(brevoKey()));
+  return Boolean((user && pass) || brevoKey());
 };
 
 const sendMail = async ({ to, subject, html, text }) => {
   const address = String(to || '').trim();
   if (!address) return false;
-  if (!brevoKey()) {
-    console.warn('E-posta gönderilmedi (BREVO_API_KEY yok):', subject, '→', address);
-    return false;
+  const errors = [];
+  if (brevoKey()) {
+    try {
+      await sendViaBrevo({ to: address, subject, html, text });
+      console.log('E-posta gitti:', subject, '→', address);
+      return true;
+    } catch (error) {
+      errors.push(`Brevo: ${error.message}`);
+    }
   }
-  await sendViaBrevo({ to: address, subject, html, text });
-  console.log('E-posta gitti:', subject, '→', address);
-  return true;
+  try {
+    await sendViaSmtp({ to: address, subject, html, text });
+    return true;
+  } catch (error) {
+    errors.push(`SMTP: ${error.message}`);
+  }
+  console.error('E-posta gönderilemedi:', subject, '→', address, errors.join(' || '));
+  return false;
 };
 
 const dispatch = (jobs) => {
