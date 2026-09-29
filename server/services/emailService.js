@@ -90,6 +90,12 @@ const sendViaSmtp = async ({ to, subject, html, text }) => {
 
 const verifySmtp = async () => {
   const { user, from, pass } = smtpConfig();
+  if (process.env.RENDER === 'true') {
+    console.log(brevoKey()
+      ? `E-posta Brevo ile gidecek. Gönderen: ${from || user}`
+      : 'Render Gmail SMTP portlarını kapatıyor. Mail için BREVO_API_KEY gerekli.');
+    return Boolean(brevoKey());
+  }
   console.log('E-posta gönderen:', from || user, '| SMTP', Boolean(user && pass), '| Brevo', Boolean(brevoKey()));
   return Boolean((user && pass) || brevoKey());
 };
@@ -97,24 +103,28 @@ const verifySmtp = async () => {
 const sendMail = async ({ to, subject, html, text }) => {
   const address = String(to || '').trim();
   if (!address) return false;
-  const errors = [];
+  const onRender = process.env.RENDER === 'true';
   if (brevoKey()) {
     try {
       await sendViaBrevo({ to: address, subject, html, text });
       console.log('E-posta gitti:', subject, '→', address);
       return true;
     } catch (error) {
-      errors.push(`Brevo: ${error.message}`);
+      console.error('E-posta gönderilemedi:', subject, '→', address, error.message);
+      return false;
     }
+  }
+  if (onRender) {
+    console.error('E-posta gönderilemedi:', subject, '→', address, 'Render 587 ve 465 portlarını kapattığı için Gmail SMTP kullanılamaz. BREVO_API_KEY ekleyin.');
+    return false;
   }
   try {
     await sendViaSmtp({ to: address, subject, html, text });
     return true;
   } catch (error) {
-    errors.push(`SMTP: ${error.message}`);
+    console.error('E-posta gönderilemedi:', subject, '→', address, error.message);
+    return false;
   }
-  console.error('E-posta gönderilemedi:', subject, '→', address, errors.join(' || '));
-  return false;
 };
 
 const dispatch = (jobs) => {
