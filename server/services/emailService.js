@@ -12,18 +12,102 @@ const smtpConfig = () => {
   return { host, user, pass, from };
 };
 
-const parseFrom = (from) => {
-  const match = String(from || '').match(/^(.*)<([^>]+)>\s*$/);
-  if (match) {
-    return {
-      name: match[1].trim().replace(/^"|"$/g, '') || 'Nik Bag',
-      email: match[2].trim()
-    };
+const gmailReady = () => Boolean(
+  clean(process.env.GOOGLE_CLIENT_ID)
+  && clean(process.env.GOOGLE_CLIENT_SECRET)
+  && clean(process.env.GMAIL_REFRESH_TOKEN)
+);
+
+let cachedAccessToken = '';
+let cachedAccessTokenAt = 0;
+
+const gmailAccessToken = async () => {
+  if (cachedAccessToken && Date.now() - cachedAccessTokenAt < 45 * 60 * 1000) return cachedAccessToken;
+  const body = new URLSearchParams({
+    client_id: clean(process.env.GOOGLE_CLIENT_ID),
+    client_secret: clean(process.env.GOOGLE_CLIENT_SECRET),
+    refresh_token: clean(process.env.GMAIL_REFRESH_TOKEN),
+    grant_type: 'refresh_token'
+  });
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) {
+    throw new Error(data.error_description || data.error || 'Gmail oturumu yenilenemedi');
   }
-  return { name: 'Nik Bag', email: String(from || '').trim() };
+  cachedAccessToken = data.access_token;
+  cachedAccessTokenAt = Date.now();
+  return cachedAccessToken;
 };
 
-const brevoKey = () => clean(process.env.BREVO_API_KEY);
+const encodeRaw = (message) => Buffer.from(message)
+  .toString('base64')
+  .replace(/\+/g, '-')
+  .replace(/\//g, '_')
+  .replace(/=+$/g, '');
+
+const sendViaGmail = async ({ to, subject, html, text }) => {
+  const from = smtpConfig().from;
+  const mime = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    html || text || subject
+  ].join('\r\n');
+  const token = await gmailAccessToken();
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ raw: encodeRaw(mime) })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error?.message || `Gmail ${res.status}`);
+};
+
+const verifySmtp = async () => {
+  const { from, user } = smtpConfig();
+  if (gmailReady()) {
+    console.log('E-posta Gmail API ile gidecek. Gönderen:', from || user);
+    return true;
+  }
+  console.warn('E-posta için GOOGLE_CLIENT_SECRET ve GMAIL_REFRESH_TOKEN gerekli. SMTP portları Render’da kapalı.');
+  return false;
+};
+
+const sendMail = async ({ to, subject, html, text }) => {
+  const address = String(to || '').trim();
+  if (!address) return false;
+  if (gmailReady()) {
+    try {
+      await sendViaGmail({ to: address, subject, html, text });
+      console.log('E-posta gitti:', subject, '→', address);
+      return true;
+    } catch (error) {
+      console.error('E-posta gönderilemedi:', subject, '→', address, error.message);
+      return false;
+    }
+  }
+  if (process.env.RENDER === 'true') {
+    console.error('E-posta gönderilemedi:', subject, '→', address, 'Gmail API anahtarı yok (GMAIL_REFRESH_TOKEN).');
+    return false;
+  }
+  try {
+    await sendViaSmtp({ to: address, subject, html, text });
+    return true;
+  } catch (error) {
+    console.error('E-posta gönderilemedi:', subject, '→', address, error.message);
+    return false;
+  }
+};
 
 const lookupIpv4 = (host) => new Promise((resolve, reject) => {
   dns.lookup(host, { family: 4, all: true }, (error, rows) => {
@@ -31,27 +115,6 @@ const lookupIpv4 = (host) => new Promise((resolve, reject) => {
     else resolve((rows || []).map((row) => row.address).filter(Boolean));
   });
 });
-
-const sendViaBrevo = async ({ to, subject, html, text }) => {
-  const sender = parseFrom(smtpConfig().from);
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      'api-key': brevoKey(),
-      accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      sender: { name: sender.name, email: sender.email },
-      to: [{ email: to }],
-      subject,
-      htmlContent: html || text,
-      textContent: text || subject
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || data.code || `Brevo ${res.status}`);
-};
 
 const sendViaSmtp = async ({ to, subject, html, text }) => {
   const { host, user, pass, from } = smtpConfig();
@@ -86,45 +149,6 @@ const sendViaSmtp = async ({ to, subject, html, text }) => {
     }
   }
   throw new Error(errors.join(' | ') || 'SMTP bağlantısı kurulamadı');
-};
-
-const verifySmtp = async () => {
-  const { user, from, pass } = smtpConfig();
-  if (process.env.RENDER === 'true') {
-    console.log(brevoKey()
-      ? `E-posta Brevo ile gidecek. Gönderen: ${from || user}`
-      : 'Render Gmail SMTP portlarını kapatıyor. Mail için BREVO_API_KEY gerekli.');
-    return Boolean(brevoKey());
-  }
-  console.log('E-posta gönderen:', from || user, '| SMTP', Boolean(user && pass), '| Brevo', Boolean(brevoKey()));
-  return Boolean((user && pass) || brevoKey());
-};
-
-const sendMail = async ({ to, subject, html, text }) => {
-  const address = String(to || '').trim();
-  if (!address) return false;
-  const onRender = process.env.RENDER === 'true';
-  if (brevoKey()) {
-    try {
-      await sendViaBrevo({ to: address, subject, html, text });
-      console.log('E-posta gitti:', subject, '→', address);
-      return true;
-    } catch (error) {
-      console.error('E-posta gönderilemedi:', subject, '→', address, error.message);
-      return false;
-    }
-  }
-  if (onRender) {
-    console.error('E-posta gönderilemedi:', subject, '→', address, 'Render 587 ve 465 portlarını kapattığı için Gmail SMTP kullanılamaz. BREVO_API_KEY ekleyin.');
-    return false;
-  }
-  try {
-    await sendViaSmtp({ to: address, subject, html, text });
-    return true;
-  } catch (error) {
-    console.error('E-posta gönderilemedi:', subject, '→', address, error.message);
-    return false;
-  }
 };
 
 const dispatch = (jobs) => {

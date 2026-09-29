@@ -10,7 +10,8 @@
     "seed:products": "node scripts/seedProducts.js",
     "seed:categories": "node scripts/seedCategories.js",
     "seed:test-ateliers": "node scripts/seedTestAteliers.js",
-    "test:whatsapp": "node scripts/testWhatsApp.js"
+    "test:whatsapp": "node scripts/testWhatsApp.js",
+    "gmail:auth": "node scripts/gmailAuth.js"
   },
   "keywords": [],
   "author": "",
