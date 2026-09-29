@@ -1,3 +1,4 @@
+const dns = require('dns');
 const nodemailer = require('nodemailer');
 const templates = require('./emailTemplates');
 
@@ -19,22 +20,31 @@ const smtpReady = () => {
   return Boolean(host && user && pass && from);
 };
 
-const mailer = () => {
+const lookupIpv4 = (host) => new Promise((resolve, reject) => {
+  dns.lookup(host, { family: 4 }, (error, address) => {
+    if (error) reject(error);
+    else resolve(address);
+  });
+});
+
+const mailer = async () => {
   if (!smtpReady()) return null;
-  if (!transporter) {
-    const { host, user, pass, port } = smtpConfig();
-    transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      requireTLS: port === 587,
-      auth: { user, pass },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-      tls: { minVersion: 'TLSv1.2' }
-    });
-  }
+  if (transporter) return transporter;
+  const { host, user, pass, port } = smtpConfig();
+  const ipv4 = await lookupIpv4(host);
+  console.log('SMTP IPv4:', host, '→', ipv4);
+  transporter = nodemailer.createTransport({
+    host: ipv4,
+    port,
+    secure: port === 465,
+    requireTLS: port === 587,
+    family: 4,
+    auth: { user, pass },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+    tls: { servername: host, minVersion: 'TLSv1.2' }
+  });
   return transporter;
 };
 
@@ -50,7 +60,7 @@ const verifySmtp = async () => {
     return false;
   }
   try {
-    await mailer().verify();
+    await (await mailer()).verify();
     console.log('SMTP girişi tamam:', user, '→', from);
     return true;
   } catch (error) {
@@ -62,7 +72,7 @@ const verifySmtp = async () => {
 const sendMail = async ({ to, subject, html, text }) => {
   const address = String(to || '').trim();
   if (!address) return false;
-  const transport = mailer();
+  const transport = await mailer();
   const { from } = smtpConfig();
   if (!transport) {
     console.warn('E-posta kapalı (SMTP env yok):', subject, '→', address);
