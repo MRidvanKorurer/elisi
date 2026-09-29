@@ -9,7 +9,7 @@ const smtpConfig = () => {
   const host = clean(process.env.SMTP_HOST);
   const user = clean(process.env.SMTP_USER);
   const pass = clean(process.env.SMTP_PASS).replace(/\s+/g, '');
-  const from = clean(process.env.EMAIL_FROM);
+  const from = clean(process.env.EMAIL_FROM) || (user.includes('@') ? `Nik Bag <${user}>` : '');
   const port = Number(clean(process.env.SMTP_PORT) || 587);
   return { host, user, pass, from, port };
 };
