@@ -5,7 +5,6 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;');
 
 const site = () => String(process.env.CLIENT_URL || process.env.SITE_URL || 'https://nikbagstore.com').replace(/\/$/, '');
-const logoUrl = () => `${site()}/logo.svg`;
 
 const money = (value) =>
   `${Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
@@ -16,8 +15,9 @@ const layout = ({ title, intro, rows, note }) => `<!doctype html>
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px;">
       <tr><td align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fffdf9;border-radius:18px;overflow:hidden;">
-          <tr><td style="padding:28px 28px 8px;" align="center">
-            <img src="${logoUrl()}" alt="Nik Bag" width="180" style="display:block;border:0;height:auto;max-width:180px;" />
+          <tr><td style="padding:28px 28px 4px;" align="center">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;letter-spacing:0.22em;color:#936e6d;font-weight:700;">nikbagstore</p>
+            <p style="margin:6px 0 0;font-size:11px;letter-spacing:0.28em;color:#a290b7;">ATÖLYE PAZARI</p>
           </td></tr>
           <tr><td style="padding:8px 28px 0;">
             <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;">${escapeHtml(title)}</h1>
