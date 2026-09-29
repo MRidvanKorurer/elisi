@@ -3,36 +3,73 @@ const templates = require('./emailTemplates');
 
 let transporter;
 
-const smtpReady = () => Boolean(
-  process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.EMAIL_FROM
-);
+const clean = (value) => String(value || '').trim().replace(/^['"]|['"]$/g, '');
+
+const smtpConfig = () => {
+  const host = clean(process.env.SMTP_HOST);
+  const user = clean(process.env.SMTP_USER);
+  const pass = clean(process.env.SMTP_PASS).replace(/\s+/g, '');
+  const from = clean(process.env.EMAIL_FROM);
+  const port = Number(clean(process.env.SMTP_PORT) || 587);
+  return { host, user, pass, from, port };
+};
+
+const smtpReady = () => {
+  const { host, user, pass, from } = smtpConfig();
+  return Boolean(host && user && pass && from);
+};
 
 const mailer = () => {
   if (!smtpReady()) return null;
   if (!transporter) {
+    const { host, user, pass, port } = smtpConfig();
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: String(process.env.SMTP_SECURE || '') === '1' || Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
+      host,
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
+      auth: { user, pass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+      tls: { minVersion: 'TLSv1.2' }
     });
   }
   return transporter;
+};
+
+const verifySmtp = async () => {
+  const { host, user, from, pass } = smtpConfig();
+  if (!smtpReady()) {
+    console.warn('E-posta kapalı. Eksik:', {
+      SMTP_HOST: Boolean(host),
+      SMTP_USER: Boolean(user),
+      SMTP_PASS: Boolean(pass),
+      EMAIL_FROM: Boolean(from)
+    });
+    return false;
+  }
+  try {
+    await mailer().verify();
+    console.log('SMTP girişi tamam:', user, '→', from);
+    return true;
+  } catch (error) {
+    console.error('SMTP girişi başarısız:', error.message);
+    return false;
+  }
 };
 
 const sendMail = async ({ to, subject, html, text }) => {
   const address = String(to || '').trim();
   if (!address) return false;
   const transport = mailer();
+  const { from } = smtpConfig();
   if (!transport) {
     console.warn('E-posta kapalı (SMTP env yok):', subject, '→', address);
     return false;
   }
   await transport.sendMail({
-    from: process.env.EMAIL_FROM,
+    from,
     to: address,
     subject,
     text,
@@ -109,7 +146,9 @@ const notifyOrderCreated = ({
     jobs.push({ to: buyerEmail, ...templates.buyerCreated({ buyerName, orderId }) });
   }
 
-  dispatch(jobs.filter((job) => job.to));
+  const pending = jobs.filter((job) => job.to);
+  console.log('Sipariş e-postası kuyruğu:', pending.map((job) => `${job.subject} → ${job.to}`).join(' | ') || 'alıcı yok');
+  dispatch(pending);
 };
 
 const notifyOrderStatusChanged = ({
@@ -126,6 +165,7 @@ const notifyOrderStatusChanged = ({
 
 module.exports = {
   sendMail,
+  verifySmtp,
   notifyOrderCreated,
   notifyOrderStatusChanged
 };

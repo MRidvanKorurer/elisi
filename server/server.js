@@ -23,6 +23,7 @@ connectDB();
 
 const { corsOriginDelegate, warnProductionConfig } = require('./utils/runtime');
 const { configured: mediaConfigured } = require('./utils/mediaStore');
+const { verifySmtp } = require('./services/emailService');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
@@ -114,6 +115,7 @@ app.listen(PORT, () => {
   if (!mediaConfigured()) {
     console.warn('⚠️  Görsel deposu yok. Yeni yüklemeler diske yazılmaz; Cloudinary anahtarları gerekli.');
   }
+  verifySmtp().catch((error) => console.error('SMTP kontrolü:', error.message));
 });
 
 process.on('unhandledRejection', (reason) => {
