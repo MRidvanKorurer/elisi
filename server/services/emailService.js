@@ -1,90 +1,67 @@
-const dns = require('dns');
-const nodemailer = require('nodemailer');
 const templates = require('./emailTemplates');
-
-let transporter;
 
 const clean = (value) => String(value || '').trim().replace(/^['"]|['"]$/g, '');
 
 const smtpConfig = () => {
-  const host = clean(process.env.SMTP_HOST);
   const user = clean(process.env.SMTP_USER);
-  const pass = clean(process.env.SMTP_PASS).replace(/\s+/g, '');
-  const from = clean(process.env.EMAIL_FROM) || (user.includes('@') ? `Nik Bag <${user}>` : '');
-  const port = Number(clean(process.env.SMTP_PORT) || 587);
-  return { host, user, pass, from, port };
+  const from = clean(process.env.EMAIL_FROM) || (user.includes('@') ? `Nik Bag <${user}>` : 'Nik Bag <nikbagofficial@gmail.com>');
+  return { user, from };
 };
 
-const smtpReady = () => {
-  const { host, user, pass, from } = smtpConfig();
-  return Boolean(host && user && pass && from);
+const parseFrom = (from) => {
+  const match = String(from || '').match(/^(.*)<([^>]+)>\s*$/);
+  if (match) {
+    return {
+      name: match[1].trim().replace(/^"|"$/g, '') || 'Nik Bag',
+      email: match[2].trim()
+    };
+  }
+  return { name: 'Nik Bag', email: String(from || '').trim() };
 };
 
-const lookupIpv4 = (host) => new Promise((resolve, reject) => {
-  dns.lookup(host, { family: 4 }, (error, address) => {
-    if (error) reject(error);
-    else resolve(address);
-  });
-});
+const brevoKey = () => clean(process.env.BREVO_API_KEY);
 
-const mailer = async () => {
-  if (!smtpReady()) return null;
-  if (transporter) return transporter;
-  const { host, user, pass, port } = smtpConfig();
-  const ipv4 = await lookupIpv4(host);
-  console.log('SMTP IPv4:', host, '→', ipv4);
-  transporter = nodemailer.createTransport({
-    host: ipv4,
-    port,
-    secure: port === 465,
-    requireTLS: port === 587,
-    family: 4,
-    auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-    tls: { servername: host, minVersion: 'TLSv1.2' }
+const sendViaBrevo = async ({ to, subject, html, text }) => {
+  const sender = parseFrom(smtpConfig().from);
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': brevoKey(),
+      accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: { name: sender.name, email: sender.email },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html || text,
+      textContent: text || subject
+    })
   });
-  return transporter;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.code || `Brevo ${res.status}`);
+  }
 };
 
 const verifySmtp = async () => {
-  const { host, user, from, pass } = smtpConfig();
-  if (!smtpReady()) {
-    console.warn('E-posta kapalı. Eksik:', {
-      SMTP_HOST: Boolean(host),
-      SMTP_USER: Boolean(user),
-      SMTP_PASS: Boolean(pass),
-      EMAIL_FROM: Boolean(from)
-    });
-    return false;
-  }
-  try {
-    await (await mailer()).verify();
-    console.log('SMTP girişi tamam:', user, '→', from);
+  const { user, from } = smtpConfig();
+  if (brevoKey()) {
+    console.log('E-posta Brevo HTTPS ile gidecek. Gönderen:', from || user);
     return true;
-  } catch (error) {
-    console.error('SMTP girişi başarısız:', error.message);
-    return false;
   }
+  console.warn('Render 587 portunu kapattığı için Gmail SMTP zaman aşımına düşer. BREVO_API_KEY ekleyin.');
+  return false;
 };
 
 const sendMail = async ({ to, subject, html, text }) => {
   const address = String(to || '').trim();
   if (!address) return false;
-  const transport = await mailer();
-  const { from } = smtpConfig();
-  if (!transport) {
-    console.warn('E-posta kapalı (SMTP env yok):', subject, '→', address);
+  if (!brevoKey()) {
+    console.warn('E-posta gönderilmedi (BREVO_API_KEY yok):', subject, '→', address);
     return false;
   }
-  await transport.sendMail({
-    from,
-    to: address,
-    subject,
-    text,
-    html
-  });
+  await sendViaBrevo({ to: address, subject, html, text });
   console.log('E-posta gitti:', subject, '→', address);
   return true;
 };
