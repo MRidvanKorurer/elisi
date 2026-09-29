@@ -13,8 +13,8 @@ const smtpConfig = () => {
 };
 
 const gmailReady = () => Boolean(
-  clean(process.env.GOOGLE_CLIENT_ID)
-  && clean(process.env.GOOGLE_CLIENT_SECRET)
+  clean(process.env.GMAIL_CLIENT_ID)
+  && clean(process.env.GMAIL_CLIENT_SECRET)
   && clean(process.env.GMAIL_REFRESH_TOKEN)
 );
 
@@ -24,8 +24,8 @@ let cachedAccessTokenAt = 0;
 const gmailAccessToken = async () => {
   if (cachedAccessToken && Date.now() - cachedAccessTokenAt < 45 * 60 * 1000) return cachedAccessToken;
   const body = new URLSearchParams({
-    client_id: clean(process.env.GOOGLE_CLIENT_ID),
-    client_secret: clean(process.env.GOOGLE_CLIENT_SECRET),
+    client_id: clean(process.env.GMAIL_CLIENT_ID),
+    client_secret: clean(process.env.GMAIL_CLIENT_SECRET),
     refresh_token: clean(process.env.GMAIL_REFRESH_TOKEN),
     grant_type: 'refresh_token'
   });

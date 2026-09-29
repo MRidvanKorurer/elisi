@@ -2,12 +2,12 @@ const http = require('http');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-const clientId = String(process.env.GOOGLE_CLIENT_ID || '').trim();
-const clientSecret = String(process.env.GOOGLE_CLIENT_SECRET || '').trim();
-const redirect = 'http://127.0.0.1:53682/oauth';
+const clientId = String(process.env.GMAIL_CLIENT_ID || '').trim();
+const clientSecret = String(process.env.GMAIL_CLIENT_SECRET || '').trim();
+const redirect = 'http://127.0.0.1:53682';
 
 if (!clientId || !clientSecret) {
-  console.error('server/.env içine GOOGLE_CLIENT_ID ve GOOGLE_CLIENT_SECRET yazın.');
+  console.error('server/.env içine GMAIL_CLIENT_ID ve GMAIL_CLIENT_SECRET yazın. Site girişindeki GOOGLE_CLIENT_ID kullanılmaz.');
   process.exit(1);
 }
 
@@ -21,8 +21,8 @@ auth.searchParams.set('prompt', 'consent');
 auth.searchParams.set('login_hint', 'nikbagofficial@gmail.com');
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, redirect);
-  if (url.pathname !== '/oauth') {
+  const url = new URL(req.url, `${redirect}/`);
+  if (url.pathname !== '/' && url.pathname !== '') {
     res.writeHead(404);
     res.end();
     return;
