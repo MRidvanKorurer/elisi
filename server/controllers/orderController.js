@@ -18,6 +18,7 @@ const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillme
 const { resolveBank, hasBankAccount } = require('../utils/bank');
 const { buildOrderPayouts } = require('../utils/orderPayouts');
 const { notifyNewOrder } = require('../services/whatsappService');
+const { notifyOrderCreated } = require('../services/emailService');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
@@ -416,6 +417,24 @@ exports.createOrder = async (req, res) => {
                 sellerPhones,
                 superAdminPhone: process.env.SUPER_ADMIN_PHONE
             }).catch((error) => console.error('WhatsApp sipariş bildirimi:', error.message));
+
+            const shopByUser = new Map(shops.map((shop) => [String(shop.user), shop.magazaAdi || '']));
+            User.find({ _id: { $in: sellerIds } }).select('email adSoyad').lean()
+                .then((sellerUsers) => {
+                    notifyOrderCreated({
+                        orderId: savedOrder._id,
+                        buyerName: `${savedOrder.customerInfo.firstName} ${savedOrder.customerInfo.lastName}`.trim(),
+                        buyerEmail: savedOrder.customerInfo.email,
+                        items: savedOrder.orderItems,
+                        sellers: sellerUsers.map((user) => ({
+                            id: user._id,
+                            email: user.email,
+                            name: shopByUser.get(String(user._id)) || user.adSoyad
+                        })),
+                        adminEmail: process.env.SUPERADMIN_EMAIL || process.env.CONTACT_EMAIL
+                    });
+                })
+                .catch((error) => console.error('Sipariş e-postası:', error.message));
         });
     } catch (error) {
         console.error('Sipariş oluşturma hatası:', error);
