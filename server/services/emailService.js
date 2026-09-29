@@ -176,6 +176,7 @@ const notifyOrderCreated = ({
   buyerEmail,
   sellers = [],
   items = [],
+  total,
   adminEmail
 } = {}) => {
   const jobs = [];
@@ -190,7 +191,7 @@ const notifyOrderCreated = ({
   });
 
   groups.forEach((group, email) => {
-    jobs.push({ to: email, ...templates.sellerSold({ sellerName: group.sellerName, orderId, buyerName, items: group.items }) });
+    jobs.push({ to: email, ...templates.sellerSold({ sellerName: group.sellerName, orderId, buyerName, items: group.items, total }) });
     jobs.push({
       to: adminEmail || process.env.SUPERADMIN_EMAIL || process.env.CONTACT_EMAIL,
       ...templates.adminSale({
@@ -215,7 +216,7 @@ const notifyOrderCreated = ({
   }
 
   if (buyerEmail) {
-    jobs.push({ to: buyerEmail, ...templates.buyerCreated({ buyerName, orderId }) });
+    jobs.push({ to: buyerEmail, ...templates.buyerCreated({ buyerName, orderId, items, total }) });
   }
 
   const pending = jobs.filter((job) => job.to);

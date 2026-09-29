@@ -426,6 +426,7 @@ exports.createOrder = async (req, res) => {
                         buyerName: `${savedOrder.customerInfo.firstName} ${savedOrder.customerInfo.lastName}`.trim(),
                         buyerEmail: savedOrder.customerInfo.email,
                         items: savedOrder.orderItems,
+                        total: totalPrice,
                         sellers: sellerUsers.map((user) => ({
                             id: user._id,
                             email: user.email,
