@@ -163,6 +163,11 @@ const dispatch = (jobs) => {
   });
 };
 
+const SUPER_ADMIN_EMAIL = 'nikbagadmin@gmail.com';
+
+const superAdminEmail = (explicit) =>
+  String(explicit || process.env.SUPERADMIN_EMAIL || SUPER_ADMIN_EMAIL).trim();
+
 const productLabel = (items = []) => {
   const names = [...new Set((items || []).map((item) => item.name || item.title).filter(Boolean))];
   if (!names.length) return 'ürün';
@@ -179,6 +184,7 @@ const notifyOrderCreated = ({
   total,
   adminEmail
 } = {}) => {
+  const admin = superAdminEmail(adminEmail);
   const jobs = [];
   const groups = new Map();
   (sellers || []).forEach((seller) => {
@@ -193,7 +199,7 @@ const notifyOrderCreated = ({
   groups.forEach((group, email) => {
     jobs.push({ to: email, ...templates.sellerSold({ sellerName: group.sellerName, orderId, buyerName, items: group.items, total }) });
     jobs.push({
-      to: adminEmail || process.env.SUPERADMIN_EMAIL || process.env.CONTACT_EMAIL,
+      to: admin,
       ...templates.adminSale({
         sellerName: group.sellerName,
         productName: productLabel(group.items),
@@ -205,7 +211,7 @@ const notifyOrderCreated = ({
 
   if (!groups.size) {
     jobs.push({
-      to: adminEmail || process.env.SUPERADMIN_EMAIL || process.env.CONTACT_EMAIL,
+      to: admin,
       ...templates.adminSale({
         sellerName: 'Satıcı',
         productName: productLabel(items),
@@ -229,11 +235,18 @@ const notifyOrderStatusChanged = ({
   buyerName,
   orderId,
   status,
-  trackingCode
+  trackingCode,
+  adminEmail
 } = {}) => {
-  if (!buyerEmail) return;
-  const mail = templates.buyerStatus({ buyerName, orderId, status, trackingCode });
-  dispatch([{ to: buyerEmail, ...mail }]);
+  const jobs = [];
+  if (buyerEmail) {
+    jobs.push({ to: buyerEmail, ...templates.buyerStatus({ buyerName, orderId, status, trackingCode }) });
+  }
+  const admin = superAdminEmail(adminEmail);
+  if (admin) {
+    jobs.push({ to: admin, ...templates.adminStatus({ buyerName, orderId, status, trackingCode }) });
+  }
+  dispatch(jobs.filter((job) => job.to));
 };
 
 module.exports = {

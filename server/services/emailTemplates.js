@@ -142,6 +142,26 @@ const adminSale = ({ sellerName, productName, buyerName, orderId }) => {
   };
 };
 
+const adminStatus = ({ buyerName, orderId, status, trackingCode }) => {
+  const label = statusLabel(status);
+  const text = `${orderId} numaralı siparişin durumu ${label} oldu. Alıcı: ${buyerName || '—'}.${trackingCode ? ` Takip: ${trackingCode}.` : ''}`;
+  return {
+    subject: `Sipariş durumu: ${label}`,
+    text,
+    html: layout({
+      title: 'Sipariş durumu değişti',
+      intro: 'Bir siparişin durumu güncellendi. Alıcıya da aynı bilgi gönderildi.',
+      rows: [
+        row('Sipariş no', String(orderId)),
+        row('Alıcı', buyerName || '—'),
+        row('Yeni durum', label),
+        trackingCode ? row('Takip kodu', trackingCode) : ''
+      ].join(''),
+      note: 'Ayrıntı için yönetim panelindeki sipariş listesine bakın.'
+    })
+  };
+};
+
 const buyerStatus = ({ buyerName, orderId, status, trackingCode }) => {
   const label = statusLabel(status);
   const track = trackingCode ? ` Takip kodu: ${trackingCode}.` : '';
@@ -168,6 +188,7 @@ module.exports = {
   sellerSold,
   buyerCreated,
   adminSale,
+  adminStatus,
   buyerStatus,
   statusLabel
 };

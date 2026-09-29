@@ -431,8 +431,7 @@ exports.createOrder = async (req, res) => {
                             id: user._id,
                             email: user.email,
                             name: shopByUser.get(String(user._id)) || user.adSoyad
-                        })),
-                        adminEmail: process.env.SUPERADMIN_EMAIL || process.env.CONTACT_EMAIL
+                        }))
                     });
                 })
                 .catch((error) => console.error('Sipariş e-postası:', error.message));
