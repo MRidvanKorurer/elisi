@@ -169,7 +169,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
           width: '100%',
           aspectRatio: { xs: '2752 / 1536', md: 'unset' },
           height: { xs: 'auto', md: '100%' },
-          minHeight: { xs: 168, md: '100%' }
+          minHeight: { md: '100%' }
         }}
       >
       <AnimatePresence initial={false} custom={direction}>
