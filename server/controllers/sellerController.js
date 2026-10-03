@@ -38,7 +38,7 @@ const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { magazaTuruEtiket, normalizeMagazaTurleri } = require('../utils/sellerCategories');
 const { unansweredQuery, overdueQuery } = require('../utils/questionDeadline');
 const { notifyOrderStatusUpdate } = require('../services/whatsappService');
-const { notifyOrderStatusChanged } = require('../services/emailService');
+const { notifyOrderStatusChanged, notifyAdminSignup } = require('../services/emailService');
 
 const isLocalUpload = (src = '') => String(src).startsWith('/uploads/') || String(src).includes('/uploads/');
 
@@ -304,6 +304,14 @@ const registerSeller = async (req, res) => {
                 const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
                 res.cookie('token', token, COOKIE_OPTIONS);
             }
+
+            notifyAdminSignup({
+                kind: 'seller',
+                name: user.adSoyad,
+                email: user.email,
+                phone: seller.telefon || user.telefon,
+                shop: seller.magazaAdi
+            });
 
             return res.status(201).json({
                 mesaj: 'Satıcı başvurunuz alındı. İnceleme sonrası mağazanız yayına alınır.',

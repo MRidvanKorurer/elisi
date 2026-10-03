@@ -142,6 +142,34 @@ const adminSale = ({ sellerName, productName, buyerName, orderId }) => {
   };
 };
 
+const adminSignup = ({ kind, name, email, phone, shop }) => {
+  const who = kind === 'seller' ? 'Yeni satıcı kaydı' : 'Yeni müşteri kaydı';
+  const text = [
+    who,
+    `Ad: ${name || '—'}`,
+    `E-posta: ${email || '—'}`,
+    `Telefon: ${phone || '—'}`,
+    shop ? `Mağaza: ${shop}` : ''
+  ].filter(Boolean).join('\n');
+  return {
+    subject: who,
+    text,
+    html: layout({
+      title: who,
+      intro: kind === 'seller'
+        ? 'Sisteme yeni bir satıcı başvurusu geldi. Mağazayı panelden inceleyip onaylayın.'
+        : 'Sisteme yeni bir müşteri hesabı açıldı.',
+      rows: [
+        row('Ad', name || '—'),
+        row('E-posta', email || '—'),
+        row('Telefon', phone || '—'),
+        shop ? row('Mağaza', shop) : ''
+      ].join(''),
+      note: 'Bu bilgi yalnızca süper admin içindir.'
+    })
+  };
+};
+
 const adminStatus = ({ buyerName, orderId, status, trackingCode }) => {
   const label = statusLabel(status);
   const text = `${orderId} numaralı siparişin durumu ${label} oldu. Alıcı: ${buyerName || '—'}.${trackingCode ? ` Takip: ${trackingCode}.` : ''}`;
@@ -188,6 +216,7 @@ module.exports = {
   sellerSold,
   buyerCreated,
   adminSale,
+  adminSignup,
   adminStatus,
   buyerStatus,
   statusLabel

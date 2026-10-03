@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { WELCOME_PERCENT, normalizeCode, generateWelcomeCode, couponAlreadyConsumed, syncWelcomeCouponFlag } = require('../utils/welcomeCoupon');
 
 const { cookieOptions } = require('../utils/runtime');
+const { notifyAdminSignup } = require('../services/emailService');
 const COOKIE_OPTIONS = cookieOptions();
 
 const isValidPhone = (telefon = '') => {
@@ -73,6 +74,12 @@ const register = async (req, res) => {
         res.status(201).json({
             mesaj: `Kayıt başarılı! İlk siparişine özel %${WELCOME_PERCENT} indirim kodun hazır.`,
             kullanici: publicUser(user)
+        });
+        notifyAdminSignup({
+            kind: 'customer',
+            name: user.adSoyad,
+            email: user.email,
+            phone: user.telefon
         });
     } catch (error) {
         res.status(500).json({ mesaj: 'Sunucu hatası', hata: error.message });
@@ -311,6 +318,14 @@ const googleAuth = async (req, res) => {
             isNewUser,
             kullanici: publicUser(user)
         });
+        if (isNewUser) {
+            notifyAdminSignup({
+                kind: 'customer',
+                name: user.adSoyad,
+                email: user.email,
+                phone: user.telefon
+            });
+        }
     } catch (error) {
         console.error('Google auth error:', error?.message || error);
         const status = error?.status || 401;

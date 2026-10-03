@@ -249,9 +249,16 @@ const notifyOrderStatusChanged = ({
   dispatch(jobs.filter((job) => job.to));
 };
 
+const notifyAdminSignup = ({ kind, name, email, phone, shop } = {}) => {
+  const admin = superAdminEmail();
+  if (!admin) return;
+  dispatch([{ to: admin, ...templates.adminSignup({ kind, name, email, phone, shop }) }]);
+};
+
 module.exports = {
   sendMail,
   verifySmtp,
   notifyOrderCreated,
-  notifyOrderStatusChanged
+  notifyOrderStatusChanged,
+  notifyAdminSignup
 };
