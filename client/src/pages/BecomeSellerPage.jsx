@@ -746,10 +746,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                         <TextField fullWidth required label="Telefon" value={form.telefon} onChange={handleChange('telefon')} placeholder="05xx xxx xx xx" sx={fieldSx}
                           {...fieldProps('telefon')}
                           InputProps={{ startAdornment: <InputAdornment position="start"><PhoneOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
-                        {form.hesapTipi === 'bireysel' ? (
-                          <TextField fullWidth required label="T.C. Kimlik No" value={form.tcKimlik} onChange={handleChange('tcKimlik')} inputProps={{ maxLength: 11, inputMode: 'numeric' }} sx={fieldSx}
-                            {...fieldProps('tcKimlik')} />
-                        ) : (
+                        {form.hesapTipi === 'kurumsal' && (
                           <TextField fullWidth required label="Vergi No" value={form.vergiNo} onChange={handleChange('vergiNo')} inputProps={{ maxLength: 10, inputMode: 'numeric' }} sx={fieldSx}
                             {...fieldProps('vergiNo', '10 haneli vergi kimlik numarası')} />
                         )}

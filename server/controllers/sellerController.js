@@ -87,16 +87,6 @@ const isValidPhone = (telefon = '') => {
 
 const isValidEmail = (email = '') => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim());
 
-const isValidTckn = (value = '') => {
-    if (!/^\d{11}$/.test(value)) return false;
-    if (value[0] === '0') return false;
-    const d = value.split('').map(Number);
-    const odd = d[0] + d[2] + d[4] + d[6] + d[8];
-    const even = d[1] + d[3] + d[5] + d[7];
-    if ((((odd * 7) - even) % 10 + 10) % 10 !== d[9]) return false;
-    return d.slice(0, 10).reduce((sum, n) => sum + n, 0) % 10 === d[10];
-};
-
 const serializeSeller = (seller, user, extra = {}) => ({
     id: seller._id,
     magazaAdi: seller.magazaAdi,
@@ -202,15 +192,6 @@ const registerSeller = async (req, res) => {
         }
 
         const tip = hesapTipi === 'kurumsal' ? 'kurumsal' : 'bireysel';
-        if (tip === 'bireysel') {
-            const kimlik = String(tcKimlik).trim();
-            if (!kimlik) {
-                return res.status(400).json({ mesaj: 'T.C. kimlik numarası zorunludur.' });
-            }
-            if (!isValidTckn(kimlik)) {
-                return res.status(400).json({ mesaj: 'Geçerli bir T.C. kimlik numarası girin.' });
-            }
-        }
         if (tip === 'kurumsal' && !/^\d{10}$/.test(String(vergiNo).trim())) {
             return res.status(400).json({ mesaj: 'Vergi numarası 10 haneli olmalıdır.' });
         }
@@ -284,7 +265,7 @@ const registerSeller = async (req, res) => {
                 adres: String(adres).trim(),
                 iban: cleanIban,
                 ibanHolder: holder,
-                tcKimlik: tip === 'bireysel' ? String(tcKimlik).trim() : '',
+                tcKimlik: '',
                 vergiNo: tip === 'kurumsal' ? String(vergiNo).trim() : '',
                 instagram: String(instagram).trim(),
                 website: String(website).trim(),

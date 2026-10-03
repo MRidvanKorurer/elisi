@@ -8,7 +8,7 @@ export const STEP_FIELDS = {
   0: (loggedIn, hesapTipi) => {
     const fields = ['telefon', 'hesapTipi'];
     if (!loggedIn) fields.unshift('adSoyad', 'email', 'sifre');
-    fields.push(hesapTipi === 'kurumsal' ? 'vergiNo' : 'tcKimlik');
+    if (hesapTipi === 'kurumsal') fields.push('vergiNo');
     return fields;
   },
   1: () => ['magazaAdi', 'magazaTuru', 'aciklama', 'instagram', 'website'],
@@ -96,12 +96,6 @@ export function getFieldError(name, form, { loggedIn } = {}) {
     case 'telefon': {
       if (!text) return 'Telefon numarası zorunludur.';
       if (!isValidPhone(text)) return 'Geçerli bir cep telefonu girin (05xx xxx xx xx).';
-      return '';
-    }
-    case 'tcKimlik': {
-      if (form.hesapTipi !== 'bireysel') return '';
-      if (!text) return 'T.C. kimlik numarası zorunludur.';
-      if (!isValidTckn(text)) return 'Geçerli bir T.C. kimlik numarası girin.';
       return '';
     }
     case 'vergiNo': {
