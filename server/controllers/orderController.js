@@ -600,10 +600,16 @@ exports.addGuestOrderNote = async (req, res) => {
     }
 };
 
+const orderForBuyer = (order) => {
+    const plain = typeof order.toObject === 'function' ? order.toObject() : { ...order };
+    delete plain.payouts;
+    return plain;
+};
+
 exports.getMyOrders = async (req, res) => {
     try {
         const orders = await Order.find({ user: req.user._id || req.user.id }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, orders });
+        res.status(200).json({ success: true, orders: orders.map(orderForBuyer) });
     } catch (error) {
         console.error('Siparişler getirilirken hata:', error);
         res.status(500).json({ success: false, message: 'Siparişleriniz alınamadı.' });
@@ -630,7 +636,7 @@ exports.getOrderById = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Bu siparişi görüntüleme yetkiniz yok.' });
         }
 
-        res.status(200).json({ success: true, order });
+        res.status(200).json({ success: true, order: isAdmin ? order : orderForBuyer(order) });
     } catch (error) {
         console.error('Sipariş detayı alınırken hata:', error);
         res.status(500).json({ success: false, message: 'Sipariş detayı alınamadı.' });

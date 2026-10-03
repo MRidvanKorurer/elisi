@@ -58,32 +58,24 @@ const upsertPlatformBank = async ({ name = '', holder = '', iban = '' } = {}) =>
     error.status = 400;
     throw error;
   }
-  const User = require('../models/User');
-  const Seller = require('../models/Seller');
-  const admin = await User.findOne({ rol: 'superadmin' }).sort({ createdAt: 1 }).select('_id adSoyad');
-  const shop = admin ? await Seller.findOne({ user: admin._id }) : null;
   const account = normalizeBank({
-    name: String(name || shop?.magazaAdi || PLATFORM_BANK.name).trim(),
-    holder: String(holder || shop?.ibanHolder || admin?.adSoyad || PLATFORM_BANK.holder).trim(),
+    name: String(name || PLATFORM_BANK.name).trim(),
+    holder: String(holder || PLATFORM_BANK.holder).trim(),
     iban: clean
   });
-  if (shop) {
-    shop.iban = clean;
-    shop.ibanHolder = account.holder;
-    await shop.save();
-    account.name = shop.magazaAdi || account.name;
-  }
-  if (admin && account.holder && admin.adSoyad !== account.holder) {
-    admin.adSoyad = account.holder;
-    await admin.save();
-  }
   await persistBank(account);
   return account;
 };
 
-const ensurePlatformBank = async () => {
-  const account = await upsertPlatformBank(envBank());
-  return account;
+const ensurePlatformBank = async () => upsertPlatformBank(envBank());
+
+const seedPlatformBankIfEmpty = async () => {
+  const settings = await SiteSetting.findOne({ key: 'site' })
+    .select('featuredBankName featuredBankHolder featuredBankIban')
+    .lean();
+  const saved = fromSettings(settings, { name: '', holder: '', iban: '' });
+  if (hasBankAccount(saved)) return normalizeBank(saved);
+  return ensurePlatformBank();
 };
 
 const resolveBank = async () => {
@@ -112,5 +104,6 @@ module.exports = {
   persistBank,
   isValidIbanTr,
   upsertPlatformBank,
-  ensurePlatformBank
+  ensurePlatformBank,
+  seedPlatformBankIfEmpty
 };
