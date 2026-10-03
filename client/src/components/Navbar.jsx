@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
@@ -47,6 +47,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
   const openMenu = Boolean(anchorEl);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const searchBtnRef = useRef(null);
 
   useEffect(() => {
     setScrolled(!isHome || window.scrollY > 16);
@@ -155,8 +156,10 @@ export default function Navbar({ setPage, user, handleLogout }) {
             )}
 
             <IconButton
-              aria-label={t('nav.search')}
-              onClick={() => setMobileOpen((v) => !v)}
+              ref={searchBtnRef}
+              aria-label={mobileOpen ? t('actions.close', { defaultValue: 'Kapat' }) : t('nav.search')}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setMobileOpen((open) => !open)}
               sx={{ ...iconBtn(solid), display: { xs: 'inline-flex', md: 'none' } }}
             >
               {mobileOpen ? <CloseRounded /> : <SearchIcon />}
@@ -302,8 +305,13 @@ export default function Navbar({ setPage, user, handleLogout }) {
       </SiteContainer>
 
       {mobileOpen && (
-        <ClickAwayListener onClickAway={() => setMobileOpen(false)}>
-          <Box sx={{ display: { md: 'none' }, px: 2, pb: 1.5, pt: 0.5 }}>
+        <ClickAwayListener
+          onClickAway={(event) => {
+            if (searchBtnRef.current?.contains(event.target)) return;
+            setMobileOpen(false);
+          }}
+        >
+          <Box sx={{ display: { md: 'none' }, px: 2, pb: 'calc(12px + env(safe-area-inset-bottom, 0px))', pt: 0.5 }}>
             <NavSearch solid={solid} variant="mobile" onNavigate={() => setMobileOpen(false)} />
           </Box>
         </ClickAwayListener>

@@ -150,6 +150,12 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
   const inputRef = useRef(null);
   const isMobile = variant === 'mobile';
 
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [isMobile]);
+
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState([]);
   const [results, setResults] = useState([]);
@@ -427,7 +433,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
         sx={{
           flex: 1,
           minWidth: 0,
-          fontSize: '0.9rem',
+          fontSize: isMobile ? '16px' : '0.9rem',
           fontWeight: 600,
           color: '#2E3B55',
           '& input::placeholder': { color: '#6E5252', opacity: 0.7 }
@@ -440,12 +446,26 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
         <IconButton
           size="small"
           aria-label={t('search.clear', { ns: 'catalog' })}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => { event.stopPropagation(); setQuery(''); inputRef.current?.focus(); }}
           sx={{ color: '#946D6D', flexShrink: 0 }}
         >
           <CloseRounded fontSize="small" />
         </IconButton>
-      ) : (
+      ) : null}
+      {isMobile ? (
+        <ButtonBase
+          aria-label={t('actions.close', { defaultValue: 'Kapat' })}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onNavigate?.();
+          }}
+          sx={{ flexShrink: 0, px: 1, py: 0.4, borderRadius: '999px', color: '#2E3B55', fontWeight: 800, fontSize: '0.78rem' }}
+        >
+          {t('actions.close', { defaultValue: 'Kapat' })}
+        </ButtonBase>
+      ) : !query ? (
         !isMobile && (
           <Box
             sx={{
