@@ -9,9 +9,9 @@ const connectDB = async () => {
         });
         console.log(`✅ MongoDB Bağlantısı Başarılı : ${conn.connection.host}`);
         const ensureRoles = require('../utils/ensureRoles');
-        const { ensurePlatformBank } = require('../utils/bank');
+        const { seedPlatformBankIfEmpty } = require('../utils/bank');
         await ensureRoles();
-        await ensurePlatformBank();
+        await seedPlatformBankIfEmpty();
     } catch (error) {
         console.error(`MongoDB Bağlantı Hatası ❌: ${error.message}`);
         process.exit(1); 
