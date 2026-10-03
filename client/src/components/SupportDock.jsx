@@ -80,6 +80,12 @@ export default function SupportDock() {
     }
   ]);
   const scroller = useRef(null);
+  const inputRef = useRef(null);
+  const primeRef = useRef(null);
+  const [frame, setFrame] = useState(() => ({
+    height: typeof window === 'undefined' ? 0 : window.innerHeight,
+    offsetTop: 0
+  }));
   const [whatsappHref, setWhatsappHref] = useState(`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_TEXT}`);
 
   useEffect(() => {
@@ -93,6 +99,42 @@ export default function SupportDock() {
     const node = scroller.current;
     if (node) node.scrollTop = node.scrollHeight;
   }, [messages, open, sending]);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    const sync = () => {
+      setFrame({ height: vv.height, offsetTop: vv.offsetTop });
+    };
+    sync();
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    return () => {
+      vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusInput = () => inputRef.current?.focus();
+    const timer = window.setTimeout(focusInput, 60);
+    return () => {
+      document.body.style.overflow = previous;
+      window.clearTimeout(timer);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    primeRef.current?.focus();
+    setOpen(true);
+  };
 
   const send = async (text) => {
     const message = String(text || draft).trim();
@@ -119,15 +161,34 @@ export default function SupportDock() {
     <Box
       sx={{
         position: 'fixed',
-        right: { xs: 12, sm: 16 },
-        bottom: bottomOffset,
-        zIndex: 30,
+        zIndex: 1400,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
-        gap: 1.2
+        gap: 1.2,
+        ...(open
+          ? {
+              top: { xs: `${frame.offsetTop}px`, sm: 'auto' },
+              left: { xs: 0, sm: 'auto' },
+              right: { xs: 0, sm: 16 },
+              height: { xs: `${frame.height}px`, sm: 'auto' },
+              bottom: { xs: 'auto', sm: bottomOffset },
+              px: { xs: 0, sm: 0 },
+              pt: { xs: 'env(safe-area-inset-top, 0px)', sm: 0 }
+            }
+          : {
+              right: { xs: 12, sm: 16 },
+              bottom: bottomOffset
+            })
       }}
     >
+      <input
+        ref={primeRef}
+        aria-hidden="true"
+        tabIndex={-1}
+        inputMode="text"
+        style={{ position: 'fixed', opacity: 0, height: 0, width: 0, border: 0, padding: 0, fontSize: 16 }}
+      />
       <AnimatePresence>
         {open && (
           <motion.div
@@ -135,18 +196,21 @@ export default function SupportDock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            style={{ width: 'min(360px, calc(100vw - 28px))' }}
+            style={{ width: '100%', maxWidth: 360, height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
           >
             <Box
               sx={{
-                mb: 0.5,
-                height: { xs: 'min(440px, calc(100dvh - 168px))', sm: 500 },
+                mb: { xs: 0, sm: 0.5 },
+                mx: { xs: 0, sm: 0 },
+                width: '100%',
+                height: { xs: '100%', sm: 500 },
+                maxHeight: { xs: '100%', sm: 'min(500px, calc(100dvh - 140px))' },
                 display: 'flex',
                 flexDirection: 'column',
-                borderRadius: '24px',
+                borderRadius: { xs: 0, sm: '24px' },
                 overflow: 'hidden',
                 backgroundColor: '#fff',
-                border: '1px solid rgba(148,109,109,0.16)',
+                border: { xs: 'none', sm: '1px solid rgba(148,109,109,0.16)' },
                 boxShadow: '0 28px 60px -28px rgba(30,39,56,0.55)'
               }}
             >
@@ -213,12 +277,13 @@ export default function SupportDock() {
                 ))}
               </Box>
 
-              <Box sx={{ p: 1.2, display: 'flex', gap: 0.8, alignItems: 'flex-end' }}>
+              <Box sx={{ p: 1.2, pb: { xs: 'calc(10px + env(safe-area-inset-bottom, 0px))', sm: 1.2 }, display: 'flex', gap: 0.8, alignItems: 'flex-end' }}>
                 <TextField
                   fullWidth
                   size="small"
                   placeholder={t('placeholder')}
                   value={draft}
+                  inputRef={inputRef}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
@@ -226,7 +291,14 @@ export default function SupportDock() {
                       send();
                     }
                   }}
-                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                  slotProps={{
+                    htmlInput: {
+                      maxLength: 500,
+                      enterKeyHint: 'send',
+                      autoComplete: 'off',
+                      style: { fontSize: 16 }
+                    }
+                  }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '14px',
@@ -254,11 +326,11 @@ export default function SupportDock() {
         )}
       </AnimatePresence>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1, alignItems: 'flex-end' }}>
+      <Box sx={{ display: open ? { xs: 'none', sm: 'flex' } : 'flex', flexDirection: 'column', gap: 1.1, alignItems: 'flex-end' }}>
         <Tooltip title={t('aiTitle')} placement="left" disableHoverListener={open} disableFocusListener={open}>
           <Fab
             aria-label={t('aiAria')}
-            onClick={() => setOpen((prev) => !prev)}
+            onClick={toggle}
             sx={{
               ...fabBase,
               backgroundColor: open ? '#946D6D' : '#2E3B55',
@@ -278,6 +350,7 @@ export default function SupportDock() {
             aria-label="WhatsApp ile sor"
             sx={{
               ...fabBase,
+              display: open ? { xs: 'none', sm: 'inline-flex' } : 'inline-flex',
               backgroundColor: '#25D366',
               color: '#fff',
               '&:hover': { ...fabBase['&:hover'], backgroundColor: '#1EBE57' }
