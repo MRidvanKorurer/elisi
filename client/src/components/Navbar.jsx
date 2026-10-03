@@ -143,6 +143,17 @@ export default function Navbar({ setPage, user, handleLogout }) {
           <Box sx={{ display: 'flex', gap: { xs: 0.6, sm: 1 }, alignItems: 'center', flexShrink: 0 }}>
             <LanguageSwitch solid={solid} />
 
+            {!isSuperAdmin(user?.rol) && (
+              <IconButton
+                aria-label={isSellerRole(user?.rol) ? t('nav.myShop') : t('nav.becomeSeller')}
+                title={isSellerRole(user?.rol) ? t('nav.myShop') : t('nav.becomeSeller')}
+                onClick={() => go(isSellerRole(user?.rol) ? 'panel' : 'satici-ol')}
+                sx={{ ...iconBtn(solid), display: { xs: 'inline-flex', lg: 'none' } }}
+              >
+                <StorefrontOutlined />
+              </IconButton>
+            )}
+
             <IconButton
               aria-label={t('nav.search')}
               onClick={() => setMobileOpen((v) => !v)}
