@@ -466,29 +466,27 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
           {t('actions.close', { defaultValue: 'Kapat' })}
         </ButtonBase>
       ) : !query ? (
-        !isMobile && (
-          <Box
-            sx={{
-              display: { xs: 'none', lg: 'grid' },
-              placeItems: 'center',
-              minWidth: 22,
-              height: 22,
-              px: 0.7,
-              mr: 0.4,
-              flexShrink: 0,
-              borderRadius: '7px',
-              border: '1px solid rgba(46,59,85,0.16)',
-              color: '#6E5252',
-              fontSize: '0.7rem',
-              fontWeight: 800,
-              opacity: open ? 0 : 1,
-              transition: 'opacity .2s ease'
-            }}
-          >
-            /
-          </Box>
-        )
-      )}
+        <Box
+          sx={{
+            display: { xs: 'none', lg: 'grid' },
+            placeItems: 'center',
+            minWidth: 22,
+            height: 22,
+            px: 0.7,
+            mr: 0.4,
+            flexShrink: 0,
+            borderRadius: '7px',
+            border: '1px solid rgba(46,59,85,0.16)',
+            color: '#6E5252',
+            fontSize: '0.7rem',
+            fontWeight: 800,
+            opacity: open ? 0 : 1,
+            transition: 'opacity .2s ease'
+          }}
+        >
+          /
+        </Box>
+      ) : null}
     </Paper>
   );
 
