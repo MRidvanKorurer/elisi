@@ -25,7 +25,6 @@ function LegacyProductRedirect() {
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import PhoneRequiredGate from './components/PhoneRequiredGate';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import API from './api/api';
 import './index.css';
@@ -256,15 +255,6 @@ export default function App() {
             handleLogout={handleLogout}
           />
         )}
-
-        <PhoneRequiredGate
-          key={user?.id || user?._id || 'guest'}
-          user={user}
-          onSaved={(nextUser) => {
-            setUser(nextUser);
-            persistSession(nextUser);
-          }}
-        />
 
         {!isAdminRoute && (
           <Suspense fallback={null}>

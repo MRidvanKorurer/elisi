@@ -155,10 +155,6 @@ export default function AuthPage({ onLoginSuccess }) {
 
   const handleGoogleClick = async () => {
     if (googleBusyRef.current) return;
-    if (!isValidPhone(telefon)) {
-      setError(t('phoneRequiredGoogle'));
-      return;
-    }
     googleBusyRef.current = true;
     setError('');
     setGoogleLoading(true);
@@ -170,7 +166,7 @@ export default function AuthPage({ onLoginSuccess }) {
       }
       const data = await authService.google({
         accessToken,
-        telefon: telefon.trim()
+        ...(isValidPhone(telefon) ? { telefon: telefon.trim() } : {})
       });
       pendingGoogleTokenRef.current = '';
       const userData = data.kullanici || data.user;
@@ -611,6 +607,7 @@ export default function AuthPage({ onLoginSuccess }) {
                       </Alert>
                     )}
 
+                    {tab === 1 && (
                     <TextField
                       fullWidth
                       label={t('phone')}
@@ -619,7 +616,7 @@ export default function AuthPage({ onLoginSuccess }) {
                       placeholder={t('phonePlaceholder')}
                       value={telefon}
                       onChange={(e) => setTelefon(e.target.value)}
-                      required={tab === 1}
+                      required
                       disabled={busy}
                       helperText={t('phoneHint')}
                       sx={{ ...fieldSx, mb: 2 }}
@@ -631,6 +628,7 @@ export default function AuthPage({ onLoginSuccess }) {
                         )
                       }}
                     />
+                    )}
 
                     <Button
                       fullWidth

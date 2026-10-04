@@ -262,6 +262,7 @@ const googleAuth = async (req, res) => {
         }
 
         const telefon = req.body.telefon || req.body.phone;
+        const phone = isValidPhone(telefon) ? String(telefon).trim() : '';
         const { googleId, email, adSoyad, avatarUrl } = await resolveGoogleProfile({
             credential,
             accessToken,
@@ -277,32 +278,22 @@ const googleAuth = async (req, res) => {
                 user.googleId = googleId;
                 if (!user.avatarUrl && avatarUrl) user.avatarUrl = avatarUrl;
                 if (!user.adSoyad && adSoyad) user.adSoyad = adSoyad;
-                if (!isValidPhone(user.telefon)) {
-                    if (!isValidPhone(telefon)) throw phoneError();
-                    user.telefon = String(telefon).trim();
-                }
+                if (phone && !isValidPhone(user.telefon)) user.telefon = phone;
                 await user.save();
             } else {
-                if (!isValidPhone(telefon)) throw phoneError();
                 user = await User.create({
                     adSoyad,
                     email,
                     googleId,
                     avatarUrl,
-                    telefon: String(telefon).trim()
+                    telefon: phone
                 });
                 isNewUser = true;
             }
         } else {
-            if (!isValidPhone(user.telefon)) {
-                if (!isValidPhone(telefon)) throw phoneError();
-                user.telefon = String(telefon).trim();
-                if (!user.avatarUrl && avatarUrl) user.avatarUrl = avatarUrl;
-                await user.save();
-            } else if (!user.avatarUrl && avatarUrl) {
-                user.avatarUrl = avatarUrl;
-                await user.save();
-            }
+            if (phone && !isValidPhone(user.telefon)) user.telefon = phone;
+            if (!user.avatarUrl && avatarUrl) user.avatarUrl = avatarUrl;
+            if (user.isModified()) await user.save();
         }
 
         await ensureWelcomeCode(user);
