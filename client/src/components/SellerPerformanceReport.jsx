@@ -20,6 +20,7 @@ const CHART_COLORS = ['#2E3B55', '#946D6D', '#A290B7', '#B0CDE6', '#C08A4A'];
 
 const REPORTS = [
   { id: 'performance', label: 'Satış', title: 'Satış', subtitle: 'Ciro ve en çok satan ürünler.' },
+  { id: 'clicks', label: 'Tıklama', title: 'Ürün tıklamaları', subtitle: 'Son 30 günde ürünlerinize gelen tıklamalar.' },
   { id: 'payments', label: 'Tahsilat', title: 'Tahsilat', subtitle: 'Ödenen ve bekleyen ödemeler.' },
   { id: 'stock', label: 'Stok', title: 'Stok', subtitle: 'Kritik stok ve satış hızı.' }
 ];
@@ -192,6 +193,77 @@ function PaymentsView({ data }) {
   );
 }
 
+function ClicksView({ data }) {
+  const products = (data?.products || []).filter((row) => row.clicks > 0 || row.impressions > 0);
+  const top = products.slice(0, 8);
+  const daily = (data?.daily || []).map((row) => ({ ...row, label: dayLabel(row.date) }));
+  return (
+    <Box>
+      <StatCards items={[
+        ['Tıklama', data?.totals?.clicks || 0],
+        ['Gösterim', data?.totals?.impressions || 0],
+        ['Tıklama oranı', `%${data?.totals?.ctr || 0}`],
+        ['Tıklanan ürün', data?.totals?.products || 0]
+      ]} />
+      {top.length ? (
+        <Box sx={{ mb: 1.8 }}>
+          <ChartCard title="En çok tıklanan ürünler" height={260}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={top} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                <CartesianGrid stroke={T.line} horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fill: T.muted, fontSize: 11 }} />
+                <YAxis type="category" dataKey="title" width={120} tickFormatter={(value) => shortLabel(value, 14)} tick={{ fill: T.navy, fontSize: 12, fontWeight: 700 }} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="clicks" name="Tıklama" fill={T.navy} radius={[0, 10, 10, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Box>
+      ) : (
+        <EmptyNote text="Son 30 günde ürün tıklaması yok." />
+      )}
+      {daily.some((row) => row.clicks > 0) ? (
+        <Box sx={{ mb: 1.8 }}>
+          <ChartCard title="Günlük tıklama" height={220}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={daily}>
+                <CartesianGrid stroke={T.line} vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: T.muted, fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fill: T.muted, fontSize: 11 }} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area type="monotone" dataKey="clicks" name="Tıklama" stroke={T.rose} fill={T.blue} fillOpacity={0.35} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Box>
+      ) : null}
+      {products.length ? (
+        <PanelCard sx={{ p: 0, overflow: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                {['Ürün', 'Tıklama', 'Gösterim', 'Oran'].map((column) => (
+                  <TableCell key={column} sx={headCell}>{column}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {products.map((row) => (
+                <TableRow key={row.id} hover>
+                  <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{row.title}</TableCell>
+                  <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{row.clicks}</TableCell>
+                  <TableCell sx={bodyCell}>{row.impressions}</TableCell>
+                  <TableCell sx={bodyCell}>%{row.ctr}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </PanelCard>
+      ) : null}
+    </Box>
+  );
+}
+
 function StockView({ data }) {
   const items = data?.items || [];
   const moving = items.filter((row) => row.qty30 > 0).slice(0, 6);
@@ -248,6 +320,7 @@ export default function SellerPerformanceReport({ report }) {
   const current = REPORTS.find((item) => item.id === tab) || REPORTS[0];
   const views = {
     performance: <PerformanceView performance={report?.performance} timeseries={report?.timeseries} />,
+    clicks: <ClicksView data={report?.clicks} />,
     payments: <PaymentsView data={report?.payments} />,
     stock: <StockView data={report?.stock} />
   };

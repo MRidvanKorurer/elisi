@@ -244,7 +244,7 @@ export default function AdminPanel({ user, handleLogout }) {
           orderFilter === 'all' ||
           (orderFilter === 'pay_pending' && order.paymentStatus === 'pending' && order.orderStatus !== 'cancelled') ||
           order.orderStatus === orderFilter;
-        const hay = `${order.customerInfo?.firstName} ${order.customerInfo?.lastName} ${order.customerInfo?.email} ${order._id}`.toLowerCase();
+        const hay = `${order.paymentCode || ''} ${order.customerInfo?.firstName} ${order.customerInfo?.lastName} ${order.customerInfo?.email} ${order._id}`.toLowerCase();
         return matchFilter && (!q || hay.includes(q));
       }),
     [orders, orderFilter, q]
@@ -691,6 +691,7 @@ export default function AdminPanel({ user, handleLogout }) {
                     <TableRow key={order._id} hover sx={{ cursor: 'pointer' }} onClick={() => { setOpenOrder(order); goView('orders'); }}>
                       <TableCell sx={bodyCell}>
                         <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
+                        <Typography sx={{ fontSize: 12, color: T.muted, fontWeight: 800 }}>{order.paymentCode || 'Kod yok'}</Typography>
                         <Typography sx={{ fontSize: 12, color: T.muted }}>{when(order.createdAt)}</Typography>
                       </TableCell>
                       <TableCell sx={{ ...bodyCell, fontWeight: 800 }}>{money(order.totalPrice)}</TableCell>
@@ -1111,7 +1112,7 @@ export default function AdminPanel({ user, handleLogout }) {
             <Table>
               <TableHead>
                 <TableRow>
-                  {['Müşteri', 'Tutar', 'Ödeme', 'Durum', 'Tarih', ''].map((h) => (
+                  {['Kod', 'Müşteri', 'Tutar', 'Ödeme', 'Durum', 'Tarih', ''].map((h) => (
                     <TableCell key={h} sx={headCell}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -1119,6 +1120,7 @@ export default function AdminPanel({ user, handleLogout }) {
               <TableBody>
                 {filteredOrders.map((order) => (
                   <TableRow key={order._id} hover>
+                    <TableCell sx={{ ...bodyCell, fontWeight: 900, letterSpacing: 0.4 }}>{order.paymentCode || '—'}</TableCell>
                     <TableCell sx={bodyCell}>
                       <Typography sx={{ fontWeight: 800 }}>{order.customerInfo?.firstName} {order.customerInfo?.lastName}</Typography>
                       <Typography sx={{ fontSize: 12, color: T.muted }}>{order.customerInfo?.email}</Typography>
@@ -1138,7 +1140,7 @@ export default function AdminPanel({ user, handleLogout }) {
                   </TableRow>
                 ))}
                 {filteredOrders.length === 0 && (
-                  <TableRow><TableCell colSpan={6} sx={{ ...bodyCell, color: T.muted }}>Sipariş bulunamadı.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} sx={{ ...bodyCell, color: T.muted }}>Sipariş bulunamadı.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -1688,6 +1690,9 @@ export default function AdminPanel({ user, handleLogout }) {
         <DialogContent>
           {openOrder && (
             <Box>
+              <Typography sx={{ fontWeight: 900, color: T.navy, fontSize: '1.35rem', letterSpacing: 0.6, mb: 0.4 }}>
+                {openOrder.paymentCode || 'Ödeme kodu yok'}
+              </Typography>
               <Typography sx={{ fontWeight: 800, color: T.navy }}>
                 {openOrder.customerInfo?.firstName} {openOrder.customerInfo?.lastName}
               </Typography>
@@ -1734,7 +1739,7 @@ export default function AdminPanel({ user, handleLogout }) {
                   <BankTransferDetails
                     bank={openOrder.bankAccount?.iban ? openOrder.bankAccount : { name: bankName, holder: bankHolder, iban: bankIban }}
                     amount={openOrder.totalPrice}
-                    note={openOrder._id ? `Açıklama: ${openOrder._id}` : ''}
+                    note={openOrder.paymentCode ? `Açıklamaya yalnızca bunu yazın: ${openOrder.paymentCode}` : ''}
                   />
                 </Box>
               ) : null}

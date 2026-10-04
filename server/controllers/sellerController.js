@@ -8,6 +8,7 @@ const ProductQuestion = require('../models/ProductQuestion');
 const FeaturedRequest = require('../models/FeaturedRequest');
 const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Review = require('../models/Review');
+const AdEvent = require('../models/AdEvent');
 const PromoCode = require('../models/PromoCode');
 const { compactIban, formatIban, isValidIbanTr, persistBank } = require('../utils/bank');
 const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
@@ -815,6 +816,13 @@ const getMyReports = async (req, res) => {
         from30.setUTCDate(from30.getUTCDate() - 29);
         from30.setUTCHours(0, 0, 0, 0);
         const from30Ms = from30.getTime();
+        const adEvents = productIds.length
+            ? await AdEvent.find({
+                createdAt: { $gte: from30 },
+                type: { $in: ['click', 'impression'] },
+                $or: [{ seller: sellerId }, { product: { $in: productIds } }]
+            }).select('type product surface createdAt').lean()
+            : [];
 
         const dailyMap = new Map();
         const monthlyMap = new Map();
@@ -1061,6 +1069,43 @@ const getMyReports = async (req, res) => {
             .map((row) => ({ ...row, revenue: roundMoney(row.revenue) }))
             .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue);
 
+        const clickByProduct = new Map();
+        const clickDaily = new Map();
+        let clickTotal = 0;
+        let impressionTotal = 0;
+        adEvents.forEach((event) => {
+            const day = isoDay(event.createdAt);
+            if (day) {
+                const daily = clickDaily.get(day) || { date: day, clicks: 0, impressions: 0 };
+                if (event.type === 'click') daily.clicks += 1;
+                else daily.impressions += 1;
+                clickDaily.set(day, daily);
+            }
+            const productId = String(event.product || '');
+            if (!owned.has(productId)) return;
+            const product = productById.get(productId);
+            const row = clickByProduct.get(productId) || {
+                id: productId,
+                title: product?.title || 'Ürün',
+                clicks: 0,
+                impressions: 0
+            };
+            if (event.type === 'click') {
+                row.clicks += 1;
+                clickTotal += 1;
+            } else {
+                row.impressions += 1;
+                impressionTotal += 1;
+            }
+            clickByProduct.set(productId, row);
+        });
+        const clickProducts = [...clickByProduct.values()]
+            .map((row) => ({
+                ...row,
+                ctr: row.impressions > 0 ? Math.round((row.clicks / row.impressions) * 1000) / 10 : 0
+            }))
+            .sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions);
+
         return res.json({
             success: true,
             report: {
@@ -1121,6 +1166,19 @@ const getMyReports = async (req, res) => {
                     lowStock: productRows.filter((row) => row.stock <= 5).length,
                     unsold: productRows.filter((row) => row.qty === 0).length,
                     moving: productRows.filter((row) => row.qty30 > 0).length
+                },
+                clicks: {
+                    totals: {
+                        clicks: clickTotal,
+                        impressions: impressionTotal,
+                        ctr: impressionTotal > 0 ? Math.round((clickTotal / impressionTotal) * 1000) / 10 : 0,
+                        products: clickProducts.filter((row) => row.clicks > 0).length
+                    },
+                    products: clickProducts,
+                    daily: fillDaily(from30, now, new Map()).map((row) => ({
+                        date: row.date,
+                        ...(clickDaily.get(row.date) || { clicks: 0, impressions: 0 })
+                    }))
                 },
                 variants: {
                     colors: sortNamed([...colorMap.values()]),
