@@ -101,6 +101,35 @@ export default function OrderResultPage({ success }) {
             {copy.title}
           </Typography>
           <Typography sx={{ color: '#6E5252', mt: 1.5, lineHeight: 1.7 }}>{copy.text}</Typography>
+          {(lastOrder?.paymentCode || thread?.paymentCode) && (
+            <Box sx={{ mt: 2.5, p: 1.6, borderRadius: '16px', backgroundColor: '#FDF4D2' }}>
+              <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.08em' }}>ÖDEME KODU</Typography>
+              <Typography sx={{ color: '#2E3B55', fontWeight: 900, fontSize: '1.6rem', letterSpacing: 1 }}>
+                {thread?.paymentCode || lastOrder?.paymentCode}
+              </Typography>
+              <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.6, lineHeight: 1.55 }}>
+                Havale açıklamasına yalnızca bu kodu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur.
+              </Typography>
+            </Box>
+          )}
+          {success && isTransfer && (
+            <Box sx={{ mt: 1.6, p: 1.5, borderRadius: '14px', border: '1px solid rgba(148,109,109,0.2)', textAlign: 'left' }}>
+              <Typography sx={{ fontWeight: 900, color: '#2E3B55' }}>
+                {thread?.orderStatus === 'cancelled' || thread?.paymentStatus === 'failed'
+                  ? 'Ödeme durumu: iptal edildi'
+                  : thread?.paymentStatus === 'completed'
+                    ? 'Ödeme durumu: ödendi'
+                    : thread?.paymentStatus === 'short'
+                      ? 'Ödeme durumu: eksik ödeme'
+                      : thread?.paymentStatus === 'over'
+                        ? 'Ödeme durumu: fazla ödeme'
+                        : 'Ödeme durumu: bekleniyor'}
+              </Typography>
+              <Typography sx={{ color: '#6E5252', mt: 0.5, fontWeight: 600 }}>
+                Giriş yaptıysanız Hesabım → Ödeme durumu bölümünden de kontrol edebilirsiniz.
+              </Typography>
+            </Box>
+          )}
           {orderId && (
             <Box sx={{ mt: 2.5, p: 1.5, borderRadius: '14px', backgroundColor: '#FDF4D2', fontWeight: 800, color: '#2E3B55', wordBreak: 'break-all' }}>
               {t('orderCode', { id: orderId })}

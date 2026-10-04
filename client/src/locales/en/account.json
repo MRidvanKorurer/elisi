@@ -5,6 +5,7 @@
     "addresses": "Addresses",
     "cards": "Cards",
     "orders": "Orders",
+    "payments": "Payment status",
     "favorites": "Favorites"
   },
   "status": {

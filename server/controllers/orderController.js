@@ -524,6 +524,7 @@ const publicGuestThread = (order) => ({
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     paymentCode: order.paymentCode || '',
+    createdAt: order.createdAt,
     totalPrice: order.totalPrice,
     bankAccount: order.paymentMethod === 'transfer' ? publicBank(order.bankAccount) : undefined,
     items: (order.orderItems || []).map((item) => ({

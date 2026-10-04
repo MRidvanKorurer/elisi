@@ -27,6 +27,7 @@ import { hasBankAccount } from '../utils/bank';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import AddLocationAltOutlinedIcon from '@mui/icons-material/AddLocationAltOutlined';
@@ -48,6 +49,7 @@ const TABS = [
   { id: 'addresses', label: 'Adresler', icon: <LocationOnOutlinedIcon /> },
   { id: 'cards', label: 'Kartlar', icon: <PaymentOutlinedIcon /> },
   { id: 'orders', label: 'Siparişler', icon: <LocalMallOutlinedIcon /> },
+  { id: 'payments', label: 'Ödeme durumu', icon: <AccountBalanceWalletOutlinedIcon /> },
   { id: 'favorites', label: 'Favoriler', icon: <FavoriteBorderOutlinedIcon /> }
 ];
 
@@ -62,6 +64,22 @@ const fieldSx = {
   '& .MuiInputLabel-root.Mui-focused': { color: '#946D6D' }
 };
 
+const HOLD_MS = 72 * 60 * 60 * 1000;
+
+function paymentHoldLabel(order) {
+  if (order?.paymentStatus === 'completed') return 'Ödendi';
+  if (order?.paymentStatus === 'short') return 'Eksik ödeme geldi';
+  if (order?.paymentStatus === 'over') return 'Fazla ödeme geldi';
+  if (order?.orderStatus === 'cancelled' || order?.paymentStatus === 'failed') return 'İptal edildi';
+  return 'Ödeme bekleniyor';
+}
+
+function holdDeadline(order) {
+  const start = order?.createdAt ? new Date(order.createdAt).getTime() : 0;
+  if (!start) return '';
+  return new Date(start + HOLD_MS).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+}
+
 const formatPrice = (value) => formatTRY(value);
 
 const FALLBACK_IMAGE = imgBagOrange;
@@ -70,6 +88,8 @@ function orderLabel(order) {
   if (order?.orderStatus === 'delivered') return 'Teslim edildi';
   if (order?.orderStatus === 'shipped') return 'Kargoda';
   if (order?.orderStatus === 'cancelled') return 'İptal';
+  if (order?.paymentStatus === 'short') return 'Eksik ödeme';
+  if (order?.paymentStatus === 'over') return 'Fazla ödeme';
   if (order?.paymentStatus === 'pending') return 'Ödeme bekleniyor';
   if (order?.paymentStatus === 'failed') return 'Ödeme başarısız';
   return 'Hazırlanıyor';
@@ -515,6 +535,41 @@ export default function ProfileDashboard() {
                             </IconButton>
                           </Paper>
                         ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {activeTab === 'payments' && (
+                  <Box>
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6, fontSize: '1.2rem' }}>Ödeme durumu</Typography>
+                    <Typography sx={{ color: '#6E5252', mb: 2.2, lineHeight: 1.6 }}>
+                      Havale açıklamasına yalnızca ödeme kodunu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur.
+                    </Typography>
+                    {orders.filter((order) => order.paymentMethod === 'transfer' || order.paymentCode).length === 0 ? (
+                      <EmptyState text="Kontrol edilecek sipariş yok." action="Alışverişe başla" onAction={() => navigate('/urunler')} />
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.4 }}>
+                        {orders.filter((order) => order.paymentMethod === 'transfer' || order.paymentCode).map((order) => {
+                          const waiting = order.paymentStatus === 'pending' && order.orderStatus !== 'cancelled';
+                          return (
+                            <Paper key={order._id} elevation={0} sx={{ ...cardSx, minWidth: 0 }}>
+                              <Typography sx={{ fontWeight: 900, color: '#2E3B55', fontSize: '1.2rem', letterSpacing: 0.4 }}>
+                                {order.paymentCode || 'Kod yok'}
+                              </Typography>
+                              <Typography sx={{ color: '#946D6D', fontWeight: 800, mt: 0.4 }}>{paymentHoldLabel(order)}</Typography>
+                              <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.6 }}>
+                                {formatPrice(order.totalPrice)} ₺
+                                {order.paidAmount ? ` · gelen ${formatPrice(order.paidAmount)} ₺` : ''}
+                              </Typography>
+                              {waiting ? (
+                                <Typography sx={{ color: '#6E5252', mt: 0.8, lineHeight: 1.55 }}>
+                                  Son ödeme: {holdDeadline(order)}. Bu saate kadar açıklamaya yalnızca {order.paymentCode || 'ödeme kodunu'} yazın. Aksi halde sipariş iptal edilir.
+                                </Typography>
+                              ) : null}
+                            </Paper>
+                          );
+                        })}
                       </Box>
                     )}
                   </Box>

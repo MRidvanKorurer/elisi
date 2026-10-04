@@ -46,7 +46,7 @@
   "resultFailTitle": "Ödeme tamamlanamadı",
   "resultFailText": "Kart işlemi onaylanmadı. Sepetiniz duruyor; tekrar deneyebilirsiniz.",
   "resultTransferTitle": "Siparişiniz alındı",
-  "resultTransferText": "Havale/EFT sonrası siparişiniz onaylanır. Açıklamaya yalnızca ödeme kodunu yazın.",
+  "resultTransferText": "Havale açıklamasına yalnızca ödeme kodunu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur ve ürün yeniden satışa çıkar.",
   "bankHint": "Havale yaparken alıcı ad soyad ve IBAN’ı aynen yazın. Açıklamaya yalnızca ödeme kodunu yazın.",
   "bankNote": "Açıklamaya yalnızca bunu yazın: {{id}}",
   "resultOkTitle": "Teşekkürler",

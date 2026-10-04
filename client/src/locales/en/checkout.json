@@ -46,7 +46,7 @@
   "resultFailTitle": "Payment didn’t go through",
   "resultFailText": "The card charge wasn’t approved. Your bag is still here — try again.",
   "resultTransferTitle": "We have your order",
-  "resultTransferText": "Your order is confirmed after the transfer. Put only the payment code in the description.",
+  "resultTransferText": "Write only the payment code in the transfer description. If payment does not arrive within 72 hours, the order is cancelled.",
   "bankHint": "Enter the account holder and IBAN exactly. Write only the payment code in the description.",
   "bankNote": "Write only this in the description: {{id}}",
   "resultOkTitle": "Thank you",
