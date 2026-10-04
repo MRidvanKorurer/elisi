@@ -39,6 +39,7 @@ import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
 import WhatsApp from '@mui/icons-material/WhatsApp';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
@@ -72,6 +73,7 @@ import AdminCommission from '../components/AdminCommission';
 import AdminBankAccounts from '../components/AdminBankAccounts';
 import AdminAdsBoard from '../components/AdminAdsBoard';
 import AdminWhatsApp from '../components/AdminWhatsApp';
+import AdminIncomingPayment from '../components/AdminIncomingPayment';
 
 const emptyForm = {
   title: '',
@@ -554,6 +556,7 @@ export default function AdminPanel({ user, handleLogout }) {
     { id: 'whatsapp', label: 'WhatsApp', icon: WhatsApp },
     { id: 'dashboard', label: 'Ana sayfa', icon: DashboardOutlined },
     { id: 'orders', label: 'Siparişler', icon: ReceiptLongOutlined, badge: overview?.processing || 0 },
+    { id: 'payments', label: 'Gelen ödeme', icon: AccountBalanceWalletOutlined },
     { id: 'approvals', label: 'Onay kuyruğu', icon: FactCheckOutlined, badge: pendingProducts.length },
     { id: 'featured', label: 'Öne çıkanlar', icon: AutoAwesomeOutlined, badge: overview?.pendingFeatured || featuredRequests.filter((item) => item.status === 'pending').length },
     { id: 'ads', label: 'Reklamlar', icon: CampaignOutlined },
@@ -1084,6 +1087,8 @@ export default function AdminPanel({ user, handleLogout }) {
       )}
 
       {view === 'whatsapp' && <AdminWhatsApp />}
+
+      {view === 'payments' && <AdminIncomingPayment />}
 
       {view === 'orders' && (
         <Box>

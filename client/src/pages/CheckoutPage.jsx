@@ -728,6 +728,7 @@ export default function CheckoutPage({ user }) {
       try {
         sessionStorage.setItem('nikbagLastOrder', JSON.stringify({
           orderId: String(response.orderId || ''),
+          paymentCode: response.paymentCode || '',
           method: paymentMethod,
           totalPrice: response.totalPrice,
           bank: response.bank || site?.bank || null

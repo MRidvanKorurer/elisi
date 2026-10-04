@@ -5,6 +5,7 @@ const multipart = { headers: { 'Content-Type': 'multipart/form-data' }, timeout:
 export const adminService = {
   overview: async () => (await API.get('/admin/overview')).data,
   orders: async () => (await API.get('/admin/orders')).data,
+  matchPayment: async (payload) => (await API.post('/admin/payments/match', payload)).data,
   updateOrder: async (id, payload) => (await API.put(`/admin/orders/${id}`, payload)).data,
   markOrderPayout: async (id, payload) => (await API.put(`/admin/orders/${id}/payout`, payload)).data,
   markSellerPayouts: async (id) => (await API.put(`/admin/sellers/${id}/payouts`)).data,

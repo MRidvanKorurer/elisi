@@ -497,6 +497,63 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const normalizePaymentCode = (raw = '') => {
+  const text = String(raw || '').toUpperCase().replace(/[\s-]/g, '');
+  const digits = text.replace(/\D/g, '');
+  if (text.startsWith('NB') && digits) return `NB-${digits}`;
+  if (/^\d{4,6}$/.test(digits)) return `NB-${digits}`;
+  return String(raw || '').trim().toUpperCase();
+};
+
+const matchIncomingPayment = async (req, res) => {
+  try {
+    const code = normalizePaymentCode(req.body.code || req.body.paymentCode);
+    const paid = Number(String(req.body.amount ?? '').replace(',', '.'));
+    if (!code) return res.status(400).json({ mesaj: 'Ödeme kodu gerekli.' });
+    if (!Number.isFinite(paid) || paid <= 0) return res.status(400).json({ mesaj: 'Geçerli bir tutar girin.' });
+
+    const order = await Order.findOne({ paymentCode: code });
+    if (!order) return res.status(404).json({ mesaj: 'Bu koda ait sipariş bulunamadı.', code });
+
+    const expected = Number(order.totalPrice || 0);
+    const diff = Number((paid - expected).toFixed(2));
+    const previous = order.paymentStatus;
+    let paymentStatus = 'completed';
+    if (diff < -0.009) paymentStatus = 'short';
+    else if (diff > 0.009) paymentStatus = 'over';
+
+    order.paidAmount = paid;
+    order.paymentMatchedAt = new Date();
+    order.paymentStatus = paymentStatus;
+    if (paymentStatus === 'completed' && previous !== 'completed') {
+      await applyPaidStock(order);
+    }
+    if (previous === 'completed' && paymentStatus !== 'completed') {
+      await restorePaidStock(order);
+    }
+    await order.save();
+
+    const labels = { completed: 'Tam ödeme', short: 'Eksik ödeme', over: 'Fazla ödeme' };
+    return res.json({
+      success: true,
+      mesaj: `${labels[paymentStatus]}. ${code}`,
+      match: paymentStatus,
+      difference: diff,
+      order: {
+        id: order._id,
+        paymentCode: order.paymentCode,
+        paymentStatus: order.paymentStatus,
+        totalPrice: expected,
+        paidAmount: paid,
+        customer: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim(),
+        email: order.customerInfo?.email || ''
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Ödeme eşleştirilemedi.', hata: error.message });
+  }
+};
+
 const listOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 }).limit(200).lean();
@@ -516,7 +573,7 @@ const updateOrder = async (req, res) => {
       return res.status(403).json({ mesaj: 'Sipariş durumunu ilgili satıcı günceller.' });
     }
     if (paymentStatus) {
-      if (!['pending', 'completed', 'failed'].includes(paymentStatus)) {
+      if (!['pending', 'completed', 'short', 'over', 'failed'].includes(paymentStatus)) {
         return res.status(400).json({ mesaj: 'Geçersiz ödeme durumu.' });
       }
       const previous = order.paymentStatus;
@@ -690,6 +747,7 @@ module.exports = {
   deleteProduct,
   setProductApproval,
   listOrders,
+  matchIncomingPayment,
   updateOrder,
   getBankAccounts,
   updatePlatformBank,

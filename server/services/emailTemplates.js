@@ -98,27 +98,30 @@ const sellerSold = ({ sellerName, orderId, buyerName, items, total }) => {
   };
 };
 
-const buyerCreated = ({ buyerName, orderId, items, total }) => {
+const buyerCreated = ({ buyerName, orderId, items, total, paymentCode }) => {
   const products = itemLines(items).join(', ') || 'Ürün bilgisi yok';
+  const code = paymentCode || String(orderId);
   const text = [
     `${buyerName || 'Merhaba'}, siparişiniz alındı.`,
+    `Ödeme kodu: ${code}`,
     `Sipariş no: ${orderId}`,
     `Ürünler: ${products}`,
     total != null ? `Toplam: ${money(total)}` : '',
-    'Havale ile ödediyseniz açıklamaya sipariş numarasını yazın. Atölye hazırlayınca durum maili gelir.'
+    `Havale açıklamasına yalnızca ${code} yazın.`
   ].filter(Boolean).join('\n');
   return {
-    subject: `Siparişiniz alındı (${orderId})`,
+    subject: `Siparişiniz alındı (${code})`,
     text,
     html: layout({
       title: 'Siparişiniz oluşturuldu',
-      intro: `${buyerName || 'Merhaba'}, siparişiniz Nik Bag’e ulaştı. Atölye ürünü hazırlamaya başladığında size yeniden yazacağız.`,
+      intro: `${buyerName || 'Merhaba'}, siparişiniz Nik Bag’e ulaştı. Havale açıklamasına başka bir şey yazmayın.`,
       rows: [
+        row('Ödeme kodu', code),
         row('Sipariş no', String(orderId)),
         rowHtml('Ürünler', productHtml(items)),
         total != null ? row('Toplam', money(total)) : ''
       ].join(''),
-      note: 'Havale veya EFT yaptıysanız açıklama kısmına bu sipariş numarasını yazın. Böylece ödemeniz eşleşir.'
+      note: `Havale veya EFT açıklamasına yalnızca ${code} yazın. Ödeme 72 saat içinde gelmezse sipariş iptal olur ve ürün yeniden satışa çıkar.`
     })
   };
 };
@@ -190,6 +193,39 @@ const adminStatus = ({ buyerName, orderId, status, trackingCode }) => {
   };
 };
 
+const paymentReminder = ({ buyerName, paymentCode, total }) => {
+  const code = paymentCode || 'ödeme kodunuz';
+  const text = `${buyerName || 'Merhaba'}, ${code} kodlu siparişinizin ödemesi hâlâ gelmedi. Açıklamaya yalnızca bu kodu yazın. 72 saat dolunca sipariş iptal edilir.`;
+  return {
+    subject: `Ödeme hatırlatması: ${code}`,
+    text,
+    html: layout({
+      title: 'Ödemeniz bekleniyor',
+      intro: `${buyerName || 'Merhaba'}, siparişiniz dün ayrıldı ve ödeme henüz eşleşmedi.`,
+      rows: [
+        row('Ödeme kodu', code),
+        total != null ? row('Tutar', money(total)) : ''
+      ].join(''),
+      note: 'Havale açıklamasına yalnızca bu kodu yazın. Ödeme 72 saat içinde gelmezse sipariş iptal olur.'
+    })
+  };
+};
+
+const paymentExpired = ({ buyerName, paymentCode }) => {
+  const code = paymentCode || 'siparişiniz';
+  const text = `${buyerName || 'Merhaba'}, ${code} kodlu sipariş 72 saat içinde ödenmediği için iptal edildi. Ürün yeniden satışa çıktı.`;
+  return {
+    subject: `Sipariş iptal: ${code}`,
+    text,
+    html: layout({
+      title: 'Sipariş iptal edildi',
+      intro: `${buyerName || 'Merhaba'}, ödeme süresi dolduğu için sipariş kapatıldı.`,
+      rows: [row('Ödeme kodu', code)].join(''),
+      note: 'İsterseniz ürün hâlâ satılıyorsa yeniden sipariş verebilirsiniz.'
+    })
+  };
+};
+
 const buyerStatus = ({ buyerName, orderId, status, trackingCode }) => {
   const label = statusLabel(status);
   const track = trackingCode ? ` Takip kodu: ${trackingCode}.` : '';
@@ -219,5 +255,7 @@ module.exports = {
   adminSignup,
   adminStatus,
   buyerStatus,
+  paymentReminder,
+  paymentExpired,
   statusLabel
 };

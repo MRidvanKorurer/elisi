@@ -182,6 +182,7 @@ const notifyOrderCreated = ({
   sellers = [],
   items = [],
   total,
+  paymentCode,
   adminEmail
 } = {}) => {
   const admin = superAdminEmail(adminEmail);
@@ -222,7 +223,7 @@ const notifyOrderCreated = ({
   }
 
   if (buyerEmail) {
-    jobs.push({ to: buyerEmail, ...templates.buyerCreated({ buyerName, orderId, items, total }) });
+    jobs.push({ to: buyerEmail, ...templates.buyerCreated({ buyerName, orderId, items, total, paymentCode }) });
   }
 
   const pending = jobs.filter((job) => job.to);
@@ -255,10 +256,34 @@ const notifyAdminSignup = ({ kind, name, email, phone, shop } = {}) => {
   dispatch([{ to: admin, ...templates.adminSignup({ kind, name, email, phone, shop }) }]);
 };
 
+const notifyPaymentReminder = ({ buyerEmail, buyerName, paymentCode, total } = {}) => {
+  if (!buyerEmail) return;
+  dispatch([{ to: buyerEmail, ...templates.paymentReminder({ buyerName, paymentCode, total }) }]);
+};
+
+const notifyPaymentExpired = ({ buyerEmail, buyerName, paymentCode } = {}) => {
+  const jobs = [];
+  if (buyerEmail) jobs.push({ to: buyerEmail, ...templates.paymentExpired({ buyerName, paymentCode }) });
+  const admin = superAdminEmail();
+  if (admin) {
+    jobs.push({
+      to: admin,
+      ...templates.adminStatus({
+        buyerName,
+        orderId: paymentCode,
+        status: 'cancelled'
+      })
+    });
+  }
+  dispatch(jobs);
+};
+
 module.exports = {
   sendMail,
   verifySmtp,
   notifyOrderCreated,
   notifyOrderStatusChanged,
-  notifyAdminSignup
+  notifyAdminSignup,
+  notifyPaymentReminder,
+  notifyPaymentExpired
 };

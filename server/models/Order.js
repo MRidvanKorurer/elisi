@@ -94,9 +94,15 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: { 
     type: String, 
     default: 'pending', 
-    enum: ['pending', 'completed', 'failed'] 
+    enum: ['pending', 'completed', 'short', 'over', 'failed'] 
   },
+  paymentCode: { type: String, unique: true, sparse: true, index: true },
+  paidAmount: { type: Number, default: 0 },
+  paymentMatchedAt: { type: Date },
   stockAdjusted: { type: Boolean, default: false },
+  stockReserved: { type: Boolean, default: false },
+  reservedAt: { type: Date },
+  paymentReminderSentAt: { type: Date },
   orderStatus: { 
     type: String, 
     default: 'processing',

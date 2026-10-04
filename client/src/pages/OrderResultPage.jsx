@@ -174,7 +174,7 @@ export default function OrderResultPage({ success }) {
               <BankTransferDetails
                 bank={transferBank}
                 amount={transferAmount}
-                note={t('bankNote', { id: orderId })}
+                note={t('bankNote', { id: lastOrder?.paymentCode || thread?.paymentCode || orderId })}
               />
             </Box>
           )}

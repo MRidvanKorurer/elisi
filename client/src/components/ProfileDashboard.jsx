@@ -723,12 +723,12 @@ export default function ProfileDashboard() {
                 <Box sx={{ mb: 2.2, p: 1.6, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)', backgroundColor: 'rgba(253,244,210,0.55)' }}>
                   <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Havale / EFT</Typography>
                   <Typography sx={{ color: '#6E5252', fontSize: '0.85rem', mb: 1 }}>
-                    Ödeme onaylanınca üretim başlar. Açıklamaya sipariş kodunu yazın.
+                    Ödeme onaylanınca üretim başlar. Açıklamaya yalnızca ödeme kodunu yazın.
                   </Typography>
                   <BankTransferDetails
                     bank={hasBankAccount(selectedOrder.bankAccount) ? selectedOrder.bankAccount : site?.bank}
                     amount={selectedOrder.totalPrice}
-                    note={`Açıklama: ${selectedOrder._id}`}
+                    note={`Açıklamaya yalnızca bunu yazın: ${selectedOrder.paymentCode || selectedOrder._id}`}
                   />
                 </Box>
               ) : null}

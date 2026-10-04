@@ -4,7 +4,7 @@ const Cart = require('../models/Cart');
 // Iyzico kapalı
 // const iyzipay = require('../config/iyzipay');
 // const Iyzipay = require('iyzipay');
-const mongoose = require('mongoose');
+const crypto = require('crypto');
 const User = require('../models/User');
 const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts, releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
 const { evaluatePromo, releasePromoUse } = require('../utils/promoCode');
@@ -13,7 +13,7 @@ const Seller = require('../models/Seller');
 const { settlementsFromItems, ratesForSellers, allocateOrderDiscounts } = require('../utils/commission');
 // Iyzico kapalı
 // const { clientUrl } = require('../utils/runtime');
-// const { applyPaidStock } = require('../utils/orderStock');
+const { reserveStock, releaseReservedStock } = require('../utils/orderStock');
 const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillment');
 const { resolveBank, hasBankAccount } = require('../utils/bank');
 const { buildOrderPayouts } = require('../utils/orderPayouts');
@@ -21,6 +21,15 @@ const { notifyNewOrder } = require('../services/whatsappService');
 const { notifyOrderCreated } = require('../services/emailService');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
+
+const nextPaymentCode = async () => {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+        const candidate = `NB-${crypto.randomInt(1000, 10000)}`;
+        const taken = await Order.exists({ paymentCode: candidate });
+        if (!taken) return candidate;
+    }
+    return `NB-${crypto.randomInt(100000, 1000000)}`;
+};
 
 const publicBank = (account) => ({
     name: account?.name || '',
@@ -30,6 +39,7 @@ const publicBank = (account) => ({
 
 const deleteOrderAndReleaseCoupon = async (order) => {
     if (!order?._id) return;
+    await releaseReservedStock(order);
     await releaseWelcomeCoupon(order);
     await releasePromoUse(order);
     await Order.findByIdAndDelete(order._id);
@@ -276,6 +286,7 @@ exports.createOrder = async (req, res) => {
             payouts,
             paymentMethod,
             paymentStatus: 'pending',
+            paymentCode: await nextPaymentCode(),
             bankAccount: transferAccount ? publicBank(transferAccount) : undefined,
             sellerFulfillments: [...new Set(
                 normalizedItems.map((item) => item.seller).filter(Boolean).map(String)
@@ -283,6 +294,16 @@ exports.createOrder = async (req, res) => {
         });
 
         const savedOrder = await order.save();
+        try {
+            await reserveStock(savedOrder);
+            await savedOrder.save();
+        } catch (stockError) {
+            await deleteOrderAndReleaseCoupon(savedOrder);
+            return res.status(stockError.status || 409).json({
+                success: false,
+                message: stockError.message || 'Stok ayrılmadı.'
+            });
+        }
 
         if (appliedCode && req.user) {
             await User.findByIdAndUpdate(req.user._id, { $set: { kampanyaKullanildi: true } });
@@ -402,6 +423,7 @@ exports.createOrder = async (req, res) => {
             success: true,
             message: 'Sipariş başarıyla oluşturuldu.',
             orderId: savedOrder._id,
+            paymentCode: savedOrder.paymentCode,
             paymentMethod,
             totalPrice,
             bank: transferAccount ? publicBank(transferAccount) : undefined
@@ -427,6 +449,7 @@ exports.createOrder = async (req, res) => {
                         buyerEmail: savedOrder.customerInfo.email,
                         items: savedOrder.orderItems,
                         total: totalPrice,
+                        paymentCode: savedOrder.paymentCode,
                         sellers: sellerUsers.map((user) => ({
                             id: user._id,
                             email: user.email,
@@ -499,6 +522,7 @@ const publicGuestThread = (order) => ({
     orderStatus: order.orderStatus,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
+    paymentCode: order.paymentCode || '',
     totalPrice: order.totalPrice,
     bankAccount: order.paymentMethod === 'transfer' ? publicBank(order.bankAccount) : undefined,
     items: (order.orderItems || []).map((item) => ({

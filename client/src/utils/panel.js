@@ -24,6 +24,8 @@ export const ORDER_STATUS = {
 export const PAYMENT_STATUS = {
   pending: 'Ödeme bekliyor',
   completed: 'Ödendi',
+  short: 'Eksik ödeme',
+  over: 'Fazla ödeme',
   failed: 'Başarısız'
 };
 

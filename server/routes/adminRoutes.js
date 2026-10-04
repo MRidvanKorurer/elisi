@@ -16,6 +16,7 @@ const {
   deleteProduct,
   setProductApproval,
   listOrders,
+  matchIncomingPayment,
   updateOrder,
   markOrderPayout,
   markSellerPayouts,
@@ -44,6 +45,7 @@ router.get('/reports/sellers/:sellerId', getAdminSellerReport);
 router.get('/ads', getAdsBoard);
 router.post('/ads/suggest', refreshAdsSuggestions);
 router.get('/orders', listOrders);
+router.post('/payments/match', matchIncomingPayment);
 router.put('/orders/:id/payout', markOrderPayout);
 router.put('/orders/:id', updateOrder);
 router.put('/sellers/:id/payouts', markSellerPayouts);

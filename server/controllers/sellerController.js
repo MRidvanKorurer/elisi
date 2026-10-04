@@ -11,6 +11,7 @@ const Review = require('../models/Review');
 const PromoCode = require('../models/PromoCode');
 const { compactIban, formatIban, isValidIbanTr, persistBank } = require('../utils/bank');
 const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
+const { releaseReservedStock } = require('../utils/orderStock');
 const { releasePromoUse } = require('../utils/promoCode');
 const { isSuperAdmin } = require('../utils/roles');
 const { expireFeaturedProducts } = require('./featuredController');
@@ -635,6 +636,7 @@ const updateMyOrder = async (req, res) => {
         order.orderStatus = deriveOrderStatus(order.sellerFulfillments);
         if (order.orderStatus === 'cancelled' && order.paymentStatus !== 'completed') {
             order.paymentStatus = 'failed';
+            await releaseReservedStock(order);
         }
         await order.save();
         if (order.orderStatus === 'cancelled' && order.paymentStatus !== 'completed') {
