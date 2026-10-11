@@ -30,6 +30,15 @@
     "emptyTitle": "Bu odada henüz vitrin ürünü yok",
     "emptyText": "Başka bir kategori seçebilir veya tüm koleksiyona geçebilirsiniz."
   },
+  "categoryRails": {
+    "eyebrow": "KATEGORİ VİTRİNİ",
+    "title": "Her kategorinin en çok satanları",
+    "subtitle": "Her kategoriden en çok tercih edilen üç parça.",
+    "seeAll": "Kategoriyi gör",
+    "top3": "En çok satan 3 ürün",
+    "products": "{{count}} ürün",
+    "sold": "{{count}} satış"
+  },
   "weekly": {
     "eyebrow": "HAFTANIN SEÇİMİ",
     "title": "Haftanın atölyeleri",
@@ -69,7 +78,7 @@
     "subtitle": "Sipariş üzerine üretimde ölçü notu bırakın; hediye seçiminde atölye tempo ve paketlemeyi bilir.",
     "customEyebrow": "SİPARİŞ ÜZERİNE",
     "customTitle": "Ölçüye özel üretim",
-    "customText": "Birçok parça siparişinizle hazırlanır. Checkout’ta ölçü, renk ve teslim notunu atölyeye iletebilirsiniz.",
+    "customText": "Birçok parça siparişinizle hazırlanır. Ödeme sayfasında ölçü, renk ve teslim notunu atölyeye iletebilirsiniz.",
     "customCta": "Sipariş üzerine ürünler",
     "giftEyebrow": "HEDİYE",
     "giftTitle": "Hediye kutuları ve özel günler",

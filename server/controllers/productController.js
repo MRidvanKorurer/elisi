@@ -74,7 +74,7 @@ const getAllProducts = async (req, res) => {
             .lean();
         res.status(200).json(products);
     } catch (error) {
-        res.status(500).json({ message: 'Server error while fetching products.', error: error.message });
+        res.status(500).json({ message: 'Ürünler şu an yüklenemedi. Lütfen tekrar deneyin.' });
     }
 };
 
@@ -255,6 +255,7 @@ const getProductById = async (req, res) => {
 
         const payload = product.toObject();
         payload.atelier = HOUSE_ATELIER;
+        payload.favoriteCount = await User.countDocuments({ favoriler: product._id }).catch(() => 0);
 
         if (product.seller) {
             const sellerDoc = await Seller.findOne({ user: product.seller, durum: 'approved' }).lean();
@@ -282,6 +283,23 @@ const getProductById = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Geçersiz ürün ID formatı.' });
         }
         res.status(500).json({ success: false, message: 'Ürün detayı getirilirken hata oluştu.', error: error.message });
+    }
+};
+
+// POST /api/products/:id/view
+const recordProductView = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!isObjectId(id)) return res.status(204).end();
+        const product = await Product.findOneAndUpdate(
+            publicMatch({ _id: id }),
+            { $inc: { viewCount: 1 } },
+            { new: true, projection: { viewCount: 1 } }
+        ).lean();
+        if (!product) return res.status(204).end();
+        res.status(200).json({ success: true, viewCount: product.viewCount || 0 });
+    } catch {
+        res.status(204).end();
     }
 };
 
@@ -318,7 +336,7 @@ const createProduct = async (req, res) => {
         const newProduct = await Product.create(req.body);
         res.status(201).json({ message: 'Product successfully created!', product: newProduct });
     } catch (error) {
-        res.status(500).json({ message: 'An error occurred while creating the product.', error: error.message });
+        res.status(500).json({ message: 'Ürün eklenemedi. Lütfen tekrar deneyin.' });
     }
 };
 
@@ -334,7 +352,6 @@ const getSponsoredProducts = async (req, res) => {
         }))
             .select(LIST_SELECT)
             .sort({ sponsoredUntil: -1, updatedAt: -1 })
-            .limit(12)
             .lean();
 
         res.status(200).json({
@@ -597,12 +614,79 @@ const deleteMyProduct = async (req, res) => {
     }
 };
 
+const getCategoryHighlights = async (req, res) => {
+    try {
+        const [docs, groups] = await Promise.all([
+            Category.find({ isActive: true }).sort({ order: 1, name: 1 }).lean(),
+            Product.aggregate([
+                { $match: publicMatch() },
+                { $sort: { soldCount: -1, createdAt: -1 } },
+                {
+                    $group: {
+                        _id: { $toLower: '$category' },
+                        products: {
+                            $push: {
+                                _id: '$_id',
+                                title: '$title',
+                                image: '$image',
+                                price: '$price',
+                                discountPercentage: '$discountPercentage',
+                                soldCount: '$soldCount',
+                                slug: '$slug',
+                                category: '$category',
+                                stock: '$stock'
+                            }
+                        }
+                    }
+                }
+            ])
+        ]);
+
+        const byId = new Map(groups.filter((row) => row._id).map((row) => [row._id, row.products || []]));
+        const seen = new Set();
+        const highlights = [];
+
+        const pushGroup = (id, name, image, order = 0) => {
+            const products = (byId.get(id) || []).slice(0, 3);
+            if (!products.length) return;
+            seen.add(id);
+            highlights.push({
+                categoryId: id,
+                name: name || id,
+                image: image || products[0].image || '',
+                order,
+                productCount: (byId.get(id) || []).length,
+                products
+            });
+        };
+
+        docs.forEach((doc) => {
+            const id = String(doc.categoryId || '').toLowerCase();
+            if (!id) return;
+            pushGroup(id, doc.name, doc.image, doc.order || 0);
+        });
+
+        byId.forEach((products, id) => {
+            if (seen.has(id)) return;
+            pushGroup(id, id, products[0]?.image || '', 80);
+        });
+
+        highlights.sort((a, b) => (a.order || 0) - (b.order || 0) || String(a.name).localeCompare(String(b.name), 'tr'));
+        return res.json({ success: true, highlights });
+    } catch (error) {
+        console.error('getCategoryHighlights hatası:', error);
+        return res.status(500).json({ success: false, message: 'Kategori vitrini şu an yüklenemedi. Lütfen tekrar deneyin.' });
+    }
+};
+
 module.exports = {
     getAllProducts,
     createProduct,
     getProductById,
+    recordProductView,
     getBestSellers,
     getSponsoredProducts,
+    getCategoryHighlights,
     getFilteredProducts,
     getCategories,
     getFilterOptions,

@@ -14,6 +14,7 @@ const WeeklyAteliers = lazy(() => import('../components/WeeklyAteliers'));
 const NewArrivals = lazy(() => import('../components/NewArrivals'));
 const AtelierLookbook = lazy(() => import('../components/AtelierLookbook'));
 const BestSellers = lazy(() => import('../components/BestSellers'));
+const CategoryBestsellers = lazy(() => import('../components/CategoryBestsellers'));
 const HowItWorks = lazy(() => import('../components/HowItWorks'));
 const SellerCtaBanner = lazy(() => import('../components/SellerCtaBanner'));
 const TrustStrip = lazy(() => import('../components/TrustStrip'));
@@ -70,6 +71,10 @@ export default function HomePage({ user, onNavigateAuth }) {
                 <Reveal>
                     <BestSellers />
                 </Reveal>
+            </LazyBlock>
+
+            <LazyBlock minHeight={240}>
+                <CategoryBestsellers />
             </LazyBlock>
 
             <LazyBlock minHeight={200}>

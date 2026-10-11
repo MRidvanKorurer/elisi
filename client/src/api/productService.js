@@ -12,6 +12,11 @@ export const productService = {
     return response.data;
   },
 
+  recordView: async (id) => {
+    const response = await API.post(`/products/${id}/view`);
+    return response.data;
+  },
+
   getBestSellers: async () => cachedGet('products:bestsellers', async () => {
     const response = await API.get('/products/bestsellers');
     return response.data;
@@ -26,6 +31,11 @@ export const productService = {
       return { success: false, products: [] };
     }
   },
+
+  getCategoryHighlights: async () => cachedGet('products:category-highlights', async () => {
+    const response = await API.get('/products/category-highlights');
+    return response.data;
+  }, 90_000),
 
   getCategories: async () => cachedGet('products:categories', async () => {
     const response = await API.get('/products/categories');

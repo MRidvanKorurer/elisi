@@ -32,7 +32,7 @@
     "badge": "Featured",
     "emptyTitle": "Nothing featured right now",
     "emptyText": "The vitrine is empty. Browse the full collection instead.",
-    "limit": "Up to {{count}} products. They leave when the run ends.",
+    "limit": "They leave the shelf when the run ends.",
     "seeAll": "See the full collection"
   },
   "list": {
@@ -102,6 +102,9 @@
     "addFailed": "Couldn’t add this to your bag.",
     "addError": "Something went wrong adding this to your bag.",
     "keywordHandmade": "handmade",
+    "statSold": "sold",
+    "statViews": "views",
+    "statFavorites": "in favorites",
     "giftNoteTitle": "Gift or special note",
     "giftNoteText": "At checkout you can say who it’s for and which day; the atelier gets the note with the order.",
     "customNoteTitle": "Made to order",

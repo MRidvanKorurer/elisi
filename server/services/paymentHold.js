@@ -10,20 +10,23 @@ const CANCEL_MS = 72 * HOUR;
 const TICK_MS = 15 * 60 * 1000;
 
 let running = false;
+let lastFinishedAt = 0;
 
 const buyerNameOf = (order) =>
   `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
 
 const runPaymentHolds = async () => {
-  if (running) return;
+  if (running) return { skipped: true };
   running = true;
+  let reminded = 0;
+  let cancelled = 0;
   try {
     const now = Date.now();
     const remindBefore = new Date(now - REMINDER_MS);
     const cancelBefore = new Date(now - CANCEL_MS);
 
     const reminders = await Order.find({
-      paymentStatus: 'pending',
+      paymentStatus: { $in: ['pending', 'short'] },
       orderStatus: { $ne: 'cancelled' },
       paymentReminderSentAt: null,
       createdAt: { $lte: remindBefore, $gt: cancelBefore }
@@ -36,17 +39,20 @@ const runPaymentHolds = async () => {
         buyerEmail: order.customerInfo?.email,
         buyerName: buyerNameOf(order),
         paymentCode: order.paymentCode,
-        total: order.totalPrice
+        total: order.totalPrice,
+        shortfall: order.paymentStatus === 'short'
       });
+      reminded += 1;
     }
 
     const expired = await Order.find({
-      paymentStatus: 'pending',
+      paymentStatus: { $in: ['pending', 'short'] },
       orderStatus: { $ne: 'cancelled' },
       createdAt: { $lte: cancelBefore }
     });
 
     for (const order of expired) {
+      const shortfall = order.paymentStatus === 'short';
       await releaseReservedStock(order);
       order.orderStatus = 'cancelled';
       order.paymentStatus = 'failed';
@@ -60,15 +66,26 @@ const runPaymentHolds = async () => {
       notifyPaymentExpired({
         buyerEmail: order.customerInfo?.email,
         buyerName: buyerNameOf(order),
-        paymentCode: order.paymentCode
+        paymentCode: order.paymentCode,
+        shortfall
       });
       console.log('Ödenmeyen sipariş iptal edildi:', order.paymentCode || order._id);
+      cancelled += 1;
     }
+    return { reminded, cancelled };
   } catch (error) {
     console.error('Ödeme süresi kontrolü:', error.message);
+    throw error;
   } finally {
     running = false;
+    lastFinishedAt = Date.now();
   }
+};
+
+const kickPaymentHolds = () => {
+  if (running || Date.now() - lastFinishedAt < 10 * 60 * 1000) return;
+  lastFinishedAt = Date.now();
+  runPaymentHolds().catch((error) => console.error('Ödeme süresi:', error.message));
 };
 
 const startPaymentHoldJob = () => {
@@ -78,7 +95,7 @@ const startPaymentHoldJob = () => {
   setInterval(() => {
     runPaymentHolds().catch((error) => console.error('Ödeme süresi:', error.message));
   }, TICK_MS);
-  console.log('Ödeme bekleyen siparişler 15 dakikada bir kontrol edilir (24 saat hatırlatma, 72 saat iptal).');
+  console.log('Ödeme süresi: açılışta, istek gelince ve 15 dakikada bir (24 saat hatırlatma, 72 saat iptal).');
 };
 
-module.exports = { startPaymentHoldJob, runPaymentHolds };
+module.exports = { startPaymentHoldJob, runPaymentHolds, kickPaymentHolds };

@@ -149,6 +149,10 @@ const productSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
+        viewCount: {
+            type: Number,
+            default: 0
+        },
         isNewProduct: {
             type: Boolean,
             default: true

@@ -49,8 +49,8 @@ import { APPROVAL_STATUS, ORDER_STATUS, T, money, when } from '../utils/panel';
 import { salePriceOf, sellerShareDisplay } from '../utils/price';
 import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
 import { categoryService } from '../api/categoryService';
-import { FEATURED_PACKAGES, FEATURED_STATUS, FEATURED_BANK, FEATURED_SLOTS, isLiveFeatured, isReceiptPdf } from '../utils/featured';
-import { ATELIER_WEEK_PACKAGE, ATELIER_WEEK_SLOTS, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
+import { FEATURED_PACKAGES, FEATURED_STATUS, FEATURED_BANK, isLiveFeatured, isReceiptPdf } from '../utils/featured';
+import { ATELIER_WEEK_PACKAGE, ATELIER_WEEK_STATUS, isLiveWeek } from '../utils/atelierWeek';
 
 const headCell = {
   fontWeight: 800,
@@ -114,7 +114,7 @@ export default function SellerPanel({ user, handleLogout }) {
   const [promoForm, setPromoForm] = useState({ code: '', percent: 10, minSubtotal: 0, note: '', isActive: true });
   const [savingPromo, setSavingPromo] = useState(false);
   const [featuredRequests, setFeaturedRequests] = useState([]);
-  const [featuredSlots, setFeaturedSlots] = useState({ used: 0, total: FEATURED_SLOTS, free: FEATURED_SLOTS, nextFreeAt: null });
+  const [featuredSlots, setFeaturedSlots] = useState({ used: 0, unlimited: true });
   const [featuredBank, setFeaturedBank] = useState(FEATURED_BANK);
   const [featuredPackages, setFeaturedPackages] = useState(FEATURED_PACKAGES);
   const [featureOpen, setFeatureOpen] = useState(false);
@@ -124,7 +124,7 @@ export default function SellerPanel({ user, handleLogout }) {
   const [featureReceipt, setFeatureReceipt] = useState(null);
   const [savingFeature, setSavingFeature] = useState(false);
   const [weekRequests, setWeekRequests] = useState([]);
-  const [weekSlots, setWeekSlots] = useState({ used: 0, total: ATELIER_WEEK_SLOTS, free: ATELIER_WEEK_SLOTS, nextFreeAt: null });
+  const [weekSlots, setWeekSlots] = useState({ used: 0, unlimited: true });
   const [weekBank, setWeekBank] = useState(FEATURED_BANK);
   const [weekPack, setWeekPack] = useState(ATELIER_WEEK_PACKAGE);
   const [weekLive, setWeekLive] = useState(false);
@@ -280,9 +280,9 @@ export default function SellerPanel({ user, handleLogout }) {
   );
   const hasPendingWeek = weekRequests.some((item) => item.status === 'pending');
   const shopIsWeekly = weekLive || Boolean(seller?.isWeeklyAtelier) || weekRequests.some(isLiveWeek);
-  const weekFull = Number(weekSlots.free || 0) <= 0;
+  const weekFull = weekSlots.unlimited ? false : Number(weekSlots.free || 0) <= 0;
   const weekLocked = weekFull && !shopIsWeekly;
-  const vitrinFull = Number(featuredSlots.free || 0) <= 0;
+  const vitrinFull = featuredSlots.unlimited ? false : Number(featuredSlots.free || 0) <= 0;
   const liveFeatureProducts = useMemo(
     () => products.filter((p) => p.approvalStatus === 'approved' && p.isActive),
     [products]
@@ -532,7 +532,7 @@ export default function SellerPanel({ user, handleLogout }) {
       await sellerService.createFeatured(body);
       flash(featureTarget?.isSponsored || liveFeaturedProductIds.has(String(featureTarget?._id))
         ? 'Uzatma dekontu gönderildi. Onaylanınca mevcut vitrin süren uzar.'
-        : 'Dekont gönderildi. Onaylanırsa ürün 12 kişilik vitrine çıkar.');
+        : 'Dekont gönderildi. Onaylanırsa ürün vitrine çıkar.');
       closeFeature();
       await refresh();
     } catch (err) {
@@ -1101,9 +1101,7 @@ export default function SellerPanel({ user, handleLogout }) {
                               ? 'Talepte'
                               : (product.isSponsored || liveFeaturedProductIds.has(String(product._id)))
                                 ? 'Uzat'
-                                : vitrinFull
-                                  ? 'Vitrin dolu'
-                                  : 'Öne çıkar'}
+                                : 'Öne çıkar'}
                           </Button>
                         )}
                         <Button onClick={() => window.open(`/urun/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
@@ -1233,7 +1231,7 @@ export default function SellerPanel({ user, handleLogout }) {
           <SectionTitle
             overline="VİTRİN"
             title="Öne çıkan ürün talepleri"
-            subtitle="12 ürünlük vitrin. Havale + dekont; kart yok."
+            subtitle="Havale + dekont. Onaylanan ürünler ana sayfa vitrinine çıkar."
             action={liveFeatureProducts.length ? (
               <Button startIcon={<AutoAwesomeOutlined />} onClick={() => openFeature()} sx={primaryButton}>
                 Yeni talep
@@ -1245,16 +1243,15 @@ export default function SellerPanel({ user, handleLogout }) {
               <Box>
                 <Typography sx={{ fontWeight: 900, color: T.navy }}>Vitrin kapasitesi</Typography>
                 <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.3 }}>
-                  {featuredSlots.used}/{featuredSlots.total} dolu
-                  {vitrinFull && featuredSlots.nextFreeAt ? ` · sıradaki boşalma ${when(featuredSlots.nextFreeAt)}` : ''}
+                  {featuredSlots.used} ürün vitrinde
                 </Typography>
               </Box>
               <Typography sx={{ fontWeight: 900, color: vitrinFull ? T.rose : T.navy }}>
-                {vitrinFull ? 'Dolu — yalnızca uzatma' : `${featuredSlots.free} yer boş`}
+                {`${featuredSlots.used} yayında`}
               </Typography>
             </Box>
             <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
-              <Box sx={{ width: `${Math.min(100, (Number(featuredSlots.used) / Number(featuredSlots.total || FEATURED_SLOTS)) * 100)}%`, height: '100%', bgcolor: vitrinFull ? T.rose : T.navy }} />
+              <Box sx={{ width: '100%', height: '100%', bgcolor: T.navy }} />
             </Box>
           </PanelCard>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.4, mb: 2.4 }}>
@@ -1319,7 +1316,7 @@ export default function SellerPanel({ user, handleLogout }) {
           <SectionTitle
             overline="VİTRİN"
             title="Haftanın atölyesi"
-            subtitle="3 mağazalık şerit, 7 gün. Havale + dekont."
+            subtitle="7 gün. Havale + dekont. Onaylanan atölye ana sayfa şeridine çıkar."
             action={liveFeatureProducts.length && !hasPendingWeek && !weekLocked ? (
               <Button startIcon={<CelebrationOutlined />} onClick={openWeek} sx={primaryButton}>
                 {shopIsWeekly ? 'Uzat' : 'Talep gönder'}
@@ -1331,16 +1328,15 @@ export default function SellerPanel({ user, handleLogout }) {
               <Box>
                 <Typography sx={{ fontWeight: 900, color: T.navy }}>Vitrin kapasitesi</Typography>
                 <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.3 }}>
-                  {weekSlots.used}/{weekSlots.total} dolu
-                  {weekFull && weekSlots.nextFreeAt ? ` · sıradaki boşalma ${when(weekSlots.nextFreeAt)}` : ''}
+                  {weekSlots.used} atölye vitrinde
                 </Typography>
               </Box>
               <Typography sx={{ fontWeight: 900, color: weekLocked ? T.rose : T.navy }}>
-                {weekLocked ? 'Dolu — yeni mağaza alınmaz' : shopIsWeekly && weekFull ? 'Dolu — uzatma açık' : `${weekSlots.free} yer boş`}
+                {shopIsWeekly ? 'Yayında — uzatılabilir' : `${weekSlots.used} yayında`}
               </Typography>
             </Box>
             <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
-              <Box sx={{ width: `${Math.min(100, (Number(weekSlots.used) / Number(weekSlots.total || ATELIER_WEEK_SLOTS)) * 100)}%`, height: '100%', bgcolor: weekFull ? T.rose : T.navy }} />
+              <Box sx={{ width: '100%', height: '100%', bgcolor: T.navy }} />
             </Box>
           </PanelCard>
           <PanelCard sx={{ mb: 2.4 }}>
@@ -1500,10 +1496,8 @@ export default function SellerPanel({ user, handleLogout }) {
         <DialogContent>
           <Typography sx={{ color: T.muted, mb: 1.4 }}>
             {featureTarget?.isSponsored || liveFeaturedProductIds.has(String(featureTarget?._id || ''))
-              ? 'Paket süresi mevcut bitişe eklenir. Vitrin dolu olsa da uzatma açılır.'
-              : vitrinFull
-                ? `Vitrin dolu (${featuredSlots.used}/${featuredSlots.total}). Yeni ürün alınmaz; yalnızca vitrindeki ürünü uzatabilirsin.`
-                : 'Ürün ve paket seç, havale yap, dekontu yükle. Onaylanınca 12 kişilik ana sayfa vitrine çıkar.'}
+              ? 'Paket süresi mevcut bitişe eklenir.'
+              : 'Ürün ve paket seç, havale yap, dekontu yükle. Onaylanınca ana sayfa vitrinine çıkar.'}
           </Typography>
           {liveFeatureProducts.length === 0 ? (
             <Typography sx={{ color: T.muted, mb: 2 }}>Yayında onaylı ürününüz yok. Önce bir ürün yayınlayın.</Typography>
@@ -1539,7 +1533,7 @@ export default function SellerPanel({ user, handleLogout }) {
                         {product.title}
                       </Typography>
                       <Typography sx={{ color: T.muted, fontSize: 12 }}>
-                        {pending ? 'Bekleyen talep var' : live ? 'Vitrinde — uzatılabilir' : vitrinFull ? 'Vitrin dolu' : money(product.price)}
+                        {pending ? 'Bekleyen talep var' : live ? 'Vitrinde — uzatılabilir' : money(product.price)}
                       </Typography>
                     </Box>
                   </Box>
@@ -1656,10 +1650,8 @@ export default function SellerPanel({ user, handleLogout }) {
         <DialogContent>
           <Typography sx={{ color: T.muted, mb: 1.4 }}>
             {shopIsWeekly
-              ? '7 gün, mevcut bitişe eklenir. Vitrin dolu olsa da uzatma açılır.'
-              : weekLocked
-                ? `Vitrin dolu (${weekSlots.used}/${weekSlots.total}). Yeni mağaza alınmaz.`
-                : 'Paket 7 gün 6.000 ₺. Havale yap, dekontu yükle. Onaylanınca atölyen ana sayfa şeridine çıkar.'}
+              ? '7 gün, mevcut bitişe eklenir.'
+              : 'Paket 7 gün 6.000 ₺. Havale yap, dekontu yükle. Onaylanınca atölyen ana sayfa şeridine çıkar.'}
           </Typography>
           {!liveFeatureProducts.length ? (
             <Typography sx={{ color: T.muted, mb: 2 }}>Yayında onaylı ürününüz yok. Önce bir ürün yayınlayın.</Typography>

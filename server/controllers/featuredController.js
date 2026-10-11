@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const FeaturedRequest = require('../models/FeaturedRequest');
 const Product = require('../models/Product');
 const Seller = require('../models/Seller');
-const { packageOf, packageList, FEATURED_SLOTS } = require('../utils/featuredPackages');
+const { packageOf, packageList } = require('../utils/featuredPackages');
 const { formatIban, isValidIbanTr, resolveBank } = require('../utils/bank');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 
@@ -70,14 +70,13 @@ const liveProductIds = async (now = new Date()) => {
 };
 
 const slotsOf = async () => {
-  const now = new Date();
-  const ids = await liveProductIds(now);
-  const next = await FeaturedRequest.find({ status: 'live' }).sort({ endsAt: 1 }).select('endsAt').lean();
+  const ids = await liveProductIds();
   return {
     used: ids.length,
-    total: FEATURED_SLOTS,
-    free: Math.max(0, FEATURED_SLOTS - ids.length),
-    nextFreeAt: ids.length >= FEATURED_SLOTS ? (next[0]?.endsAt || null) : null
+    total: null,
+    free: null,
+    unlimited: true,
+    nextFreeAt: null
   };
 };
 
@@ -209,16 +208,6 @@ const createFeatured = async (req, res) => {
       return res.status(400).json({ mesaj: 'Bu ürün için zaten onay bekleyen bir talebiniz var.' });
     }
 
-    const slots = await slotsOf();
-    const extending = Boolean(product.isSponsored);
-    if (!extending && slots.free <= 0) {
-      removeUpload(uploaded);
-      return res.status(400).json({
-        mesaj: `Vitrin dolu (${slots.used}/${slots.total}). Bir yer boşalınca tekrar dene.`,
-        slots
-      });
-    }
-
     const request = await FeaturedRequest.create({
       seller: req.user._id,
       product: product._id,
@@ -231,10 +220,10 @@ const createFeatured = async (req, res) => {
     await request.populate('product', 'title image price isSponsored sponsoredUntil');
 
     return res.status(201).json({
-      mesaj: extending
+      mesaj: product.isSponsored
         ? 'Uzatma dekontu alındı. Onaylanınca mevcut vitrin süren uzar.'
-        : 'Dekont alındı. Onaylanınca ürün 12 kişilik vitrine çıkar.',
-      slots,
+        : 'Dekont alındı. Onaylanınca ürün vitrine çıkar.',
+      slots: await slotsOf(),
       request: serializeRequest(request, await shopNameFor(req.user._id))
     });
   } catch (error) {
@@ -374,14 +363,7 @@ const reviewFeatured = async (req, res) => {
       request.status = 'rejected';
       await request.save();
     } else {
-      const slots = await slotsOf();
       const extending = Boolean(product.isSponsored);
-      if (!extending && slots.free <= 0) {
-        return res.status(400).json({
-          mesaj: `Vitrin dolu (${slots.used}/${slots.total}). Bir yer boşalınca onaylayabilirsin.`,
-          slots
-        });
-      }
       const now = new Date();
       const base = product.sponsoredUntil && new Date(product.sponsoredUntil) > now
         ? new Date(product.sponsoredUntil)
@@ -426,17 +408,37 @@ const giftFeatured = async (req, res) => {
       return res.status(400).json({ mesaj: 'Yalnızca yayındaki ürüne ücretsiz vitrin verilebilir.' });
     }
 
-    const slots = await slotsOf();
-    const extending = Boolean(product.isSponsored);
-    if (!extending && slots.free <= 0) {
-      return res.status(400).json({ mesaj: `Vitrin dolu (${slots.used}/${slots.total}).`, slots });
+    const now = new Date();
+    const live = await FeaturedRequest.findOne({
+      product: product._id,
+      status: 'live',
+      $or: [{ endsAt: { $gt: now } }, { endsAt: null }]
+    }).sort({ endsAt: -1 });
+
+    if (live) {
+      const base = live.endsAt && new Date(live.endsAt) > now ? new Date(live.endsAt) : now;
+      live.endsAt = new Date(base.getTime() + pack.days * MS_DAY);
+      live.days = Number(live.days || 0) + pack.days;
+      const extra = String(req.body.note || '').trim();
+      if (extra) live.note = extra;
+      live.reviewedBy = req.user._id;
+      live.reviewedAt = now;
+      await live.save();
+      await FeaturedRequest.updateMany(
+        { product: product._id, status: 'live', _id: { $ne: live._id } },
+        { $set: { status: 'ended', endsAt: now, rejectionReason: 'Süre mevcut vitrin kaydına eklendi.' } }
+      );
+      await syncProductSponsorship(product._id);
+      await live.populate('product', 'title image price isSponsored sponsoredUntil');
+      await live.populate('seller', 'adSoyad email');
+      return res.json({
+        mesaj: `${pack.days} gün mevcut vitrin süresine eklendi.`,
+        slots: await slotsOf(),
+        request: serializeRequest(live, await shopNameFor(product.seller))
+      });
     }
 
-    const now = new Date();
-    const base = product.sponsoredUntil && new Date(product.sponsoredUntil) > now
-      ? new Date(product.sponsoredUntil)
-      : now;
-    const endsAt = new Date(base.getTime() + pack.days * MS_DAY);
+    const endsAt = new Date(now.getTime() + pack.days * MS_DAY);
     const request = await FeaturedRequest.create({
       seller: product.seller,
       product: product._id,
@@ -444,7 +446,7 @@ const giftFeatured = async (req, res) => {
       price: 0,
       status: 'live',
       note: String(req.body.note || '').trim() || 'Süper admin ücretsiz vitrin verdi.',
-      startsAt: extending ? base : now,
+      startsAt: now,
       endsAt,
       reviewedBy: req.user._id,
       reviewedAt: now
@@ -453,7 +455,7 @@ const giftFeatured = async (req, res) => {
     await request.populate('product', 'title image price isSponsored sponsoredUntil');
     await request.populate('seller', 'adSoyad email');
     return res.status(201).json({
-      mesaj: extending ? 'Ücretsiz süre eklendi.' : 'Ürün ücretsiz vitrine alındı.',
+      mesaj: 'Ürün ücretsiz vitrine alındı.',
       slots: await slotsOf(),
       request: serializeRequest(request, await shopNameFor(product.seller))
     });

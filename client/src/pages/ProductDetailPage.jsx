@@ -27,6 +27,7 @@ import IosShareRounded from '@mui/icons-material/IosShareRounded';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -147,6 +148,25 @@ export default function ProductDetailPage({ onAddToCart, user }) {
     fetchProductData();
   }, [id]);
 
+  const productKey = product?._id || product?.id;
+  useEffect(() => {
+    if (!productKey) return undefined;
+    const storageKey = `pv:${productKey}`;
+    try {
+      if (sessionStorage.getItem(storageKey)) return undefined;
+      sessionStorage.setItem(storageKey, '1');
+    } catch { /* gizli sekme */ }
+
+    let cancelled = false;
+    productService.recordView(productKey)
+      .then((data) => {
+        if (cancelled || !data?.viewCount) return;
+        setProduct((prev) => (prev && (prev._id || prev.id) === productKey ? { ...prev, viewCount: data.viewCount } : prev));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [productKey]);
+
   useEffect(() => {
     const productId = product?._id || product?.id;
     if (!productId) return undefined;
@@ -220,14 +240,20 @@ export default function ProductDetailPage({ onAddToCart, user }) {
       if (isFavorite) {
         await userService.removeFavorite(productId);
         setProductFavorite(productId, false);
+        setProduct((prev) => (prev ? { ...prev, favoriteCount: Math.max(0, Number(prev.favoriteCount || 0) - 1) } : prev));
         showToast('Ürün favorilerden çıkarıldı.', 'info');
       } else {
+        let added = true;
         try {
           await userService.addFavorite(productId);
         } catch (addError) {
           if (addError?.response?.status !== 400) throw addError;
+          added = false;
         }
         setProductFavorite(productId, true);
+        if (added) {
+          setProduct((prev) => (prev ? { ...prev, favoriteCount: Number(prev.favoriteCount || 0) + 1 } : prev));
+        }
         showToast('Ürün favorilere eklendi.');
       }
     } catch (err) {
@@ -431,12 +457,47 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                   ? `${Number(product.rating).toFixed(1)} · ${product.numReviews} değerlendirme`
                   : t('product.noReviews', { ns: 'catalog' })}
               </Typography>
-              {product.soldCount > 0 && (
-                <Typography variant="body2" sx={{ color: '#A290B7', fontWeight: 700 }}>
-                  {product.soldCount} satış
-                </Typography>
-              )}
             </Box>
+
+            {(() => {
+              const stats = [
+                { key: 'sold', value: Number(product.soldCount) || 0, icon: ShoppingBagOutlinedIcon, label: t('product.statSold', { ns: 'catalog' }), color: '#946D6D' },
+                { key: 'views', value: Number(product.viewCount) || 0, icon: VisibilityOutlinedIcon, label: t('product.statViews', { ns: 'catalog' }), color: '#2E3B55' },
+                { key: 'favs', value: Number(product.favoriteCount) || 0, icon: FavoriteBorderOutlinedIcon, label: t('product.statFavorites', { ns: 'catalog' }), color: '#A290B7' }
+              ].filter((item) => item.value > 0);
+              if (!stats.length) return null;
+              return (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: -1, mb: 2.5 }}>
+                  {stats.map(({ key, value, icon: Icon, label, color }) => (
+                    <Box
+                      key={key}
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.7,
+                        pl: 0.6,
+                        pr: 1.3,
+                        py: 0.5,
+                        borderRadius: 999,
+                        bgcolor: '#FFFFFF',
+                        border: '1px solid rgba(46,59,85,0.1)',
+                        boxShadow: '0 4px 12px -8px rgba(46,59,85,0.35)'
+                      }}
+                    >
+                      <Box sx={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#FDF4D2', color }}>
+                        <Icon sx={{ fontSize: 15 }} />
+                      </Box>
+                      <Typography component="span" sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.86rem' }}>
+                        {value.toLocaleString('tr-TR')}
+                      </Typography>
+                      <Typography component="span" sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.8rem' }}>
+                        {label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              );
+            })()}
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 1.5, mb: 3 }}>
               <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: { xs: '2rem', md: '2.4rem' }, lineHeight: 1 }}>

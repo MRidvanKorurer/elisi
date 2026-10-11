@@ -25,7 +25,6 @@ import { adsService } from '../api/adsService';
 import { cartService } from '../api/cartServices';
 import { imgBagOrange } from '../assets/media';
 import { formatTRY, salePriceOf } from '../utils/price';
-import { FEATURED_SLOTS } from '../utils/featured';
 import LoadingButton from './LoadingButton';
 import { nextVisibleCount } from '../hooks/useProductGridPageSize';
 
@@ -186,7 +185,7 @@ export default function FeaturedModal({ open, onClose }) {
                 >
                   <AutoAwesomeIcon sx={{ fontSize: '15px !important' }} />
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: 1.1 }}>
-                    VİTRİN · {products.length}/{FEATURED_SLOTS}
+                    VİTRİN · {products.length}
                   </Typography>
                 </Box>
                 <Typography
@@ -435,7 +434,7 @@ export default function FeaturedModal({ open, onClose }) {
             }}
           >
             <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.82rem', display: { xs: 'none', sm: 'block' } }}>
-              {t('featured.limit', { ns: 'catalog', count: FEATURED_SLOTS })}
+              {t('featured.limit', { ns: 'catalog' })}
             </Typography>
             <Button
               endIcon={<ArrowForward />}

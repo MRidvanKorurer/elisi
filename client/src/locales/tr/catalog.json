@@ -32,7 +32,7 @@
     "badge": "Öne çıkan",
     "emptyTitle": "Şu an öne çıkan ürün yok",
     "emptyText": "Vitrin boş. Koleksiyonun tamamına göz atabilirsiniz.",
-    "limit": "En fazla {{count}} ürün, süresi bitince iner.",
+    "limit": "Süresi bitince vitrinden iner.",
     "seeAll": "Tüm koleksiyonu gör"
   },
   "list": {
@@ -102,8 +102,11 @@
     "addFailed": "Ürün sepete eklenemedi.",
     "addError": "Ürün sepete eklenirken bir sorun oluştu.",
     "keywordHandmade": "el yapımı",
+    "statSold": "kez satıldı",
+    "statViews": "kez incelendi",
+    "statFavorites": "kişinin favorisinde",
     "giftNoteTitle": "Hediye veya özel not",
-    "giftNoteText": "Checkout’ta kime, hangi gün için aldığınızı yazabilirsiniz; not atölyeye siparişle gider.",
+    "giftNoteText": "Ödeme sayfasında kime ve hangi gün için aldığınızı yazabilirsiniz; not atölyeye siparişle gider.",
     "customNoteTitle": "Sipariş üzerine üretim",
     "customNoteText": "Bu parça siparişinizle hazırlanır ({{time}}). Ölçü, renk ve teslim notunu ödeme adımında bırakın.",
     "measureNoteTitle": "Ölçü ve kullanım",

@@ -5,7 +5,7 @@ const Order = require('../models/Order');
 const mongoose = require('mongoose');
 const { isSuperAdmin } = require('../utils/roles');
 const { resolveBank, formatIban, upsertPlatformBank } = require('../utils/bank');
-const { applyPaidStock, restorePaidStock } = require('../utils/orderStock');
+const { applyPaidStock, restorePaidStock, releaseReservedStock } = require('../utils/orderStock');
 const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
 const { releasePromoUse } = require('../utils/promoCode');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
@@ -525,12 +525,10 @@ const matchIncomingPayment = async (req, res) => {
     order.paidAmount = paid;
     order.paymentMatchedAt = new Date();
     order.paymentStatus = paymentStatus;
-    if (paymentStatus === 'completed' && previous !== 'completed') {
-      await applyPaidStock(order);
-    }
-    if (previous === 'completed' && paymentStatus !== 'completed') {
-      await restorePaidStock(order);
-    }
+    const settles = paymentStatus === 'completed' || paymentStatus === 'over';
+    const settledBefore = previous === 'completed' || previous === 'over';
+    if (settles && !settledBefore) await applyPaidStock(order);
+    if (!settles && settledBefore) await restorePaidStock(order);
     await order.save();
 
     const labels = { completed: 'Tam ödeme', short: 'Eksik ödeme', over: 'Fazla ödeme' };
@@ -578,11 +576,17 @@ const updateOrder = async (req, res) => {
       }
       const previous = order.paymentStatus;
       order.paymentStatus = paymentStatus;
-      if (paymentStatus === 'completed' && previous !== 'completed') {
-        await applyPaidStock(order);
-      }
-      if (previous === 'completed' && paymentStatus !== 'completed') {
-        await restorePaidStock(order);
+      const settles = paymentStatus === 'completed' || paymentStatus === 'over';
+      const settledBefore = previous === 'completed' || previous === 'over';
+      if (settles && !settledBefore) await applyPaidStock(order);
+      if (!settles && settledBefore) await restorePaidStock(order);
+      if (paymentStatus === 'failed' && !['shipped', 'delivered'].includes(order.orderStatus)) {
+        await releaseReservedStock(order);
+        order.orderStatus = 'cancelled';
+        (order.sellerFulfillments || []).forEach((row) => {
+          row.status = 'cancelled';
+          row.cancelledAt = new Date();
+        });
       }
       await order.save();
       if (paymentStatus === 'failed' && previous !== 'failed') {

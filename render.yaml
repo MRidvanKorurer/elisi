@@ -8,3 +8,16 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: CRON_SECRET
+        sync: false
+  - type: cron
+    name: elisi-payment-holds
+    runtime: node
+    schedule: "*/15 * * * *"
+    buildCommand: node -e "console.log('payment-hold-cron')"
+    startCommand: node -e "fetch(process.env.SERVER_URL+'/api/internal/payment-holds',{method:'POST',headers:{Authorization:'Bearer '+process.env.CRON_SECRET}}).then(async (r)=>{const t=await r.text(); console.log(r.status,t); if(!r.ok) process.exit(1);}).catch((e)=>{console.error(e); process.exit(1);})"
+    envVars:
+      - key: SERVER_URL
+        value: https://elisi-fxey.onrender.com
+      - key: CRON_SECRET
+        sync: false

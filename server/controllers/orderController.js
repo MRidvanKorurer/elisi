@@ -462,7 +462,7 @@ exports.createOrder = async (req, res) => {
         });
     } catch (error) {
         console.error('Sipariş oluşturma hatası:', error);
-        res.status(500).json({ success: false, message: 'Sipariş işlenirken hata oluştu.', error: error.message });
+        res.status(500).json({ success: false, message: 'Siparişiniz şu an alınamadı. Bilgilerinizi kontrol edip tekrar deneyin.' });
     }
 };
 

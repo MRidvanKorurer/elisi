@@ -3,7 +3,7 @@ const WeeklyAtelier = require('../models/WeeklyAtelier');
 const Seller = require('../models/Seller');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const { ATELIER_WEEK_SLOTS, ATELIER_WEEK_PACKAGE, packageOf, packageList } = require('../utils/atelierWeek');
+const { ATELIER_WEEK_PACKAGE, packageOf, packageList } = require('../utils/atelierWeek');
 const { resolveBank } = require('../utils/bank');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
@@ -65,14 +65,13 @@ const liveSellerIds = async (now = new Date()) => {
 };
 
 const slotsOf = async () => {
-  const now = new Date();
-  const ids = await liveSellerIds(now);
-  const next = await WeeklyAtelier.find({ status: 'live' }).sort({ endsAt: 1 }).select('endsAt').lean();
+  const ids = await liveSellerIds();
   return {
     used: ids.length,
-    total: ATELIER_WEEK_SLOTS,
-    free: Math.max(0, ATELIER_WEEK_SLOTS - ids.length),
-    nextFreeAt: ids.length >= ATELIER_WEEK_SLOTS ? (next[0]?.endsAt || null) : null
+    total: null,
+    free: null,
+    unlimited: true,
+    nextFreeAt: null
   };
 };
 
@@ -184,7 +183,6 @@ const listPublicWeek = async (req, res) => {
         coverImages: covers.map((item) => item.image).filter(Boolean),
         isWeeklyAtelier: true
       }));
-      if (ateliers.length >= ATELIER_WEEK_SLOTS) break;
     }
 
     return res.json({
@@ -245,15 +243,7 @@ const createWeek = async (req, res) => {
       return res.status(400).json({ mesaj: 'Zaten onay bekleyen bir talebiniz var.' });
     }
 
-    const slots = await slotsOf();
     const extending = Boolean(shop.isWeeklyAtelier);
-    if (!extending && slots.free <= 0) {
-      removeUpload(uploaded);
-      return res.status(400).json({
-        mesaj: `Vitrin dolu (${slots.used}/${slots.total}). Bir yer boşalınca tekrar dene.`,
-        slots
-      });
-    }
 
     const request = await WeeklyAtelier.create({
       seller: req.user._id,
@@ -267,8 +257,8 @@ const createWeek = async (req, res) => {
     return res.status(201).json({
       mesaj: extending
         ? 'Uzatma dekontu alındı. Onaylanınca mevcut hafta süren uzar.'
-        : 'Dekont alındı. Onaylanınca atölyen 3 kişilik haftalık vitrine çıkar.',
-      slots,
+        : 'Dekont alındı. Onaylanınca atölyen haftalık vitrine çıkar.',
+      slots: await slotsOf(),
       request: serializeRequest(request, shop, req.user)
     });
   } catch (error) {
@@ -350,14 +340,7 @@ const reviewWeek = async (req, res) => {
       request.status = 'rejected';
       await request.save();
     } else {
-      const slots = await slotsOf();
       const extending = Boolean(shop.isWeeklyAtelier);
-      if (!extending && slots.free <= 0) {
-        return res.status(400).json({
-          mesaj: `Vitrin dolu (${slots.used}/${slots.total}). Bir yer boşalınca onaylayabilirsin.`,
-          slots
-        });
-      }
       const now = new Date();
       const base = shop.weeklyUntil && new Date(shop.weeklyUntil) > now
         ? new Date(shop.weeklyUntil)
@@ -398,31 +381,50 @@ const giftWeek = async (req, res) => {
       return res.status(400).json({ mesaj: 'Yayında ürünü olmayan atölyeye vitrin verilemez.' });
     }
 
-    const slots = await slotsOf();
-    const extending = Boolean(shop.isWeeklyAtelier);
-    if (!extending && slots.free <= 0) {
-      return res.status(400).json({ mesaj: `Vitrin dolu (${slots.used}/${slots.total}).`, slots });
+    const now = new Date();
+    const live = await WeeklyAtelier.findOne({
+      seller: shop.user,
+      status: 'live',
+      $or: [{ endsAt: { $gt: now } }, { endsAt: null }]
+    }).sort({ endsAt: -1 });
+
+    if (live) {
+      const base = live.endsAt && new Date(live.endsAt) > now ? new Date(live.endsAt) : now;
+      live.endsAt = new Date(base.getTime() + ATELIER_WEEK_PACKAGE.days * MS_DAY);
+      live.days = Number(live.days || 0) + ATELIER_WEEK_PACKAGE.days;
+      const extra = String(req.body.note || '').trim();
+      if (extra) live.note = extra;
+      live.reviewedBy = req.user._id;
+      live.reviewedAt = now;
+      await live.save();
+      await WeeklyAtelier.updateMany(
+        { seller: shop.user, status: 'live', _id: { $ne: live._id } },
+        { $set: { status: 'ended', endsAt: now, rejectionReason: 'Süre mevcut atölye kaydına eklendi.' } }
+      );
+      await syncShopWeek(shop.user);
+      await live.populate('seller', 'adSoyad email');
+      return res.json({
+        mesaj: `${ATELIER_WEEK_PACKAGE.days} gün mevcut atölye süresine eklendi.`,
+        slots: await slotsOf(),
+        request: serializeRequest(live, await Seller.findById(shop._id).lean(), live.seller)
+      });
     }
 
-    const now = new Date();
-    const base = shop.weeklyUntil && new Date(shop.weeklyUntil) > now
-      ? new Date(shop.weeklyUntil)
-      : now;
     const request = await WeeklyAtelier.create({
       seller: shop.user,
       days: ATELIER_WEEK_PACKAGE.days,
       price: 0,
       status: 'live',
       note: String(req.body.note || '').trim() || 'Süper admin ücretsiz haftanın atölyesi verdi.',
-      startsAt: extending ? base : now,
-      endsAt: new Date(base.getTime() + ATELIER_WEEK_PACKAGE.days * MS_DAY),
+      startsAt: now,
+      endsAt: new Date(now.getTime() + ATELIER_WEEK_PACKAGE.days * MS_DAY),
       reviewedBy: req.user._id,
       reviewedAt: now
     });
     await syncShopWeek(shop.user);
     await request.populate('seller', 'adSoyad email');
     return res.status(201).json({
-      mesaj: extending ? 'Ücretsiz süre eklendi.' : 'Atölye ücretsiz haftanın vitrine alındı.',
+      mesaj: 'Atölye ücretsiz haftanın vitrine alındı.',
       slots: await slotsOf(),
       request: serializeRequest(request, await Seller.findById(shop._id).lean(), request.seller)
     });

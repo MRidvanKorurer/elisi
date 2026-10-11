@@ -47,7 +47,8 @@ export const productCardGridSx = {
   '& > *': { minWidth: 0 }
 };
 
-export default function ProductCard({ product, fullWidth = false }) {
+export default function ProductCard({ product, fullWidth = false, compact = false }) {
+  const fluid = fullWidth || compact;
   const { t } = useTranslation();
   const navigate = useLocaleNavigate();
   
@@ -177,16 +178,16 @@ export default function ProductCard({ product, fullWidth = false }) {
       <Card 
         onClick={handleCardClick}
         sx={{ 
-          width: fullWidth ? '100%' : PRODUCT_CARD_WIDTH,
-          minWidth: fullWidth ? 0 : PRODUCT_CARD_WIDTH,
-          maxWidth: fullWidth ? '100%' : PRODUCT_CARD_WIDTH,
-          height: fullWidth ? 'auto' : PRODUCT_CARD_HEIGHT,
-          minHeight: fullWidth ? { xs: 0, md: PRODUCT_CARD_HEIGHT } : PRODUCT_CARD_HEIGHT,
-          maxHeight: fullWidth ? 'none' : PRODUCT_CARD_HEIGHT,
+          width: fluid ? '100%' : PRODUCT_CARD_WIDTH,
+          minWidth: fluid ? 0 : PRODUCT_CARD_WIDTH,
+          maxWidth: fluid ? '100%' : PRODUCT_CARD_WIDTH,
+          height: fluid ? 'auto' : PRODUCT_CARD_HEIGHT,
+          minHeight: compact ? 0 : fullWidth ? { xs: 0, md: PRODUCT_CARD_HEIGHT } : PRODUCT_CARD_HEIGHT,
+          maxHeight: fluid ? 'none' : PRODUCT_CARD_HEIGHT,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          borderRadius: '22px',
+          borderRadius: compact ? '18px' : '22px',
           cursor: 'pointer',
           backgroundColor: '#FFFFFF !important',
           border: '1px solid rgba(148, 109, 109, 0.15)',
@@ -197,6 +198,14 @@ export default function ProductCard({ product, fullWidth = false }) {
             boxShadow: '0 22px 38px -12px rgba(148, 109, 109, 0.28)',
             borderColor: '#946D6D'
           },
+          ...(compact ? {
+            boxShadow: '0 6px 16px -8px rgba(46, 59, 85, 0.18)',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 16px 28px -14px rgba(148, 109, 109, 0.4)',
+              borderColor: '#946D6D'
+            }
+          } : null),
           boxSizing: 'border-box'
         }}
       >
@@ -211,7 +220,7 @@ export default function ProductCard({ product, fullWidth = false }) {
           <Box
             sx={{
               position: 'absolute',
-              inset: { xs: 10, sm: 14 },
+              inset: compact ? 8 : { xs: 10, sm: 14 },
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -254,6 +263,7 @@ export default function ProductCard({ product, fullWidth = false }) {
                 }}
               />
             ) : null}
+            {compact ? null : (
             <Tooltip title={category} arrow placement="top" enterDelay={200}>
               <Chip
                 label={category}
@@ -277,13 +287,14 @@ export default function ProductCard({ product, fullWidth = false }) {
                 }}
               />
             </Tooltip>
+            )}
           </Box>
           
           {/* FAVORÄ° BUTONU (KALP) */}
           <Box 
             onClick={handleToggleFavorite} 
             sx={{ 
-                position: 'absolute', top: 8, right: 8, zIndex: 1, width: 40, height: 40, borderRadius: '50%', 
+                position: 'absolute', top: 8, right: 8, zIndex: 1, width: compact ? 32 : 40, height: compact ? 32 : 40, borderRadius: '50%', 
                 backgroundColor: 'rgba(255, 255, 255, 0.95)', display: 'flex', alignItems: 'center', 
                 justifyContent: 'center', cursor: favLoading ? 'wait' : 'pointer', 
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
@@ -305,7 +316,7 @@ export default function ProductCard({ product, fullWidth = false }) {
           </Box>
         </Box>
 
-        <CardContent sx={{ p: 2, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#FFFFFF' }}>
+        <CardContent sx={{ p: compact ? 1.25 : 2, '&:last-child': { pb: compact ? 1.25 : 2 }, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#FFFFFF' }}>
           <Box>
             {/* BaÅŸlÄ±k gerÃ§ek bir baÄŸlantÄ±: arama motorlarÄ± Ã¼rÃ¼n sayfalarÄ±nÄ± buradan keÅŸfeder */}
             <Box component="h3" sx={{ m: 0 }}>
@@ -317,7 +328,7 @@ export default function ProductCard({ product, fullWidth = false }) {
                   sx={{
                     color: '#2E3B55',
                     fontWeight: 800,
-                    fontSize: '0.92rem',
+                    fontSize: compact ? '0.8rem' : '0.92rem',
                     textDecoration: 'none',
                     ...clampSx(2, '2.6em')
                   }}
@@ -326,7 +337,7 @@ export default function ProductCard({ product, fullWidth = false }) {
                 </Box>
               </Tooltip>
             </Box>
-            <Box sx={{ position: 'relative', mt: 0.8 }}>
+            <Box sx={{ position: 'relative', mt: 0.8, display: compact ? 'none' : 'block' }}>
               <Box
                 ref={descRef}
                 sx={{
@@ -392,24 +403,24 @@ export default function ProductCard({ product, fullWidth = false }) {
               ) : null}
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.6, mt: 1, minWidth: 0 }}>
-            <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: { xs: '0.62rem', sm: '0.7rem' }, whiteSpace: 'nowrap', display: { xs: 'none', sm: 'inline' } }}>{t('card.specialPrice', { ns: 'catalog' })}</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, minWidth: 0, ml: 'auto' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.6, mt: compact ? 0.6 : 1, minWidth: 0 }}>
+            <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: { xs: '0.62rem', sm: '0.7rem' }, whiteSpace: 'nowrap', display: compact ? 'none' : { xs: 'none', sm: 'inline' } }}>{t('card.specialPrice', { ns: 'catalog' })}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, minWidth: 0, ml: compact ? 0 : 'auto' }}>
               {product?.discountPercentage > 0 && (
                 <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>₺{formatTRY(price)}</Typography>
               )}
-              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: { xs: '1rem', sm: '1.15rem' }, whiteSpace: 'nowrap' }}>₺{formatTRY(finalPrice)}</Typography>
+              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: compact ? '0.95rem' : { xs: '1rem', sm: '1.15rem' }, whiteSpace: 'nowrap' }}>₺{formatTRY(finalPrice)}</Typography>
             </Box>
           </Box>
         </CardContent>
 
-        <CardActions sx={{ px: { xs: 1.2, sm: 2 }, pb: { xs: 1.4, sm: 2 }, pt: 0, flexShrink: 0, backgroundColor: '#FFFFFF' }}>
+        <CardActions sx={{ px: compact ? 1.25 : { xs: 1.2, sm: 2 }, pb: compact ? 1.25 : { xs: 1.4, sm: 2 }, pt: 0, flexShrink: 0, backgroundColor: '#FFFFFF' }}>
           <Button 
             fullWidth variant="contained" 
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <ShoppingBagOutlined sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />} 
+            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <ShoppingBagOutlined sx={{ display: compact ? 'none' : { xs: 'none', sm: 'inline-flex' } }} />} 
             onClick={handleAddToCart} 
-            sx={{ borderRadius: '12px', py: { xs: 0.85, sm: 1 }, backgroundColor: '#A290B7', color: '#FFFFFF', fontWeight: 700, fontSize: { xs: '0.72rem', sm: '0.82rem' }, boxShadow: 'none', '&:hover': { backgroundColor: '#946D6D' } }}
+            sx={{ borderRadius: compact ? '10px' : '12px', py: compact ? 0.55 : { xs: 0.85, sm: 1 }, backgroundColor: compact ? '#2E3B55' : '#A290B7', color: '#FFFFFF', fontWeight: 700, fontSize: compact ? '0.72rem' : { xs: '0.72rem', sm: '0.82rem' }, boxShadow: 'none', '&:hover': { backgroundColor: '#946D6D' } }}
           >
             {loading ? t('card.adding', { ns: 'catalog' }) : t('card.addToCart', { ns: 'catalog' })}
           </Button>

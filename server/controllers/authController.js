@@ -82,7 +82,11 @@ const register = async (req, res) => {
             phone: user.telefon
         });
     } catch (error) {
-        res.status(500).json({ mesaj: 'Sunucu hatası', hata: error.message });
+        console.error('Kayıt hatası:', error);
+        res.status(500).json({
+          mesaj: 'Kayıt şu an tamamlanamadı. Biraz sonra tekrar deneyin.',
+          message: 'Kayıt şu an tamamlanamadı. Biraz sonra tekrar deneyin.'
+        });
     }
 };
 
@@ -117,7 +121,11 @@ const login = async (req, res) => {
             kullanici: publicUser(user)
         });
     } catch (error) {
-        res.status(500).json({ mesaj: 'Sunucu hatası', hata: error.message });
+        console.error('Giriş hatası:', error);
+        res.status(500).json({
+          mesaj: 'Giriş şu an tamamlanamadı. Biraz sonra tekrar deneyin.',
+          message: 'Giriş şu an tamamlanamadı. Biraz sonra tekrar deneyin.'
+        });
     }
 };
 

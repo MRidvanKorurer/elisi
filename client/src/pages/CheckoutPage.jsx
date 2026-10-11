@@ -745,7 +745,7 @@ export default function CheckoutPage({ user }) {
       window.dispatchEvent(new Event('cartUpdated'));
       navigate(`/siparis-basarili?orderId=${response.orderId}&method=${paymentMethod}`);
     } catch (error) {
-      showToast(error.message || 'Sipariş oluşturulurken bir hata oluştu.', 'error');
+      showToast(error.message || 'Siparişiniz şu an alınamadı. Lütfen tekrar deneyin.', 'error');
     } finally {
       submittingRef.current = false;
       setLoading(false);

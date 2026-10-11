@@ -63,7 +63,7 @@ const loadCategories = () => {
               productCount: Number(item.productCount) || 0
             };
           })
-          .filter(Boolean)
+          .filter((item) => item && item.productCount > 0)
           .sort((a, b) => a.order - b.order || String(a.label).localeCompare(String(b.label), 'tr'));
       })
       .catch(() => []);
@@ -240,9 +240,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
 
     if (!term) {
       recent.forEach((value) => list.push({ kind: 'recent', section: t('search.recent', { ns: 'catalog' }), value }));
-      categories
-        .slice(0, 8)
-        .forEach((item) => list.push({
+      categories.forEach((item) => list.push({
           kind: 'category',
           section: t('search.browseCategory', { ns: 'catalog' }),
           value: item.value,

@@ -193,33 +193,41 @@ const adminStatus = ({ buyerName, orderId, status, trackingCode }) => {
   };
 };
 
-const paymentReminder = ({ buyerName, paymentCode, total }) => {
+const paymentReminder = ({ buyerName, paymentCode, total, shortfall }) => {
   const code = paymentCode || 'ödeme kodunuz';
-  const text = `${buyerName || 'Merhaba'}, ${code} kodlu siparişinizin ödemesi hâlâ gelmedi. Açıklamaya yalnızca bu kodu yazın. 72 saat dolunca sipariş iptal edilir.`;
+  const text = shortfall
+    ? `${buyerName || 'Merhaba'}, ${code} kodlu siparişe gelen tutar eksik. Kalanı 72 saat dolmadan, açıklamaya yalnızca bu kodu yazarak tamamlayın. Aksi halde sipariş iptal edilir.`
+    : `${buyerName || 'Merhaba'}, ${code} kodlu siparişinizin ödemesi hâlâ gelmedi. Açıklamaya yalnızca bu kodu yazın. 72 saat dolunca sipariş iptal edilir.`;
   return {
-    subject: `Ödeme hatırlatması: ${code}`,
+    subject: shortfall ? `Eksik ödeme: ${code}` : `Ödeme hatırlatması: ${code}`,
     text,
     html: layout({
-      title: 'Ödemeniz bekleniyor',
-      intro: `${buyerName || 'Merhaba'}, siparişiniz dün ayrıldı ve ödeme henüz eşleşmedi.`,
+      title: shortfall ? 'Ödeme eksik kaldı' : 'Ödemeniz bekleniyor',
+      intro: shortfall
+        ? `${buyerName || 'Merhaba'}, hesaba geçen tutar sipariş bedelini karşılamadı.`
+        : `${buyerName || 'Merhaba'}, siparişiniz dün ayrıldı ve ödeme henüz eşleşmedi.`,
       rows: [
         row('Ödeme kodu', code),
         total != null ? row('Tutar', money(total)) : ''
       ].join(''),
-      note: 'Havale açıklamasına yalnızca bu kodu yazın. Ödeme 72 saat içinde gelmezse sipariş iptal olur.'
+      note: 'Havale açıklamasına yalnızca bu kodu yazın. Ödeme 72 saat içinde tamamlanmazsa sipariş iptal olur ve ürün yeniden satışa çıkar.'
     })
   };
 };
 
-const paymentExpired = ({ buyerName, paymentCode }) => {
+const paymentExpired = ({ buyerName, paymentCode, shortfall }) => {
   const code = paymentCode || 'siparişiniz';
-  const text = `${buyerName || 'Merhaba'}, ${code} kodlu sipariş 72 saat içinde ödenmediği için iptal edildi. Ürün yeniden satışa çıktı.`;
+  const text = shortfall
+    ? `${buyerName || 'Merhaba'}, ${code} kodlu siparişin eksik ödemesi 72 saat içinde tamamlanmadığı için iptal edildi. Ürün yeniden satışa çıktı.`
+    : `${buyerName || 'Merhaba'}, ${code} kodlu sipariş 72 saat içinde ödenmediği için iptal edildi. Ürün yeniden satışa çıktı.`;
   return {
     subject: `Sipariş iptal: ${code}`,
     text,
     html: layout({
       title: 'Sipariş iptal edildi',
-      intro: `${buyerName || 'Merhaba'}, ödeme süresi dolduğu için sipariş kapatıldı.`,
+      intro: shortfall
+        ? `${buyerName || 'Merhaba'}, eksik tutar süresinde tamamlanmadığı için sipariş kapatıldı.`
+        : `${buyerName || 'Merhaba'}, ödeme süresi dolduğu için sipariş kapatıldı.`,
       rows: [row('Ödeme kodu', code)].join(''),
       note: 'İsterseniz ürün hâlâ satılıyorsa yeniden sipariş verebilirsiniz.'
     })

@@ -206,7 +206,7 @@ export default function WeeklyAteliers() {
     atelierWeekService.list()
       .then((data) => {
         if (!active) return;
-        setAteliers((data?.ateliers || []).slice(0, 3));
+        setAteliers(data?.ateliers || []);
       })
       .catch(() => {
         if (active) setAteliers([]);

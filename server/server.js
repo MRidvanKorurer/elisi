@@ -24,12 +24,18 @@ connectDB();
 const { corsOriginDelegate, warnProductionConfig } = require('./utils/runtime');
 const { configured: mediaConfigured } = require('./utils/mediaStore');
 const { verifySmtp } = require('./services/emailService');
-const { startPaymentHoldJob } = require('./services/paymentHold');
-const helmet = require('helmet');
+const { startPaymentHoldJob, runPaymentHolds, kickPaymentHolds } = require('./services/paymentHold');
+const { hideInternals, publicMessage } = require('./utils/publicError');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
 app.set('trust proxy', 1);
+
+app.use((req, res, next) => {
+  const send = res.json.bind(res);
+  res.json = (body) => send(hideInternals(body, res.statusCode));
+  next();
+});
 
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -63,6 +69,27 @@ app.use('/uploads', express.static(uploadRoot(), {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+app.use((req, res, next) => {
+  if (req.path !== '/api/internal/payment-holds') kickPaymentHolds();
+  next();
+});
+
+app.post('/api/internal/payment-holds', async (req, res) => {
+  const crypto = require('crypto');
+  const expected = String(process.env.CRON_SECRET || '');
+  const header = String(req.get('authorization') || '');
+  const given = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!expected || given.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected))) {
+    return res.status(401).json({ mesaj: 'Zamanlayıcı anahtarı geçersiz.' });
+  }
+  try {
+    const result = await runPaymentHolds();
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ mesaj: 'Ödeme süresi kontrolü başarısız.' });
+  }
 });
 
 const authLimiter = rateLimit({
@@ -100,8 +127,13 @@ app.use('/', require('./routes/seoRoutes'));
 // 4. Hata yakalayıcı (dosya yükleme ve rota hataları JSON döner)
 app.use((err, req, res, next) => {
   if (!err) return next();
-  const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 400);
-  return res.status(status).json({ mesaj: err.message || 'İstek işlenemedi.' });
+  console.error('İstek hatası:', err.message || err);
+  const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 500);
+  const fallback = status === 413
+    ? 'Dosya çok büyük. Daha küçük bir görsel deneyin.'
+    : 'Bir sorun oluştu. Lütfen tekrar deneyin.';
+  const mesaj = status >= 500 ? fallback : publicMessage(err.message, fallback);
+  return res.status(status).json({ success: false, mesaj, message: mesaj });
 });
 
 // 5. Sunucuyu Başlat

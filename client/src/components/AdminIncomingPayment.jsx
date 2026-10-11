@@ -77,6 +77,16 @@ export default function AdminIncomingPayment() {
               {Number(result.difference) ? ` · Fark ${money(result.difference)}` : ''}
             </Typography>
             <Typography sx={{ color: T.muted, fontWeight: 600, mt: 0.4 }}>{order.email}</Typography>
+            {result.match === 'short' ? (
+              <Typography sx={{ color: colors.color, fontWeight: 700, mt: 1 }}>
+                Stok ayrılmış durumda. 72 saat dolunca eksik ödeme iptal edilir. Kabul edecekseniz siparişte durumu Ödendi yapın.
+              </Typography>
+            ) : null}
+            {result.match === 'over' ? (
+              <Typography sx={{ color: colors.color, fontWeight: 700, mt: 1 }}>
+                Tutar yeterli olduğu için stok satılmış sayıldı. Fazla kısmı iade edip durumu Ödendi yapın. Bu sipariş kendiliğinden iptal olmaz.
+              </Typography>
+            ) : null}
           </Box>
         ) : null}
       </PanelCard>

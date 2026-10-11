@@ -11,7 +11,10 @@ export const orderService = {
       return response.data; 
     } catch (error) {
       console.error("Sipariş API Hatası:", error);
-      throw error.response?.data || { success: false, message: error.response?.data?.message || 'Sunucuya bağlanırken bir hata oluştu.' };
+      throw {
+        success: false,
+        message: error.message || 'Siparişiniz şu an alınamadı. Lütfen tekrar deneyin.'
+      };
     }
   },
 

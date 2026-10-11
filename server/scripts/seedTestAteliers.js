@@ -100,7 +100,7 @@ const ATELIERS = [
     products: [
       { title: 'İnci Damla Küpe', category: 'taki', price: 890, stock: 10, colors: ['İnci'], sizes: ['Tek beden'], soldCount: 18, immediateDelivery: true, isSponsored: true },
       { title: 'Gümüş Zincir Kolye', category: 'taki', price: 1240, stock: 7, colors: ['Gümüş'], sizes: ['45 cm'], soldCount: 12, immediateDelivery: true },
-      { title: 'Pirinç Yüzük Seti', category: 'taki', price: 980, stock: 6, colors: ['Pirinç'], sizes: ['14', '16'], soldCount: 8, immediateDelivery: false, customProductionTime: '5-7 İş Günü', measureNote: 'Yüzük ölçüsü checkout notunda yazılmalı' },
+      { title: 'Pirinç Yüzük Seti', category: 'taki', price: 980, stock: 6, colors: ['Pirinç'], sizes: ['14', '16'], soldCount: 8, immediateDelivery: false, customProductionTime: '5-7 İş Günü', measureNote: 'Yüzük ölçüsü ödeme sayfasındaki nota yazılmalı' },
       { title: 'Ametist Taş Kolye', category: 'taki', price: 1560, stock: 4, colors: ['Ametist'], sizes: ['50 cm'], soldCount: 5, immediateDelivery: true }
     ]
   },
@@ -155,7 +155,7 @@ const ATELIERS = [
     products: [
       { title: 'Doğum Günü Hediye Kutusu', category: 'hediye-kutulari', price: 890, stock: 8, colors: ['Pudra', 'Ekru'], sizes: ['Standart'], soldCount: 16, immediateDelivery: true, isSponsored: true },
       { title: 'Portakal Kabuğu Soya Mum', category: 'mum', price: 340, stock: 20, colors: ['Amber'], sizes: ['180 ml'], soldCount: 28, immediateDelivery: true },
-      { title: 'Ölçüye Özel Hediye Seti', category: 'kisisellestirilebilir', price: 1180, stock: 5, colors: ['Karma'], sizes: ['Özel'], soldCount: 3, immediateDelivery: false, customProductionTime: '5-7 İş Günü', measureNote: 'Checkout’ta kime ve hangi gün için not bırakın' }
+      { title: 'Ölçüye Özel Hediye Seti', category: 'kisisellestirilebilir', price: 1180, stock: 5, colors: ['Karma'], sizes: ['Özel'], soldCount: 3, immediateDelivery: false, customProductionTime: '5-7 İş Günü', measureNote: 'Ödeme sayfasında kime ve hangi gün için not bırakın' }
     ]
   }
 ];

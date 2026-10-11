@@ -16,23 +16,9 @@ import { scrollPageTo } from '../hooks/useSmoothScroll';
 import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGridPageSize';
 import { imgBanner1Tile as allCover } from '../assets/media';
 
-const MAX_TILES = 9;
-const tileRadius = { xs: '18px', md: '22px' };
-
-function tileLayout(index) {
-  if (index === 0) {
-    return { gridColumn: { xs: 'span 2', md: 'span 2' }, gridRow: { xs: 'span 2', md: 'span 2' } };
-  }
-  if (index === 1) {
-    return { gridColumn: { xs: 'span 1', md: 'span 2' }, gridRow: 'span 1' };
-  }
-  return { gridColumn: 'span 1', gridRow: 'span 1' };
-}
+const tileRadius = { xs: '20px', md: '24px' };
 
 function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
-  const featured = index === 0;
-  const wide = index <= 1;
-
   return (
     <Box
       component="button"
@@ -41,7 +27,6 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
       aria-pressed={selected}
       aria-label={t('categories.showProducts', { name: item.name })}
       sx={{
-        ...tileLayout(index),
         position: 'relative',
         display: 'block',
         overflow: 'hidden',
@@ -50,17 +35,16 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
         cursor: 'pointer',
         fontFamily: 'inherit',
         textAlign: 'left',
+        flex: { xs: '0 0 168px', sm: '0 0 190px', md: 'auto' },
+        width: { md: '100%' },
+        height: { xs: 220, sm: 236, md: index === 0 ? 280 : 210 },
+        scrollSnapAlign: 'start',
         borderRadius: tileRadius,
-        contain: 'paint',
-        contentVisibility: 'auto',
-        containIntrinsicSize: '124px',
-        background: item.bgGradient || 'linear-gradient(135deg, #A290B7 0%, #946D6D 100%)',
-        boxShadow: selected
-          ? '0 0 0 2px #FDF4D2, 0 0 0 4px #946D6D'
-          : '0 8px 20px -14px rgba(46,59,85,0.35)',
-        transform: selected ? 'translateY(-1px)' : 'none',
-        transition: reduced ? 'none' : 'box-shadow 180ms ease, transform 180ms ease',
-        '&:focus-visible': { outline: '3px solid #A290B7', outlineOffset: 3 }
+        background: item.bgGradient || 'linear-gradient(160deg, #3d4d68 0%, #946D6D 100%)',
+        boxShadow: selected ? '0 0 0 2px #F7F1E8, 0 0 0 4px #2E3B55' : 'none',
+        transition: reduced ? 'none' : 'transform 180ms ease, box-shadow 180ms ease',
+        '&:hover': reduced ? undefined : { transform: 'translateY(-3px)' },
+        '&:focus-visible': { outline: '3px solid #B0CDE6', outlineOffset: 3 }
       }}
     >
       {item.image ? (
@@ -101,7 +85,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
-          p: featured ? { xs: 1.6, md: 2.2 } : { xs: 1, md: 1.3 },
+          p: { xs: 1.4, md: 1.6 },
           zIndex: 1
         }}
       >
@@ -119,7 +103,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
             letterSpacing: 1.3
           }}
         >
-          {selected ? t('categories.selected') : featured ? t('categories.discover') : t('categories.room')}
+          {selected ? t('categories.selected') : t('categories.discover')}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1 }}>
@@ -134,16 +118,12 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
                 lineHeight: 1.2,
                 wordBreak: 'break-word',
                 textShadow: '0 2px 10px rgba(30,39,56,0.55)',
-                fontSize: featured
-                  ? { xs: '1.28rem', md: '1.65rem' }
-                  : wide
-                    ? { xs: '0.9rem', md: '1.02rem' }
-                    : { xs: '0.82rem', md: '0.9rem' }
+                fontSize: { xs: '1.05rem', md: index === 0 ? '1.35rem' : '1.05rem' }
               }}
             >
               {item.name}
             </Box>
-            <Box component="p" sx={{ m: 0, mt: 0.4, color: '#FDF4D2', fontWeight: 700, fontSize: featured ? '0.76rem' : '0.68rem', textShadow: '0 1px 8px rgba(30,39,56,0.5)' }}>
+            <Box component="p" sx={{ m: 0, mt: 0.4, color: '#FDF4D2', fontWeight: 700, fontSize: '0.75rem', textShadow: '0 1px 8px rgba(30,39,56,0.5)' }}>
               {item.countLabel}
             </Box>
           </Box>
@@ -295,7 +275,7 @@ export default function CategoryProductList() {
         : t('categories.allCount', { ns: 'home' }),
       bgGradient: 'linear-gradient(135deg, #946D6D 0%, #2E3B55 100%)'
     },
-    ...sortedCats.slice(0, MAX_TILES - 1).map((cat) => ({
+    ...sortedCats.map((cat) => ({
       categoryId: cat.categoryId,
       name: categoryLabel(cat.categoryId, t),
       image: cat.image,
@@ -337,8 +317,8 @@ export default function CategoryProductList() {
       ref={sectionRef}
       component="section"
       sx={{
-        py: { xs: 5, md: 8 },
-        background: 'linear-gradient(180deg, rgba(253,244,210,0) 0%, rgba(176,205,230,0.14) 38%, rgba(253,244,210,0) 100%)',
+        py: { xs: 4, md: 7 },
+        backgroundColor: '#FDF4D2',
         contentVisibility: 'auto',
         containIntrinsicSize: '1200px'
       }}
@@ -347,13 +327,14 @@ export default function CategoryProductList() {
         <Box
           sx={{
             display: 'flex',
-            alignItems: { xs: 'flex-start', md: 'flex-end' },
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'flex-end' },
             justifyContent: 'space-between',
             gap: 2,
             mb: { xs: 2.5, md: 3.2 }
           }}
         >
-          <Box sx={{ minWidth: 0, pr: { xs: 7, sm: 0 } }}>
+          <Box sx={{ minWidth: 0 }}>
             <Typography
               variant="overline"
               sx={{ letterSpacing: 2, color: '#A290B7', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
@@ -383,19 +364,19 @@ export default function CategoryProductList() {
             component={LocaleLink}
             to={collectionPath}
             sx={{
-              display: { xs: 'none', sm: 'inline-flex' },
+              display: 'inline-flex',
               alignItems: 'center',
               gap: 0.6,
               flexShrink: 0,
+              alignSelf: { xs: 'flex-start', sm: 'auto' },
               px: 2,
               py: 1,
               borderRadius: '999px',
               fontWeight: 800,
               fontSize: '0.88rem',
-              color: '#2E3B55',
+              color: '#F7F1E8',
               textDecoration: 'none',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid rgba(148,109,109,0.16)',
+              backgroundColor: '#2E3B55',
               '&:hover': { backgroundColor: '#946D6D', color: '#FFFFFF' }
             }}
           >
@@ -407,25 +388,48 @@ export default function CategoryProductList() {
         {catsLoading ? (
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-              gridAutoRows: { xs: 108, md: 118 },
-              gap: { xs: 1.1, md: 1.3 }
+              display: 'flex',
+              gap: 1.2,
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              pb: 0.6,
+              mx: { xs: -2, sm: -3, md: 0 },
+              px: { xs: 2, sm: 3, md: 0 },
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' },
+              '@media (min-width: 900px)': {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                overflow: 'visible',
+                mx: 0,
+                px: 0
+              }
             }}
           >
-            <Skeleton variant="rounded" sx={{ gridColumn: 'span 2', gridRow: 'span 2', borderRadius: tileRadius }} />
-            {Array.from({ length: 6 }).map((_, index) => (
-              <Skeleton key={index} variant="rounded" sx={{ borderRadius: tileRadius, height: '100%' }} />
+            <Skeleton variant="rounded" sx={{ flex: '0 0 168px', height: 220, borderRadius: tileRadius }} />
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} variant="rounded" sx={{ flex: '0 0 168px', height: 220, borderRadius: tileRadius }} />
             ))}
           </Box>
         ) : (
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-              gridAutoRows: { xs: 108, sm: 118, md: 124 },
-              gap: { xs: 1.05, md: 1.3 },
-              contain: 'layout paint'
+              display: 'flex',
+              gap: 1.2,
+              overflowX: 'auto',
+              scrollSnapType: 'x mandatory',
+              pb: 0.6,
+              mx: { xs: -2, sm: -3, md: 0 },
+              px: { xs: 2, sm: 3, md: 0 },
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' },
+              '@media (min-width: 900px)': {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                overflow: 'visible',
+                mx: 0,
+                px: 0
+              }
             }}
           >
             {tiles.map((item, index) => (

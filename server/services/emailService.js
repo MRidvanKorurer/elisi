@@ -256,14 +256,14 @@ const notifyAdminSignup = ({ kind, name, email, phone, shop } = {}) => {
   dispatch([{ to: admin, ...templates.adminSignup({ kind, name, email, phone, shop }) }]);
 };
 
-const notifyPaymentReminder = ({ buyerEmail, buyerName, paymentCode, total } = {}) => {
+const notifyPaymentReminder = ({ buyerEmail, buyerName, paymentCode, total, shortfall } = {}) => {
   if (!buyerEmail) return;
-  dispatch([{ to: buyerEmail, ...templates.paymentReminder({ buyerName, paymentCode, total }) }]);
+  dispatch([{ to: buyerEmail, ...templates.paymentReminder({ buyerName, paymentCode, total, shortfall }) }]);
 };
 
-const notifyPaymentExpired = ({ buyerEmail, buyerName, paymentCode } = {}) => {
+const notifyPaymentExpired = ({ buyerEmail, buyerName, paymentCode, shortfall } = {}) => {
   const jobs = [];
-  if (buyerEmail) jobs.push({ to: buyerEmail, ...templates.paymentExpired({ buyerName, paymentCode }) });
+  if (buyerEmail) jobs.push({ to: buyerEmail, ...templates.paymentExpired({ buyerName, paymentCode, shortfall }) });
   const admin = superAdminEmail();
   if (admin) {
     jobs.push({

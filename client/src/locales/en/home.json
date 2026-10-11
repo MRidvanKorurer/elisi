@@ -30,6 +30,15 @@
     "emptyTitle": "Nothing in this room yet",
     "emptyText": "Try another category, or open the full collection."
   },
+  "categoryRails": {
+    "eyebrow": "BY CATEGORY",
+    "title": "Bestsellers in each category",
+    "subtitle": "The three most loved pieces from every category.",
+    "seeAll": "See category",
+    "top3": "Top 3 bestsellers",
+    "products": "{{count}} products",
+    "sold": "{{count}} sold"
+  },
   "weekly": {
     "eyebrow": "THIS WEEK",
     "title": "Ateliers of the week",
