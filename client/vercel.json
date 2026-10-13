@@ -1,6 +1,10 @@
-
-
 {
+  "functions": {
+    "api/seo.js": {
+      "includeFiles": "dist/index.html",
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/sitemap.xml",
@@ -13,6 +17,20 @@
     }
   ],
   "rewrites": [
+    { "source": "/urun/:id", "destination": "/api/seo?type=product&id=:id&locale=tr" },
+    { "source": "/en/urun/:id", "destination": "/api/seo?type=product&id=:id&locale=en" },
+    { "source": "/atolye/:slug", "destination": "/api/seo?type=atelier&id=:slug&locale=tr" },
+    { "source": "/en/atolye/:slug", "destination": "/api/seo?type=atelier&id=:slug&locale=en" },
+    {
+      "source": "/urunler",
+      "has": [{ "type": "query", "key": "category", "value": "(?<cat>[a-z0-9-]+)" }],
+      "destination": "/api/seo?type=category&id=:cat&locale=tr"
+    },
+    {
+      "source": "/en/urunler",
+      "has": [{ "type": "query", "key": "category", "value": "(?<cat>[a-z0-9-]+)" }],
+      "destination": "/api/seo?type=category&id=:cat&locale=en"
+    },
     {
       "source": "/((?!sitemap\\.xml|robots\\.txt|.*\\..*).*)",
       "destination": "/index.html"
