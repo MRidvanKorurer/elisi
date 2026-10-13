@@ -26,6 +26,7 @@ const { configured: mediaConfigured } = require('./utils/mediaStore');
 const { verifySmtp } = require('./services/emailService');
 const { startPaymentHoldJob, runPaymentHolds, kickPaymentHolds } = require('./services/paymentHold');
 const { hideInternals, publicMessage } = require('./utils/publicError');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const app = express();

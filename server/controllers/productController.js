@@ -294,7 +294,7 @@ const recordProductView = async (req, res) => {
         const product = await Product.findOneAndUpdate(
             publicMatch({ _id: id }),
             { $inc: { viewCount: 1 } },
-            { new: true, projection: { viewCount: 1 } }
+            { returnDocument: 'after', projection: { viewCount: 1 } }
         ).lean();
         if (!product) return res.status(204).end();
         res.status(200).json({ success: true, viewCount: product.viewCount || 0 });
