@@ -1104,7 +1104,7 @@ export default function SellerPanel({ user, handleLogout }) {
                                 : 'Öne çıkar'}
                           </Button>
                         )}
-                        <Button onClick={() => window.open(`/urun/${product._id}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
+                        <Button onClick={() => window.open(`/urun/${encodeURIComponent(product.slug || product._id)}`, '_blank')} sx={{ ...panelButton, color: T.rose, minWidth: 0, px: 1.2 }}>
                           <OpenInNewRounded sx={{ fontSize: 18 }} />
                         </Button>
                         <Button color="error" onClick={() => setRemoving(product)} sx={{ ...panelButton, ml: 'auto' }}>Sil</Button>

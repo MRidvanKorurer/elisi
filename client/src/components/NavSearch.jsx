@@ -309,7 +309,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       setQuery('');
       close();
       onNavigate?.();
-      navigate(`/urunler?category=${encodeURIComponent(value)}`);
+      navigate(`/kategori/${encodeURIComponent(value)}`);
     },
     [close, onNavigate, navigate]
   );
@@ -334,7 +334,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
         setQuery('');
         close();
         onNavigate?.();
-        navigate(`/urun/${option.product._id}`);
+        navigate(`/urun/${encodeURIComponent(option.product.slug || option.product._id)}`);
         return;
       }
 

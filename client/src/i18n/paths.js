@@ -4,6 +4,7 @@ export const PATHS = {
   home: '/',
   products: '/urunler',
   product: (id) => `/urun/${encodeURIComponent(id)}`,
+  category: (id) => `/kategori/${encodeURIComponent(id)}`,
   auth: '/giris',
   checkout: '/sepet',
   profile: '/hesabim',
@@ -51,5 +52,5 @@ export const isCheckoutPath = (pathname = '/') => {
 
 export const isProductsListPath = (pathname = '/') => {
   const clean = String(pathname).replace(/^\/en(?=\/|$)/, '') || '/';
-  return clean === PATHS.products || clean === '/products';
+  return clean === PATHS.products || clean === '/products' || clean.startsWith('/kategori/');
 };

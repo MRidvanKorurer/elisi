@@ -315,6 +315,7 @@ export default function AtelierPage() {
         description={atelier.aciklama || `${atelier.magazaAdi} el yapımı vitrini.`}
         path={`/atolye/${atelier.slug}`}
         image={covers[0]}
+        trOnly
       />
       <SiteContainer sx={{ minWidth: 0 }}>
         <Breadcrumbs

@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getAllProducts, getProductById, recordProductView, getBestSellers, getSponsoredProducts, getCategoryHighlights, getFilteredProducts, getCategories, getFilterOptions } = require('../controllers/productController');
+const { getAllProducts, getProductById, recordProductView, getSitemapEntries, getBestSellers, getSponsoredProducts, getCategoryHighlights, getFilteredProducts, getCategories, getFilterOptions } = require('../controllers/productController');
 
 router.get('/sponsored', getSponsoredProducts);
 router.get('/bestsellers', getBestSellers);
 router.get('/category-highlights', getCategoryHighlights);
+router.get('/sitemap-entries', getSitemapEntries);
 router.get('/', getAllProducts);
 router.get('/filter', getFilteredProducts);
 router.get('/filter-options', getFilterOptions);

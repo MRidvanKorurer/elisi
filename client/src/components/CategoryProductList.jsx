@@ -288,7 +288,7 @@ export default function CategoryProductList() {
 
   const collectionPath = selected === 'all'
     ? '/urunler'
-    : `/urunler?category=${encodeURIComponent(selected)}`;
+    : `/kategori/${encodeURIComponent(selected)}`;
 
   const hasMore = products.length < totalInCategory;
   const remaining = Math.max(0, totalInCategory - products.length);

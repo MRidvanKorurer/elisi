@@ -141,8 +141,9 @@ const buildProduct = async (id, locale) => {
   const product = data.product;
   const name = product.title || product.name || SITE_NAME;
   const catName = categoryName(categories, product.category);
-  const pathname = `/urun/${product._id || product.id}`;
-  const url = `${SITE_URL}${localePath(pathname, locale)}`;
+  const pathname = `/urun/${encodeURIComponent(product.slug || product._id || product.id)}`;
+  if (product.slug && id !== product.slug) return { redirect: localePath(pathname, locale) };
+  const url = `${SITE_URL}${pathname}`;
   const images = [product.image, ...(Array.isArray(product.additionalImages) ? product.additionalImages : [])]
     .filter(Boolean)
     .map(absolute);
@@ -179,11 +180,12 @@ const buildProduct = async (id, locale) => {
   const crumbs = [
     { name: t.home, path: '/' },
     { name: t.products, path: '/urunler' },
-    ...(product.category ? [{ name: catName, path: `/urunler?category=${encodeURIComponent(product.category)}` }] : []),
+    ...(product.category ? [{ name: catName, path: `/kategori/${encodeURIComponent(product.category)}` }] : []),
     { name, path: pathname }
   ];
 
   return {
+    trOnly: true,
     title: `${name}${catName ? ` - ${t.handmade(catName)}` : ''} | ${SITE_NAME}`,
     description,
     pathname,
@@ -194,7 +196,7 @@ const buildProduct = async (id, locale) => {
       ['property', 'product:price:currency', 'TRY'],
       ['property', 'product:availability', stock > 0 ? 'in stock' : 'out of stock']
     ],
-    jsonLd: [schema, breadcrumb(crumbs, locale)],
+    jsonLd: [schema, breadcrumb(crumbs, 'tr')],
     body: `<h1>${escapeHtml(name)}</h1>
         ${images[0] ? `<img src="${escapeHtml(images[0])}" alt="${escapeHtml(name)}" width="600" height="600" />` : ''}
         <p>${escapeHtml(t.price)}: ${escapeHtml(formatTRY(price))} ₺ · ${escapeHtml(stock > 0 ? t.inStock : t.outOfStock)}</p>
@@ -209,8 +211,9 @@ const buildAtelier = async (slug, locale) => {
   const t = TEXT[locale];
   const atelier = data.atelier;
   const name = atelier.magazaAdi || SITE_NAME;
-  const pathname = `/atolye/${atelier.slug || slug}`;
-  const url = `${SITE_URL}${localePath(pathname, locale)}`;
+  const pathname = `/atolye/${encodeURIComponent(atelier.slug || slug)}`;
+  if (atelier.slug && slug !== atelier.slug) return { redirect: localePath(pathname, locale) };
+  const url = `${SITE_URL}${pathname}`;
   const products = Array.isArray(data.products) ? data.products : [];
   const image = (atelier.coverImages || [])[0] || atelier.avatarUrl || products[0]?.image;
   const place = [atelier.ilce, atelier.sehir].filter(Boolean).join(', ');
@@ -235,11 +238,12 @@ const buildAtelier = async (slug, locale) => {
       '@type': 'ListItem',
       position: index + 1,
       name: product.title,
-      url: `${SITE_URL}${localePath(`/urun/${product._id}`, locale)}`
+      url: `${SITE_URL}${productPath(product)}`
     }))
   };
 
   return {
+    trOnly: true,
     title: `${t.atelierTitle(name)} | ${SITE_NAME}`,
     description: clamp(atelier.aciklama || t.atelierDescription(name)),
     pathname,
@@ -249,7 +253,7 @@ const buildAtelier = async (slug, locale) => {
       { name: t.home, path: '/' },
       { name: t.ateliers, path: '/atolyeler' },
       { name, path: pathname }
-    ], locale)].filter(Boolean),
+    ], 'tr')].filter(Boolean),
     body: `<h1>${escapeHtml(name)}</h1>
         ${place ? `<p>${escapeHtml(place)}</p>` : ''}
         <p>${escapeHtml(atelier.aciklama || '')}</p>
@@ -267,15 +271,15 @@ const buildCategory = async (categoryId, locale) => {
 
   const t = TEXT[locale];
   const name = category?.name || categoryName(categories, categoryId);
-  const pathname = `/urunler?category=${encodeURIComponent(categoryId)}`;
-  const url = `${SITE_URL}${localePath('/urunler', locale)}?category=${encodeURIComponent(categoryId)}`;
+  const pathname = `/kategori/${encodeURIComponent(categoryId)}`;
+  const url = `${SITE_URL}${pathname}`;
   const products = Array.isArray(data?.products) ? data.products : [];
 
   return {
+    trOnly: true,
     title: `${t.categoryTitle(name)} | ${SITE_NAME}`,
     description: clamp(t.categoryDescription(name.toLocaleLowerCase(locale === 'en' ? 'en-US' : 'tr-TR'))),
     pathname,
-    canonical: url,
     image: absolute(category?.image || products[0]?.image),
     type: 'website',
     jsonLd: [
@@ -295,14 +299,14 @@ const buildCategory = async (categoryId, locale) => {
           '@type': 'ListItem',
           position: index + 1,
           name: product.title,
-          url: `${SITE_URL}${localePath(`/urun/${product._id}`, locale)}`
+          url: `${SITE_URL}${productPath(product)}`
         }))
       } : null,
       breadcrumb([
         { name: t.home, path: '/' },
         { name: t.products, path: '/urunler' },
         { name, path: pathname }
-      ], locale)
+      ], 'tr')
     ].filter(Boolean),
     body: `<h1>${escapeHtml(t.categoryTitle(name))}</h1>
         ${category?.description ? `<p>${escapeHtml(category.description)}</p>` : ''}
@@ -310,17 +314,19 @@ const buildCategory = async (categoryId, locale) => {
   };
 };
 
-const productLinks = (products, locale) => (products.length
-  ? `<ul>${products.slice(0, 24).map((product) => `<li><a href="${escapeHtml(localePath(`/urun/${product._id}`, locale))}">${escapeHtml(product.title)}</a> - ${escapeHtml(formatTRY(salePrice(product)))} ₺</li>`).join('')}</ul>`
+const productPath = (product) => `/urun/${encodeURIComponent(product.slug || product._id || product.id)}`;
+
+const productLinks = (products) => (products.length
+  ? `<ul>${products.slice(0, 24).map((product) => `<li><a href="${escapeHtml(productPath(product))}">${escapeHtml(product.title)}</a> - ${escapeHtml(formatTRY(salePrice(product)))} ₺</li>`).join('')}</ul>`
   : '');
 
 const renderHead = (page, locale) => {
-  const t = TEXT[locale];
-  const canonical = page.canonical || `${SITE_URL}${localePath(page.pathname, locale)}`;
-  const [basePath, query = ''] = page.pathname.split('?');
-  const suffix = query ? `?${query}` : '';
-  const trUrl = `${SITE_URL}${localePath(basePath, 'tr')}${suffix}`;
-  const enUrl = `${SITE_URL}${localePath(basePath, 'en')}${suffix}`;
+  // Ürün/atölye/kategori içerikleri yalnızca Türkçe: /en sürümü Türkçe adresi canonical gösterir
+  const headLocale = page.trOnly ? 'tr' : locale;
+  const t = TEXT[headLocale];
+  const canonical = page.canonical || `${SITE_URL}${localePath(page.pathname, headLocale)}`;
+  const trUrl = `${SITE_URL}${localePath(page.pathname, 'tr')}`;
+  const enUrl = `${SITE_URL}${localePath(page.pathname, 'en')}`;
   const image = page.image || `${SITE_URL}/og-cover.jpg`;
   const tag = (attr, key, content) => `<meta ${attr}="${key}" data-default-seo content="${escapeHtml(content)}" />`;
 
@@ -329,9 +335,11 @@ const renderHead = (page, locale) => {
     tag('name', 'description', page.description),
     tag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'),
     `<link rel="canonical" data-default-seo href="${escapeHtml(canonical)}" />`,
-    `<link rel="alternate" data-default-seo hreflang="tr" href="${escapeHtml(trUrl)}" />`,
-    `<link rel="alternate" data-default-seo hreflang="en" href="${escapeHtml(enUrl)}" />`,
-    `<link rel="alternate" data-default-seo hreflang="x-default" href="${escapeHtml(trUrl)}" />`,
+    ...(page.trOnly ? [] : [
+      `<link rel="alternate" data-default-seo hreflang="tr" href="${escapeHtml(trUrl)}" />`,
+      `<link rel="alternate" data-default-seo hreflang="en" href="${escapeHtml(enUrl)}" />`,
+      `<link rel="alternate" data-default-seo hreflang="x-default" href="${escapeHtml(trUrl)}" />`
+    ]),
     tag('property', 'og:type', page.type || 'website'),
     tag('property', 'og:site_name', SITE_NAME),
     tag('property', 'og:locale', t.ogLocale),
@@ -386,13 +394,27 @@ export default async function handler(req, res) {
     res.end(body);
   };
 
+  const redirect = (location) => {
+    res.statusCode = 301;
+    res.setHeader('Location', location);
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    res.end();
+  };
+
   const builder = BUILDERS[type];
   if (!builder || !id || id.length > 200) {
     return send(200, html, 'public, max-age=0, s-maxage=60');
   }
 
+  // Eski /urunler?category=x adresi: başka filtre yoksa kalıcı olarak /kategori/x'e taşınır
+  if (req.query.legacy === '1') {
+    const extra = Object.keys(req.query).filter((key) => !['type', 'id', 'locale', 'legacy', 'category'].includes(key));
+    if (!extra.length) return redirect(localePath(`/kategori/${encodeURIComponent(id)}`, locale));
+  }
+
   try {
     const page = await builder(id, locale);
+    if (page?.redirect) return redirect(page.redirect);
     if (page?.notFound) {
       return send(404, html.replace(/<meta name="robots"[^>]*>/i, '<meta name="robots" data-default-seo content="noindex, follow" />'), 'public, max-age=0, s-maxage=120');
     }

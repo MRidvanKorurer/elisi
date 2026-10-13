@@ -222,7 +222,7 @@ export default function Footer() {
               <Link
                 key={item.value}
                 component={LocaleLink}
-                to={`/urunler?category=${encodeURIComponent(item.value)}`}
+                to={`/kategori/${encodeURIComponent(item.value)}`}
                 sx={{
                   color: '#6E5252',
                   textDecoration: 'none',

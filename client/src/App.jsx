@@ -195,6 +195,7 @@ export default function App() {
       <Route path="urun/:id" element={<ProductDetailPage user={user} />} />
       <Route path="hesabim" element={<ProfileDashboard />} />
       <Route path="urunler" element={<ProductsPage />} />
+      <Route path="kategori/:category" element={<ProductsPage />} />
       <Route path="atolyeler" element={<AteliersPage />} />
       <Route
         path="satici-ol"

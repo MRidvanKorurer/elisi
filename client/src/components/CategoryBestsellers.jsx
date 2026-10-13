@@ -12,7 +12,7 @@ import { imgBagOrange } from '../assets/media';
 const RANK_COLORS = ['#2E3B55', '#946D6D', '#A290B7'];
 
 function CategoryPanel({ group, t }) {
-  const link = `/urunler?category=${encodeURIComponent(group.categoryId)}`;
+  const link = `/kategori/${encodeURIComponent(group.categoryId)}`;
   const count = Number(group.productCount) || 0;
 
   return (

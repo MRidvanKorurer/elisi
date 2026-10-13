@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import {
     Box,
     Button,
@@ -768,14 +769,29 @@ function FilterWaitPanel({ count = 6, reduced }) {
     );
 }
 
+const queryKey = (params) => {
+    const copy = new URLSearchParams(params);
+    copy.sort();
+    return copy.toString();
+};
+
 export default function ProductsPage() {
     const { t, i18n } = useTranslation();
     const locale = i18n.language === 'en' ? 'en' : 'tr';
     const theme = useTheme();
     const reducedMotion = useReducedMotion();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [rawSearchParams, setSearchParams] = useSearchParams();
+    const { category: routeCategory = '' } = useParams();
+    const localeNavigate = useLocaleNavigate();
     const lastWrittenQuery = useRef(null);
+
+    // /kategori/:category adresinde kategori yoldan gelir, sorgu dizesine yazılmaz
+    const searchParams = useMemo(() => {
+        const params = new URLSearchParams(rawSearchParams);
+        if (routeCategory && !params.get('category')) params.set('category', routeCategory);
+        return params;
+    }, [rawSearchParams, routeCategory]);
 
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -872,7 +888,7 @@ export default function ProductsPage() {
     }, [priceBounds]);
 
     useEffect(() => {
-        const incoming = searchParams.toString();
+        const incoming = queryKey(searchParams);
         if (incoming === lastWrittenQuery.current) return;
         hydratingFromUrl.current = true;
         lastWrittenQuery.current = incoming;
@@ -885,11 +901,19 @@ export default function ProductsPage() {
             return;
         }
         const next = buildQueryParams(committedFilters);
-        const serialized = next.toString();
+        const serialized = queryKey(next);
         if (serialized === lastWrittenQuery.current) return;
         lastWrittenQuery.current = serialized;
+        if (routeCategory) {
+            if (next.get('category') !== routeCategory) {
+                const query = next.toString();
+                localeNavigate(`/urunler${query ? `?${query}` : ''}`);
+                return;
+            }
+            next.delete('category');
+        }
         setSearchParams(next, { replace: true });
-    }, [committedFilters, setSearchParams]);
+    }, [committedFilters, setSearchParams, routeCategory, localeNavigate]);
 
     useEffect(() => {
         let cancelled = false;
@@ -1142,21 +1166,26 @@ export default function ProductsPage() {
         ? t('list.seoCategory', { ns: 'catalog', name: categoryLabel(activeCategory, t) })
         : t('list.seoAll', { ns: 'catalog' });
     const isFilteredView = Boolean(searchTerm) || selectedCategories.length > 0 || selectedColors.length > 0;
+    const categoryPath = activeCategory ? `/kategori/${encodeURIComponent(activeCategory)}` : '';
 
     return (
         <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FDF4D2 0%, #F7EBC0 100%)', pt: { xs: 9, md: 12 }, pb: { xs: 12, md: 10 } }}>
             <Seo
                 title={seoTitle}
                 description={seoDescription}
-                path="/urunler"
+                path={categoryPath || '/urunler'}
                 noindex={Boolean(searchTerm)}
+                trOnly={Boolean(categoryPath)}
                 type="website"
                 jsonLd={[
                     breadcrumbSchema([
                         { name: t('list.home', { ns: 'catalog' }), path: '/' },
-                        { name: t('list.products', { ns: 'catalog' }), path: '/urunler' }
-                    ], locale),
-                    products.length > 0 && !isFilteredView ? itemListSchema(products, { path: '/urunler', locale }) : null
+                        { name: t('list.products', { ns: 'catalog' }), path: '/urunler' },
+                        ...(categoryPath ? [{ name: categoryLabel(activeCategory, t), path: categoryPath }] : [])
+                    ], categoryPath ? 'tr' : locale),
+                    products.length > 0 && (!isFilteredView || (categoryPath && !searchTerm && !selectedColors.length))
+                        ? itemListSchema(products, { path: categoryPath || '/urunler', locale: categoryPath ? 'tr' : locale })
+                        : null
                 ]}
             />
             <SiteContainer sx={{ px: { xs: 1.5, sm: 2, md: 4 } }}>

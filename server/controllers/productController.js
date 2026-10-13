@@ -614,6 +614,55 @@ const deleteMyProduct = async (req, res) => {
     }
 };
 
+// GET /api/products/sitemap-entries
+const getSitemapEntries = async (req, res) => {
+    try {
+        const [products, sellers, categories, counts] = await Promise.all([
+            Product.find(publicMatch())
+                .select('_id slug title image category updatedAt createdAt')
+                .sort({ updatedAt: -1 })
+                .limit(5000)
+                .lean(),
+            Seller.find({ durum: 'approved', slug: { $exists: true, $ne: '' } })
+                .select('slug user updatedAt')
+                .lean(),
+            Category.find({ isActive: true }).select('categoryId updatedAt').lean(),
+            Product.aggregate([
+                { $match: publicMatch() },
+                { $group: { _id: { $toLower: '$category' }, count: { $sum: 1 }, seller: { $addToSet: '$seller' }, updatedAt: { $max: '$updatedAt' } } }
+            ])
+        ]);
+
+        const countByCategory = new Map(counts.map((row) => [row._id, row]));
+        const sellersWithProducts = new Set(
+            counts.flatMap((row) => (row.seller || []).filter(Boolean).map(String))
+        );
+
+        res.set('Cache-Control', 'public, max-age=300');
+        res.status(200).json({
+            success: true,
+            products: products.map((item) => ({
+                id: String(item._id),
+                slug: item.slug || '',
+                title: item.title,
+                image: item.image || '',
+                updatedAt: item.updatedAt || item.createdAt
+            })),
+            ateliers: sellers
+                .filter((item) => sellersWithProducts.has(String(item.user)))
+                .map((item) => ({ slug: item.slug, updatedAt: item.updatedAt })),
+            categories: categories
+                .map((item) => {
+                    const row = countByCategory.get(String(item.categoryId || '').toLowerCase());
+                    return row ? { id: item.categoryId, count: row.count, updatedAt: row.updatedAt || item.updatedAt } : null;
+                })
+                .filter(Boolean)
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Site haritası verisi alınamadı.' });
+    }
+};
+
 const getCategoryHighlights = async (req, res) => {
     try {
         const [docs, groups] = await Promise.all([
@@ -684,6 +733,7 @@ module.exports = {
     createProduct,
     getProductById,
     recordProductView,
+    getSitemapEntries,
     getBestSellers,
     getSponsoredProducts,
     getCategoryHighlights,

@@ -61,6 +61,7 @@ export default function ProductCard({ product, fullWidth = false, compact = fals
   const descRef = useRef(null);
 
   const id = product?._id || product?.id;
+  const href = `/urun/${encodeURIComponent(product?.slug || id || '')}`;
   const title = product?.title || product?.baslik || t('card.untitled', { ns: 'catalog' });
   const image = product?.image || product?.resimUrl || (product?.images && product.images[0]) || FALLBACK_IMAGE;
   const description = product?.description || product?.aciklama || t('card.defaultDescription', { ns: 'catalog' });
@@ -93,7 +94,7 @@ export default function ProductCard({ product, fullWidth = false, compact = fals
       product: id,
       seller: product?.seller
     });
-    navigate(`/urun/${id}`);
+    navigate(href);
   };
 
   const handleAddToCart = async (e) => {
@@ -323,7 +324,7 @@ export default function ProductCard({ product, fullWidth = false, compact = fals
               <Tooltip title={title} arrow placement="top" enterDelay={200}>
                 <Box
                   component={LocaleLink}
-                  to={id ? `/urun/${id}` : '/urunler'}
+                  to={id ? href : '/urunler'}
                   onClick={(e) => e.stopPropagation()}
                   sx={{
                     color: '#2E3B55',

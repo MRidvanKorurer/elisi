@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 // Ürün detay: teslimat / ölçü / iade paneli ProductFulfillment ile gelir.
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -99,9 +99,13 @@ export default function ProductDetailPage({ onAddToCart, user }) {
     setMediaView('photo');
   }, [id]);
 
+  const loadedRef = useRef(null);
+
   useEffect(() => {
     const fetchProductData = async () => {
       if (!id) return;
+      // Kimlikle açılan sayfa slug'lı adrese geçince ürün tekrar çekilmez
+      if (loadedRef.current && loadedRef.current.includes(id)) return;
 
       try {
         setLoading(true);
@@ -114,7 +118,11 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           throw new Error('Ürün bulunamadı');
         }
 
+        loadedRef.current = [String(productData._id || productData.id), productData.slug].filter(Boolean);
         setProduct(productData);
+        if (productData.slug && id !== productData.slug) {
+          navigate(`/urun/${encodeURIComponent(productData.slug)}${window.location.search}${window.location.hash}`, { replace: true });
+        }
         setActiveImage(productData.image || productData.gorsel || '');
         setQuantity(1);
         setFaqItems([]);
@@ -146,6 +154,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
     };
 
     fetchProductData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const productKey = product?._id || product?.id;
@@ -317,7 +326,8 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const colors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
   const sizes = Array.isArray(product.sizes) ? product.sizes.filter(Boolean) : [];
 
-  const productPath = `/urun/${product._id || product.id}`;
+  const productPath = `/urun/${product.slug || product._id || product.id}`;
+  const categoryPath = `/kategori/${encodeURIComponent(product.category || '')}`;
   const seoDescription = productDescription(product);
 
   return (
@@ -328,6 +338,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         path={productPath}
         image={mainImg}
         type="product"
+        trOnly
         keywords={[title, product.category, t('product.keywordHandmade', { ns: 'catalog' }), 'Nik Bag'].filter(Boolean)}
         jsonLd={[
           productSchema(product, {
@@ -335,14 +346,14 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             price: discountedPrice,
             images: allImages,
             description: seoDescription,
-            locale
+            locale: 'tr'
           }),
           breadcrumbSchema([
             { name: t('product.home', { ns: 'catalog' }), path: '/' },
             { name: t('list.products', { ns: 'catalog' }), path: '/urunler' },
-            { name: categoryLabel(product.category, t), path: `/urunler?category=${encodeURIComponent(product.category || '')}` },
+            ...(product.category ? [{ name: categoryLabel(product.category, t), path: categoryPath }] : []),
             { name: title, path: productPath }
-          ], locale),
+          ], 'tr'),
           ...(faqItems.length ? [faqSchema(faqItems)] : [])
         ]}
       />
@@ -357,7 +368,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           <Link
             underline="hover"
             color="inherit"
-            onClick={() => navigate(`/urunler?category=${encodeURIComponent(product.category || '')}`)}
+            onClick={() => navigate(categoryPath)}
             sx={{ cursor: 'pointer', textTransform: 'capitalize' }}
           >
             {categoryLabel(product.category, t)}
