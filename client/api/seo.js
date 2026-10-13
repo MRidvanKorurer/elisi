@@ -408,7 +408,7 @@ export default async function handler(req, res) {
 
   // Eski /urunler?category=x adresi: başka filtre yoksa kalıcı olarak /kategori/x'e taşınır
   if (req.query.legacy === '1') {
-    const extra = Object.keys(req.query).filter((key) => !['type', 'id', 'locale', 'legacy', 'category'].includes(key));
+    const extra = Object.keys(req.query).filter((key) => !['type', 'id', 'locale', 'legacy', 'category', 'cat'].includes(key));
     if (!extra.length) return redirect(localePath(`/kategori/${encodeURIComponent(id)}`, locale));
   }
 
