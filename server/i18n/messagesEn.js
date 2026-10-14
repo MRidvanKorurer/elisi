@@ -211,7 +211,8 @@ const EXACT = {
   'Bu işlem için süper admin yetkisi gerekir.': 'This action requires super admin permission.',
   'Bu hesaba bağlı satıcı kaydı bulunamadı.': 'No seller account is linked to this account.',
   'Mağazanız onaylandıktan sonra bu işlemi yapabilirsiniz.': 'You can do this once your shop has been approved.',
-  'Satıcı doğrulanamadı.': 'Could not verify the seller.'
+  'Satıcı doğrulanamadı.': 'Could not verify the seller.',
+  'Döviz kuru alınamadı.': 'Could not load the exchange rate.'
 };
 
 const PATTERNS = [

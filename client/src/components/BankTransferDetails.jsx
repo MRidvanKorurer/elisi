@@ -3,7 +3,7 @@ import { Box, Button, Typography } from '@mui/material';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import { useTranslation } from 'react-i18next';
-import { formatTRY } from '../utils/price';
+import { tryWithUsd } from '../utils/currency';
 import { hasBankAccount } from '../utils/bank';
 
 function Row({ label, value, strong, action }) {
@@ -47,7 +47,7 @@ export default function BankTransferDetails({ bank, note, amount }) {
 
   const holder = bank.holder || bank.name;
   const title = bank.name && bank.name !== holder ? bank.name : '';
-  const amountText = amount != null && amount !== '' ? `${formatTRY(amount)} ₺` : '';
+  const amountText = amount != null && amount !== '' ? tryWithUsd(amount) : '';
 
   const copy = async (key, value) => {
     try {

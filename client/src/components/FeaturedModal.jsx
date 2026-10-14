@@ -24,7 +24,8 @@ import { productService } from '../api/productService';
 import { adsService } from '../api/adsService';
 import { cartService } from '../api/cartServices';
 import { imgBagOrange } from '../assets/media';
-import { formatTRY, salePriceOf } from '../utils/price';
+import { salePriceOf } from '../utils/price';
+import { money } from '../utils/currency';
 import LoadingButton from './LoadingButton';
 import { nextVisibleCount } from '../hooks/useProductGridPageSize';
 
@@ -365,11 +366,11 @@ export default function FeaturedModal({ open, onClose }) {
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.9, mt: 'auto', pt: 1.2 }}>
                             <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '1.12rem' }}>
-                              ₺{formatTRY(finalPrice)}
+                              {money(finalPrice, { tryPrefix: true })}
                             </Typography>
                             {discount > 0 && (
                               <Typography sx={{ color: '#9C8B8B', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'line-through' }}>
-                                ₺{formatTRY(listPrice)}
+                                {money(listPrice, { tryPrefix: true })}
                               </Typography>
                             )}
                           </Box>

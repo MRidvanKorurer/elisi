@@ -2,12 +2,20 @@ const express = require('express');
 const NewsletterSubscriber = require('../models/NewsletterSubscriber');
 const { publicSite } = require('../utils/runtime');
 const { resolveBank } = require('../utils/bank');
+const { getUsdTry } = require('../services/exchangeRate');
 
 const router = express.Router();
 
 router.get('/', async (_req, res) => {
   const account = await resolveBank();
   res.json({ success: true, site: publicSite({ bank: account }) });
+});
+
+router.get('/rates', async (_req, res) => {
+  const rate = await getUsdTry();
+  if (!rate) return res.status(503).json({ success: false, mesaj: 'Döviz kuru alınamadı.' });
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ success: true, ...rate });
 });
 
 router.post('/newsletter', async (req, res) => {

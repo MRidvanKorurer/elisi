@@ -21,7 +21,8 @@ import {
   isProductFavorite,
   setProductFavorite
 } from '../utils/favoritesStore';
-import { formatTRY, salePriceOf } from '../utils/price';
+import { salePriceOf } from '../utils/price';
+import { money } from '../utils/currency';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -408,9 +409,9 @@ export default function ProductCard({ product, fullWidth = false, compact = fals
             <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 700, fontSize: { xs: '0.62rem', sm: '0.7rem' }, whiteSpace: 'nowrap', display: compact ? 'none' : { xs: 'none', sm: 'inline' } }}>{t('card.specialPrice', { ns: 'catalog' })}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, minWidth: 0, ml: compact ? 0 : 'auto' }}>
               {product?.discountPercentage > 0 && (
-                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>₺{formatTRY(price)}</Typography>
+                <Typography variant="caption" sx={{ textDecoration: 'line-through', color: '#B0CDE6', fontWeight: 600, whiteSpace: 'nowrap', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>{money(price, { tryPrefix: true })}</Typography>
               )}
-              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: compact ? '0.95rem' : { xs: '1rem', sm: '1.15rem' }, whiteSpace: 'nowrap' }}>₺{formatTRY(finalPrice)}</Typography>
+              <Typography variant="h6" fontWeight="800" sx={{ color: '#946D6D', fontSize: compact ? '0.95rem' : { xs: '1rem', sm: '1.15rem' }, whiteSpace: 'nowrap' }}>{money(finalPrice, { tryPrefix: true })}</Typography>
             </Box>
           </Box>
         </CardContent>

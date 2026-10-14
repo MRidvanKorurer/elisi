@@ -16,7 +16,8 @@ import LoadingButton, { PageSpinner } from './LoadingButton';
 import { setFavoriteIds, setProductFavorite } from '../utils/favoritesStore';
 import { imgBagOrange } from '../assets/media';
 import Seo from './Seo';
-import { formatTRY, lineTotalOf, orderChargeRows, salePriceOf } from '../utils/price';
+import { lineTotalOf, orderChargeRows, salePriceOf } from '../utils/price';
+import { money, moneyCharged, tryWithUsd } from '../utils/currency';
 import { nextVisibleCount } from '../hooks/useProductGridPageSize';
 import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
 import BankTransferDetails from './BankTransferDetails';
@@ -84,7 +85,6 @@ function holdDeadline(order) {
   return new Date(start + HOLD_MS).toLocaleString(dateLocale(i18n.language), { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 }
 
-const formatPrice = (value) => formatTRY(value);
 
 const FALLBACK_IMAGE = imgBagOrange;
 
@@ -573,8 +573,8 @@ export default function ProfileDashboard() {
                               </Typography>
                               <Typography sx={{ color: '#946D6D', fontWeight: 800, mt: 0.4 }}>{paymentHoldLabel(order)}</Typography>
                               <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.6 }}>
-                                {formatPrice(order.totalPrice)} ₺
-                                {order.paidAmount ? ` · ${d('received', 'gelen')} ${formatPrice(order.paidAmount)} ₺` : ''}
+                                {moneyCharged(order.totalPrice)}
+                                {order.paidAmount ? ` · ${d('received', 'gelen')} ${tryWithUsd(order.paidAmount)}` : ''}
                               </Typography>
                               {waiting ? (
                                 <Typography sx={{ color: '#6E5252', mt: 0.8, lineHeight: 1.55 }}>
@@ -613,7 +613,7 @@ export default function ProfileDashboard() {
                                 {cfg.icon}
                                 <Typography variant="body2" fontWeight={800} sx={{ color: cfg.color, whiteSpace: 'nowrap' }}>{label}</Typography>
                               </Box>
-                              <Typography fontWeight={800} sx={{ color: '#2E3B55', whiteSpace: 'nowrap' }}>{formatPrice(order.totalPrice)} ₺</Typography>
+                              <Typography fontWeight={800} sx={{ color: '#2E3B55', whiteSpace: 'nowrap' }}>{money(order.totalPrice)}</Typography>
                               <Button onClick={() => openOrderDetails(orderId)} endIcon={<VisibilityOutlinedIcon />} sx={{ borderRadius: '12px', color: '#2E3B55', fontWeight: 800, border: '1px solid rgba(46,59,85,0.18)', justifySelf: { sm: 'end' }, whiteSpace: 'nowrap' }}>
                                 {d('details', 'Detay')}
                               </Button>
@@ -688,7 +688,7 @@ export default function ProfileDashboard() {
                                     {fav.title || fav.name || fav.isim}
                                   </Typography>
                                   <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
-                                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap' }}>{formatPrice(price)} ₺</Typography>
+                                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap' }}>{money(price)}</Typography>
                                     <IconButton
                                       aria-label={d('removeFav', 'Favorilerden çıkar')}
                                       onClick={(e) => { e.stopPropagation(); handleRemoveFavorite(id); }}
@@ -814,11 +814,11 @@ export default function ProfileDashboard() {
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55' }}>{item.name}</Typography>
                       <Typography variant="body2" sx={{ color: '#6E5252' }}>
-                        {d('qty', '{{count}} adet', { count: qty })}{qty > 1 ? ` · ${formatPrice(unit)} ₺` : ''}
+                        {d('qty', '{{count}} adet', { count: qty })}{qty > 1 ? ` · ${money(unit)}` : ''}
                         {[item.color, item.size].filter(Boolean).length ? ` · ${[item.colorLabel || item.color, item.sizeLabel || item.size].filter(Boolean).join(' · ')}` : ''}
                       </Typography>
                     </Box>
-                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatPrice(lineTotalOf(item))} ₺</Typography>
+                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', flexShrink: 0 }}>{money(lineTotalOf(item))}</Typography>
                   </Box>
                 );
               })}
@@ -844,7 +844,7 @@ export default function ProfileDashboard() {
                   <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.8 }}>
                     <Typography sx={{ color: '#6E5252', fontWeight: row.total ? 800 : 600 }}>{row.label}</Typography>
                     <Typography fontWeight={800} sx={{ color: row.accent ? '#2E7D32' : '#2E3B55' }}>
-                      {row.free ? d('free', 'Ücretsiz') : `${formatPrice(row.value)} ₺`}
+                      {row.free ? d('free', 'Ücretsiz') : money(row.value)}
                     </Typography>
                   </Box>
                 ))}

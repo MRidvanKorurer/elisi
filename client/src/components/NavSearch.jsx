@@ -28,7 +28,8 @@ import { categoryService } from '../api/categoryService';
 import { CATEGORY_ICON_NAMES, categoryLabel, normalize } from '../utils/categories';
 import DynamicIcon from './DynamicIcon';
 import { imgBagOrange } from '../assets/media';
-import { formatTRY, salePriceOf } from '../utils/price';
+import { salePriceOf } from '../utils/price';
+import { money as formatMoney } from '../utils/currency';
 
 const FALLBACK_IMAGE = imgBagOrange;
 const RECENT_KEY = 'nikbag:recent-searches';
@@ -93,7 +94,7 @@ const writeRecent = (list) => {
   }
 };
 
-const money = (value) => `₺${formatTRY(value)}`;
+const money = (value) => formatMoney(value, { tryPrefix: true });
 
 /** Eşleşen harfleri vurgulayarak sonucun neden geldiğini görünür kılar. */
 function Highlight({ text, term }) {

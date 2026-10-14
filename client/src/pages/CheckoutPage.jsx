@@ -46,12 +46,9 @@ import { getSitePublic } from '../api/siteService';
 import LegalTextDialog from '../components/LegalTextDialog';
 import BankTransferDetails from '../components/BankTransferDetails';
 import { hasBankAccount } from '../utils/bank';
-import i18n from '../i18n';
+import { money, moneyCharged, tryWithUsd } from '../utils/currency';
 
 const FALLBACK_IMAGE = imgBagOrange;
-
-const formatPrice = (value) =>
-  Number(value || 0).toLocaleString(i18n.language === 'en' ? 'en-US' : 'tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const productIdOf = (item) => item.product?._id || item.product || item.id;
 
@@ -769,13 +766,13 @@ export default function CheckoutPage({ user }) {
         .map((field) => (String(brief[field.key] || '').trim() ? `${field.label}: ${brief[field.key].trim()}` : ''))
         .filter(Boolean)
         .join('\n');
-      return `- ${item.name} x${item.quantity} (${formatPrice(item.price * item.quantity)} ₺)${notes ? `\n${notes}` : ''}`;
+      return `- ${item.name} x${item.quantity} (${tryWithUsd(item.price * item.quantity)})${notes ? `\n${notes}` : ''}`;
     }).join('\n');
     const welcomeLine = couponDiscount > 0
-      ? `\n${t('page.waWelcome', { defaultValue: 'Hoş geldin (%{{percent}})', percent: couponApplied?.percent || 10 })}: -${formatPrice(couponDiscount)} ₺`
+      ? `\n${t('page.waWelcome', { defaultValue: 'Hoş geldin (%{{percent}})', percent: couponApplied?.percent || 10 })}: -${tryWithUsd(couponDiscount)}`
       : '';
     const promoLine = promoDiscount > 0
-      ? `\n${t('page.waPromo', { defaultValue: 'Kampanya ({{code}} %{{percent}})', code: promoApplied?.code || '', percent: promoApplied?.percent || '' })}: -${formatPrice(promoDiscount)} ₺`
+      ? `\n${t('page.waPromo', { defaultValue: 'Kampanya ({{code}} %{{percent}})', code: promoApplied?.code || '', percent: promoApplied?.percent || '' })}: -${tryWithUsd(promoDiscount)}`
       : '';
     const discountLine = `${welcomeLine}${promoLine}`;
 
@@ -784,10 +781,10 @@ export default function CheckoutPage({ user }) {
       const response = await orderService.createOrder(buildPayload('whatsapp'));
       const payLabelText = t('page.waPayment', 'Ödeme');
       const pay = site?.bank?.iban
-        ? `\n\n${payLabelText}: ${formatPrice(total)} ₺\n${site.bank.holder || site.bank.name || ''}\n${site.bank.iban}`
-        : `\n\n${payLabelText}: ${formatPrice(total)} ₺`;
+        ? `\n\n${payLabelText}: ${tryWithUsd(total)}\n${site.bank.holder || site.bank.name || ''}\n${site.bank.iban}`
+        : `\n\n${payLabelText}: ${tryWithUsd(total)}`;
       const orderLine = response?.orderId ? `\n${t('page.waOrder', 'Sipariş')}: ${response.orderId}` : '';
-      const text = `${t('page.waGreeting', 'Merhaba NikBag, sipariş vermek istiyorum.')}\n\n${formData.firstName} ${formData.lastName}\n${formData.phone}\n${formData.address}, ${formData.district}/${formData.city}\n\n${lines}${discountLine}\n\n${t('page.waTotal', 'Toplam')}: ${formatPrice(total)} ₺${pay}${orderLine}`;
+      const text = `${t('page.waGreeting', 'Merhaba NikBag, sipariş vermek istiyorum.')}\n\n${formData.firstName} ${formData.lastName}\n${formData.phone}\n${formData.address}, ${formData.district}/${formData.city}\n\n${lines}${discountLine}\n\n${t('page.waTotal', 'Toplam')}: ${tryWithUsd(total)}${pay}${orderLine}`;
       window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank');
       await cartService.clearCart();
       window.dispatchEvent(new Event('cartUpdated'));
@@ -1026,9 +1023,9 @@ export default function CheckoutPage({ user }) {
                         <IconButton size="small" onClick={() => handleQty(item, item.quantity + 1)} sx={{ border: '1px solid rgba(148,109,109,0.2)', width: 36, height: 36 }}><AddIcon sx={{ fontSize: 18 }} /></IconButton>
                         <IconButton size="small" onClick={() => handleRemoveLine(item)} sx={{ ml: 'auto', color: '#946D6D', width: 36, height: 36 }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
                       </Box>
-                      <Typography fontWeight={800} sx={{ color: '#946D6D', mt: 0.6, display: { xs: 'block', sm: 'none' } }}>{formatPrice(item.price * item.quantity)} ₺</Typography>
+                      <Typography fontWeight={800} sx={{ color: '#946D6D', mt: 0.6, display: { xs: 'block', sm: 'none' } }}>{money(item.price * item.quantity)}</Typography>
                     </Box>
-                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', display: { xs: 'none', sm: 'block' }, pt: 0.2 }}>{formatPrice(item.price * item.quantity)} ₺</Typography>
+                    <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', display: { xs: 'none', sm: 'block' }, pt: 0.2 }}>{money(item.price * item.quantity)}</Typography>
                   </Box>
                 ))}
               </Stack>
@@ -1050,7 +1047,7 @@ export default function CheckoutPage({ user }) {
                   <Typography sx={{ fontSize: '1.2rem' }}>{remainingForFreeShipping > 0 ? '📦' : '🚚'}</Typography>
                   <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: remainingForFreeShipping > 0 ? '#2E3B55' : '#2E7D32' }}>
                     {remainingForFreeShipping > 0
-                      ? t('page.freeShippingLeft', { defaultValue: 'Kargonun bedava olmasına {{amount}} ₺ kaldı!', amount: formatPrice(remainingForFreeShipping) })
+                      ? t('page.freeShippingLeft', { defaultValue: 'Kargonun bedava olmasına {{amount}} kaldı!', amount: money(remainingForFreeShipping) })
                       : t('page.freeShippingDone', 'Tebrikler! Kargo bedava.')}
                   </Typography>
                 </Box>
@@ -1162,16 +1159,16 @@ export default function CheckoutPage({ user }) {
 
             
             <Divider sx={{ my: 2, borderColor: 'rgba(148,109,109,0.12)' }} />
-            <Row label={t('charges.subtotal', 'Ara toplam')} value={`${formatPrice(subtotal)} ₺`} />
+            <Row label={t('charges.subtotal', 'Ara toplam')} value={money(subtotal)} />
             {couponDiscount > 0 && (
-              <Row label={t('page.waWelcome', { defaultValue: 'Hoş geldin (%{{percent}})', percent: couponApplied?.percent || 10 })} value={`-${formatPrice(couponDiscount)} ₺`} accent />
+              <Row label={t('page.waWelcome', { defaultValue: 'Hoş geldin (%{{percent}})', percent: couponApplied?.percent || 10 })} value={`-${money(couponDiscount)}`} accent />
             )}
             {promoDiscount > 0 && (
               <Row
                 label={promoApplied?.sellerScoped && promoApplied.shopName
                   ? t('page.promoShop', { defaultValue: 'Kampanya · {{shop}} (%{{percent}})', shop: promoApplied.shopName, percent: promoApplied.percent || 0 })
                   : t('page.promoPercent', { defaultValue: 'Kampanya (%{{percent}})', percent: promoApplied?.percent || 0 })}
-                value={`-${formatPrice(promoDiscount)} ₺`}
+                value={`-${money(promoDiscount)}`}
                 accent
               />
             )}
@@ -1179,13 +1176,13 @@ export default function CheckoutPage({ user }) {
             {/* GÜNCELLENEN KARGO SATIRI */}
             <Row
               label={t('charges.shipping', 'Kargo')}
-              value={shippingCost === 0 ? t('page.free', 'Ücretsiz') : `${formatPrice(shippingCost)} ₺`}
+              value={shippingCost === 0 ? t('page.free', 'Ücretsiz') : money(shippingCost)}
               accent={shippingCost === 0}
             />
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
               <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{t('charges.total', 'Toplam')}</Typography>
-              <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: '1.45rem' }}>{formatPrice(total)} ₺</Typography>
+              <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: '1.45rem' }}>{moneyCharged(total)}</Typography>
             </Box>
             <Button
               fullWidth
@@ -1223,7 +1220,7 @@ export default function CheckoutPage({ user }) {
       >
         <Box sx={{ minWidth: 0, flexShrink: 0 }}>
           <Typography variant="caption" sx={{ color: '#6E5252', fontWeight: 700, display: 'block', lineHeight: 1.1 }}>{t('charges.total', 'Toplam')}</Typography>
-          <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>{formatPrice(total)} ₺</Typography>
+          <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>{money(total)}</Typography>
         </Box>
         <Button
           fullWidth

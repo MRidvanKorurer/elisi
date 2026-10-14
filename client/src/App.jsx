@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import { PageSpinner } from './components/LoadingButton';
 import { trTR, enUS } from '@mui/material/locale';
 import { useTranslation } from 'react-i18next';
+import { loadUsdRate, useUsdRate } from './utils/currency';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import LocaleLayout from './i18n/LocaleLayout';
 import { localeFromPath, withLocale } from './i18n/locale';
@@ -121,6 +122,14 @@ export default function App() {
   );
 
   useSmoothScroll(false);
+  useUsdRate();
+
+  useEffect(() => {
+    if (locale !== 'en') return undefined;
+    loadUsdRate();
+    const timer = setInterval(loadUsdRate, 10 * 60_000);
+    return () => clearInterval(timer);
+  }, [locale]);
 
   // Oturum ve Yükleme Stateleri
   const [user, setUser] = useState(() => readCachedUser());

@@ -42,6 +42,7 @@ import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGr
 import { imgMood4 } from '../assets/media';
 import Seo from '../components/Seo';
 import { breadcrumbSchema, itemListSchema } from '../utils/schema';
+import { toUsd } from '../utils/currency';
 import { useTranslation } from 'react-i18next';
 import { categoryLabel, mergeCatalogCategories } from '../utils/categories';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -81,6 +82,11 @@ const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value 
 
 const formatPrice = (value, locale = 'tr') =>
     Number(value || 0).toLocaleString(locale === 'en' ? 'en-US' : 'tr-TR', { maximumFractionDigits: 0 });
+
+const priceTag = (value, locale) => {
+    const usd = toUsd(value);
+    return usd != null ? `${Math.round(usd).toLocaleString('en-US')}` : `₺${formatPrice(value, locale)}`;
+};
 
 function buildQueryParams({
     search,
@@ -515,7 +521,7 @@ function FilterPanel({
                         {t('list.priceHeading', { ns: 'catalog', defaultValue: 'FİYAT' })}
                     </Typography>
                     <Typography sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.74rem' }}>
-                        ₺{formatPrice(priceRange[0], i18n.language)} – ₺{formatPrice(priceRange[1], i18n.language)}
+                        {priceTag(priceRange[0], i18n.language)} – {priceTag(priceRange[1], i18n.language)}
                     </Typography>
                 </Box>
                 <Slider
@@ -1111,7 +1117,7 @@ export default function ProductsPage() {
         if (debouncedPriceRange[0] > priceBounds[0] || debouncedPriceRange[1] < priceBounds[1]) {
             chips.push({
                 key: 'price',
-                label: `₺${formatPrice(debouncedPriceRange[0], locale)} – ₺${formatPrice(debouncedPriceRange[1], locale)}`,
+                label: `${priceTag(debouncedPriceRange[0], locale)} – ${priceTag(debouncedPriceRange[1], locale)}`,
                 onDelete: () => setPriceRange(priceBounds)
             });
         }

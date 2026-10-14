@@ -40,7 +40,8 @@ import { cartService } from '../api/cartServices';
 import userService from '../api/userService';
 import ProductSlider from '../components/ProductSlider';
 import { imgBagOrange } from '../assets/media';
-import { formatTRY, salePriceOf } from '../utils/price';
+import { salePriceOf } from '../utils/price';
+import { money } from '../utils/currency';
 import Seo from '../components/Seo';
 import { PageSpinner } from '../components/LoadingButton';
 import { breadcrumbSchema, faqSchema, productSchema } from '../utils/schema';
@@ -69,7 +70,6 @@ const asImageSrc = (img) => {
 
 const FALLBACK_IMAGE = asImageSrc(imgBagOrange);
 
-const formatPrice = (value) => formatTRY(value);
 
 export default function ProductDetailPage({ onAddToCart, user }) {
   const { t, i18n } = useTranslation();
@@ -514,11 +514,11 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 1.5, mb: 3 }}>
               <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: { xs: '2rem', md: '2.4rem' }, lineHeight: 1 }}>
-                {formatPrice(discountedPrice)} ₺
+                {money(discountedPrice)}
               </Typography>
               {discountRate > 0 && (
                 <Typography sx={{ textDecoration: 'line-through', color: '#A290B7', fontWeight: 700, fontSize: '1.15rem' }}>
-                  {formatPrice(rawPrice)} ₺
+                  {money(rawPrice)}
                 </Typography>
               )}
             </Box>
@@ -710,7 +710,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           disabled={outOfStock || addingToCart}
           sx={{ ...cartButtonSx, height: 52 }}
         >
-          {outOfStock ? t('product.soldOut', { ns: 'catalog' }) : `${formatPrice(discountedPrice)} ₺`}
+          {outOfStock ? t('product.soldOut', { ns: 'catalog' }) : money(discountedPrice)}
         </Button>
         <IconButton onClick={handleToggleFavorite} sx={{ ...iconActionSx, width: 52, height: 52 }}>
           {isFavorite ? <FavoriteIcon sx={{ color: '#946D6D' }} /> : <FavoriteBorderOutlinedIcon sx={{ color: '#946D6D' }} />}

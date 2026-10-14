@@ -1,4 +1,5 @@
 import i18n from '../i18n';
+import { money } from './currency';
 
 export const FREE_SHIPPING_LIMIT = 1000;
 export const SHIPPING_FEE = 100;
@@ -30,8 +31,8 @@ const TEXT = {
     returnsCustom: 'Kişiye özel üretimde iade, kullanılmamış ve kişiselleştirilmemiş ürünlerde geçerlidir.'
   },
   en: {
-    freeShipping: (limit) => `Free shipping on orders of ₺${limit} or more`,
-    shippingDetail: (limit, fee) => `Shipping is ₺${fee} on orders under ₺${limit}.`,
+    freeShipping: (limit) => `Free shipping on orders of ${limit} or more`,
+    shippingDetail: (limit, fee) => `Shipping is ${fee} on orders under ${limit}.`,
     size: 'Size',
     strap: 'Strap',
     weight: 'Weight',
@@ -55,8 +56,12 @@ const text = () => (isEn() ? TEXT.en : TEXT.tr);
 const siteShipping = () => ({
   freeFrom: FREE_SHIPPING_LIMIT,
   fee: SHIPPING_FEE,
-  title: text().freeShipping(formatPrice(FREE_SHIPPING_LIMIT)),
-  detail: text().shippingDetail(formatPrice(FREE_SHIPPING_LIMIT), formatPrice(SHIPPING_FEE))
+  title: isEn()
+    ? text().freeShipping(money(FREE_SHIPPING_LIMIT))
+    : text().freeShipping(formatPrice(FREE_SHIPPING_LIMIT)),
+  detail: isEn()
+    ? text().shippingDetail(money(FREE_SHIPPING_LIMIT), money(SHIPPING_FEE))
+    : text().shippingDetail(formatPrice(FREE_SHIPPING_LIMIT), formatPrice(SHIPPING_FEE))
 });
 
 const parseDimensions = (sizes = []) => {
