@@ -79,7 +79,8 @@ export const CATEGORY_ICON_NAMES = {
   diger: 'CategoryOutlined'
 };
 
-export const categoryLabel = (value, t = i18n.t.bind(i18n)) => {
+export const categoryLabel = (value, translate) => {
+  const t = typeof translate === 'function' ? translate : i18n.t.bind(i18n);
   const key = String(value || '').toLowerCase();
   return t(key, { ns: 'categories', defaultValue: CATEGORY_LABELS[key] || value || t('diger', { ns: 'categories', defaultValue: 'Diğer' }) });
 };

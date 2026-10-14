@@ -1269,7 +1269,7 @@ export default function AdminPanel({ user, handleLogout }) {
                     <Typography sx={{ fontWeight: 900, color: T.navy }}>{seller.magazaAdi}</Typography>
                     <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>{seller.user?.adSoyad || seller.adSoyad || seller.ibanHolder} · {seller.user?.email}</Typography>
                     <Typography sx={{ color: T.muted, fontSize: '0.85rem' }}>
-                      {seller.sehir}/{seller.ilce} · {(Array.isArray(seller.magazaTuru) ? seller.magazaTuru : [seller.magazaTuru]).filter(Boolean).map(categoryLabel).join(' · ') || seller.magazaTuru} · {seller.telefon}
+                      {seller.sehir}/{seller.ilce} · {(Array.isArray(seller.magazaTuru) ? seller.magazaTuru : [seller.magazaTuru]).filter(Boolean).map((item) => categoryLabel(item)).join(' · ') || seller.magazaTuru} · {seller.telefon}
                     </Typography>
                     <Typography sx={{ color: T.navy, fontSize: '0.82rem', fontWeight: 800, mt: 0.7, letterSpacing: 0.2, wordBreak: 'break-all' }}>
                       {seller.ibanHolder ? `${seller.ibanHolder} · ` : ''}{seller.iban || 'IBAN yok'}
