@@ -1,7 +1,13 @@
+import { currentLocale } from './api';
+
 const memory = new Map();
 const inflight = new Map();
 
-export const cachedGet = (key, fetcher, ttlMs = 60_000) => {
+// Yanıtlar dile göre değiştiği için anahtar dile göre ayrılır.
+const localized = (key) => `${key}|${currentLocale()}`;
+
+export const cachedGet = (rawKey, fetcher, ttlMs = 60_000) => {
+  const key = localized(rawKey);
   const hit = memory.get(key);
   if (hit && Date.now() - hit.at < ttlMs) {
     return Promise.resolve(hit.value);
@@ -26,6 +32,6 @@ export const cachedGet = (key, fetcher, ttlMs = 60_000) => {
 export const invalidateCache = (prefix = '') => {
   const needle = String(prefix || '');
   for (const key of memory.keys()) {
-    if (!needle || key === needle || key.startsWith(needle)) memory.delete(key);
+    if (!needle || key.startsWith(needle)) memory.delete(key);
   }
 };

@@ -14,11 +14,11 @@ const rateOk = (key) => {
   return hits.length <= RATE_MAX;
 };
 
-const money = (value) =>
-  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const money = (value, lang = 'tr') =>
+  Number(value || 0).toLocaleString(lang === 'en' ? 'en-US' : 'tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-const statusTr = (value) =>
-  ({
+const STATUS = {
+  tr: {
     processing: 'hazırlanıyor',
     shipped: 'kargoda',
     delivered: 'teslim edildi',
@@ -26,17 +26,61 @@ const statusTr = (value) =>
     pending: 'ödeme bekleniyor',
     completed: 'ödendi',
     failed: 'ödeme başarısız'
-  }[value] || value);
+  },
+  en: {
+    processing: 'being prepared',
+    shipped: 'shipped',
+    delivered: 'delivered',
+    cancelled: 'cancelled',
+    pending: 'awaiting payment',
+    completed: 'paid',
+    failed: 'payment failed'
+  }
+};
+const statusText = (value, lang = 'tr') => STATUS[lang]?.[value] || STATUS.tr[value] || value;
+
+const TEXT = {
+  tr: {
+    rate: 'Çok sık yazıldı. Bir dakika sonra tekrar dene.',
+    empty: 'Bir mesaj yaz.',
+    human: 'Seni insan desteğe alıyorum. Sağ alttaki yeşil WhatsApp düğmesinden yazabilirsin.',
+    forbidden: 'Sipariş iptali, iade onayı veya ödeme işlemlerini ben yapamam. Bunu WhatsApp’tan ekibimizle netleştirelim.',
+    recent: 'Son siparişlerin',
+    catalog: (list) => `Katalogda şunları gördüm:\n${list}\nDetay veya stok için ürün sayfasına bakabilir ya da WhatsApp’tan sorabilirsin.`,
+    unclear: 'Bunu netleştiremedim. Kargo, iade, ödeme veya sipariş diye sorabilirsin; özel işlem için WhatsApp daha doğru.',
+    failed: 'Destek asistanı şu an yanıt veremiyor.',
+    failedReply: 'Bir hata oldu. Lütfen WhatsApp’tan yaz.',
+    noCategory: 'kategori yok',
+    guest: 'Kullanıcı giriş yapmamış.',
+    noOrders: 'Bu hesabın henüz siparişi yok.',
+    payment: 'ödeme'
+  },
+  en: {
+    rate: 'Too many messages. Try again in a minute.',
+    empty: 'Write a message.',
+    human: 'Let me hand you over to a person. Use the green WhatsApp button at the bottom right.',
+    forbidden: 'I can’t cancel orders, approve returns or take payments. Let’s sort that out with our team on WhatsApp.',
+    recent: 'Your latest orders',
+    catalog: (list) => `Here’s what I found in the catalog:\n${list}\nFor details or stock, open the product page or ask us on WhatsApp.`,
+    unclear: 'I couldn’t quite work that out. Ask about shipping, returns, payment or your order; for anything special, WhatsApp is the better route.',
+    failed: 'The support assistant can’t answer right now.',
+    failedReply: 'Something went wrong. Please message us on WhatsApp.',
+    noCategory: 'no category',
+    guest: 'The user is not logged in.',
+    noOrders: 'This account has no orders yet.',
+    payment: 'payment'
+  }
+};
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const wantsHuman = (text) =>
-  /whatsapp|insan|operatör|operator|canlı destek|canli destek|şikayet|sikayet/.test(
+  /whatsapp|insan|operatör|operator|canlı destek|canli destek|şikayet|sikayet|human|real person|agent|complaint/.test(
     String(text).toLocaleLowerCase('tr-TR')
   );
 
 const forbidden = (text) =>
-  /iptal et|iade onay|paramı iade|parami iade|kart numar|cvv|cvc|şifre ver|sifre ver/.test(
+  /iptal et|iade onay|paramı iade|parami iade|kart numar|cvv|cvc|şifre ver|sifre ver|cancel my order|refund my|card number/.test(
     String(text).toLocaleLowerCase('tr-TR')
   );
 
@@ -99,17 +143,18 @@ const callGemini = async (prompt) => {
   return null;
 };
 
-const productContext = async (message) => {
+const productContext = async (message, lang = 'tr') => {
   const terms = searchTerms(message);
   if (!terms.length) return '';
   const filters = terms.map((term) => ({
     $or: [
       { title: { $regex: escapeRegex(term), $options: 'i' } },
+      { 'en.title': { $regex: escapeRegex(term), $options: 'i' } },
       { category: { $regex: escapeRegex(term), $options: 'i' } }
     ]
   }));
   const products = await Product.find({ isActive: true, $or: filters })
-    .select('title price category discountPercentage')
+    .select('title price category discountPercentage en.title')
     .limit(5)
     .lean();
   if (!products.length) return '';
@@ -117,33 +162,36 @@ const productContext = async (message) => {
     .map((item) => {
       const discount = Number(item.discountPercentage || 0);
       const price = discount > 0 ? item.price - (item.price * discount) / 100 : item.price;
-      return `- ${item.title} (${item.category || 'kategori yok'}): ${money(price)} ₺`;
+      const title = lang === 'en' ? item.en?.title || item.title : item.title;
+      return `- ${title} (${item.category || TEXT[lang].noCategory}): ${money(price, lang)} ₺`;
     })
     .join('\n');
 };
 
-const orderContext = async (user) => {
-  if (!user?._id) return 'Kullanıcı giriş yapmamış.';
+const orderContext = async (user, lang = 'tr') => {
+  if (!user?._id) return '';
   const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 }).limit(3).lean();
-  if (!orders.length) return 'Bu hesabın henüz siparişi yok.';
+  if (!orders.length) return '';
   return orders
     .map((order) => {
       const id = String(order._id).slice(-6).toUpperCase();
-      return `- #${id}: ${statusTr(order.orderStatus)} / ödeme ${statusTr(order.paymentStatus)} / ${money(order.totalPrice)} ₺`;
+      return `- #${id}: ${statusText(order.orderStatus, lang)} / ${TEXT[lang].payment} ${statusText(order.paymentStatus, lang)} / ${money(order.totalPrice, lang)} ₺`;
     })
     .join('\n');
 };
 
 exports.chat = async (req, res) => {
+  const lang = req.lang === 'en' ? 'en' : 'tr';
+  const text = TEXT[lang];
   try {
     const ip = req.ip || req.headers['x-forwarded-for'] || 'anon';
     if (!rateOk(String(ip))) {
-      return res.status(429).json({ success: false, message: 'Çok sık yazıldı. Bir dakika sonra tekrar dene.' });
+      return res.status(429).json({ success: false, message: text.rate });
     }
 
     const message = String(req.body.message || '').trim().slice(0, 500);
     if (!message) {
-      return res.status(400).json({ success: false, message: 'Bir mesaj yaz.' });
+      return res.status(400).json({ success: false, message: text.empty });
     }
 
     const history = Array.isArray(req.body.history) ? req.body.history.slice(-8) : [];
@@ -151,7 +199,7 @@ exports.chat = async (req, res) => {
     if (wantsHuman(message)) {
       return res.json({
         success: true,
-        reply: 'Seni insan desteğe alıyorum. Sağ alttaki yeşil WhatsApp düğmesinden yazabilirsin.',
+        reply: text.human,
         escalate: true
       });
     }
@@ -159,24 +207,24 @@ exports.chat = async (req, res) => {
     if (forbidden(message)) {
       return res.json({
         success: true,
-        reply: 'Sipariş iptali, iade onayı veya ödeme işlemlerini ben yapamam. Bunu WhatsApp’tan ekibimizle netleştirelim.',
+        reply: text.forbidden,
         escalate: true
       });
     }
 
     const [catalog, orders] = await Promise.all([
-      productContext(message),
-      orderContext(req.user)
+      productContext(message, lang),
+      orderContext(req.user, lang)
     ]);
 
-    const faq = matchFaq(message);
+    const faq = matchFaq(message, lang);
     if (faq) {
       let reply = faq;
-      const asksOrder = /sipariş|siparis|kargo takip|nerede|durum/.test(
+      const asksOrder = /sipariş|siparis|kargo takip|nerede|durum|order|tracking|where is|status/.test(
         message.toLocaleLowerCase('tr-TR')
       );
-      if (asksOrder && req.user && orders && !orders.startsWith('Kullanıcı') && !orders.startsWith('Bu hesabın')) {
-        reply = `Son siparişlerin:\n${orders}\n\n${faq}`;
+      if (asksOrder && orders) {
+        reply = `${text.recent}:\n${orders}\n\n${faq}`;
       }
       return res.json({
         success: true,
@@ -185,7 +233,10 @@ exports.chat = async (req, res) => {
       });
     }
 
-    const system = `Sen Nik Bag müşteri destek asistanısın. Sadece Türkçe, kısa ve net cevap ver.
+    const languageRule = lang === 'en'
+      ? 'Sadece İngilizce (English), kısa ve net cevap ver. Mağaza bilgisi Türkçe olsa da cevabın İngilizce olmalı.'
+      : 'Sadece Türkçe, kısa ve net cevap ver.';
+    const system = `Sen Nik Bag müşteri destek asistanısın. ${languageRule}
 Kurallar:
 - Fiyat uydurma. Katalogda yoksa "emin değilim" de.
 - Sipariş iptal etme, iade onaylama, ödeme alma, adres değiştirme.
@@ -197,7 +248,7 @@ Katalog (eşleşen):
 ${catalog || 'Bu soruya özel ürün eşleşmedi.'}
 
 Kullanıcının son siparişleri:
-${orders}`;
+${orders || (req.user ? TEXT.tr.noOrders : TEXT.tr.guest)}`;
 
     let reply = null;
     try {
@@ -209,7 +260,7 @@ ${orders}`;
         { role: 'user', content: message }
       ]);
       if (!reply) {
-        reply = await callGemini(`${system}\n\nKullanıcı: ${message}`);
+        reply = await callGemini(`${system}\n\n${lang === 'en' ? 'User' : 'Kullanıcı'}: ${message}`);
       }
     } catch (error) {
       reply = null;
@@ -217,10 +268,10 @@ ${orders}`;
 
     if (!reply) reply = faq;
     if (!reply && catalog) {
-      reply = `Katalogda şunları gördüm:\n${catalog}\nDetay veya stok için ürün sayfasına bakabilir ya da WhatsApp’tan sorabilirsin.`;
+      reply = text.catalog(catalog);
     }
     if (!reply) {
-      reply = 'Bunu netleştiremedim. Kargo, iade, ödeme veya sipariş diye sorabilirsin; özel işlem için WhatsApp daha doğru.';
+      reply = text.unclear;
     }
 
     return res.json({
@@ -231,8 +282,8 @@ ${orders}`;
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: 'Destek asistanı şu an yanıt veremiyor.',
-      reply: 'Bir hata oldu. Lütfen WhatsApp’tan yaz.'
+      message: text.failed,
+      reply: text.failedReply
     });
   }
 };

@@ -21,7 +21,6 @@ export default function Seo({
   type = 'website',
   noindex = false,
   jsonLd = null,
-  trOnly = false,
   children
 }) {
   const { t, i18n } = useTranslation('seo');
@@ -33,8 +32,7 @@ export default function Seo({
 
   const metaDescription = clampDescription(description || t('defaultDescription'));
   const pageTitle = buildTitle(title, t('tagline'));
-  // İçeriği yalnızca Türkçe olan sayfalarda /en sürümü Türkçe adresi canonical gösterir
-  const canonical = absoluteUrl(withLocale(path, trOnly ? 'tr' : locale));
+  const canonical = absoluteUrl(withLocale(path, locale));
   const trUrl = absoluteUrl(withLocale(path, 'tr'));
   const enUrl = absoluteUrl(withLocale(path, 'en'));
   const ogImage = absoluteUrl(image || '/og-cover.jpg');
@@ -49,13 +47,9 @@ export default function Seo({
       <meta name="description" content={metaDescription} />
       {keywordList.length > 0 && <meta name="keywords" content={keywordList.join(', ')} />}
       <link rel="canonical" href={canonical} />
-      {trOnly ? null : (
-        <>
-          <link rel="alternate" hrefLang="tr" href={trUrl} />
-          <link rel="alternate" hrefLang="en" href={enUrl} />
-          <link rel="alternate" hrefLang="x-default" href={trUrl} />
-        </>
-      )}
+      <link rel="alternate" hrefLang="tr" href={trUrl} />
+      <link rel="alternate" hrefLang="en" href={enUrl} />
+      <link rel="alternate" hrefLang="x-default" href={trUrl} />
 
       <meta
         name="robots"
@@ -64,8 +58,8 @@ export default function Seo({
 
       <meta property="og:type" content={type} />
       <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:locale" content={ogLocale(trOnly ? 'tr' : locale)} />
-      {trOnly ? null : <meta property="og:locale:alternate" content={ogLocale(locale === 'en' ? 'tr' : 'en')} />}
+      <meta property="og:locale" content={ogLocale(locale)} />
+      <meta property="og:locale:alternate" content={ogLocale(locale === 'en' ? 'tr' : 'en')} />
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={metaDescription} />
       <meta property="og:url" content={canonical} />

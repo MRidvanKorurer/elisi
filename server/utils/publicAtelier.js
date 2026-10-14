@@ -20,7 +20,13 @@ const HOUSE_ATELIER = {
   categories: [],
   coverImages: [],
   sinceYear: 2024,
-  isHouse: true
+  isHouse: true,
+  en: {
+    magazaAdi: 'Nik Bag Atelier',
+    magazaTuruEtiket: 'Handmade',
+    aciklama: 'Our in-house atelier, where traditional handcraft meets modern lines. Every piece is made in limited numbers.',
+    sehir: 'Turkey'
+  }
 };
 
 const publicInstagram = (value = '') => {
@@ -73,7 +79,16 @@ const serializePublicAtelier = (seller, user, extras = {}) => ({
   isHouse: false,
   isWeeklyAtelier: extras.isWeeklyAtelier != null
     ? Boolean(extras.isWeeklyAtelier)
-    : Boolean(seller.isWeeklyAtelier && seller.weeklyUntil && new Date(seller.weeklyUntil) > new Date())
+    : Boolean(seller.isWeeklyAtelier && seller.weeklyUntil && new Date(seller.weeklyUntil) > new Date()),
+  en: {
+    magazaAdi: String(seller.magazaAdi || '')
+      .replace(/^([^\s']+)\s+Atölyesi$/i, '$1 Atelier')
+      .replace(/^Atölye\s+(.+)$/i, 'Atelier $1'),
+    sehir: String(seller.sehir || '').replace(/^İ/, 'I'),
+    magazaTuruEtiket: magazaTuruEtiket(seller.magazaTuru, 'en') || 'Atelier',
+    aciklama: seller.en?.aciklama || '',
+    hesapTipi: seller.hesapTipi === 'kurumsal' ? 'Registered studio' : 'Independent maker'
+  }
 });
 
 module.exports = { HOUSE_ATELIER, serializePublicAtelier, publicInstagram, publicWebsite };

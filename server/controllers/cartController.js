@@ -2,6 +2,27 @@
 
 const Cart = require('../models/Cart');
 
+// Sepet satırlarındaki ad kayıt anındaki Türkçe başlıktır; İngilizce yanıt için güncel çeviri eklenir.
+// Renk/beden değerleri Türkçe kalır (satır kimliği); İngilizce karşılıklar ayrı etiket alanına yazılır.
+const englishLine = (product, item) => {
+  const en = {};
+  if (product?.en?.title) en.name = product.en.title;
+  const colorLabel = item.color && product?.en?.colorLabels?.[item.color];
+  const sizeLabel = item.size && product?.en?.sizeLabels?.[item.size];
+  if (colorLabel) en.colorLabel = colorLabel;
+  if (sizeLabel) en.sizeLabel = sizeLabel;
+  return Object.keys(en).length ? { en } : {};
+};
+
+const withTitles = async (items = []) => {
+  const Product = require('../models/Product');
+  const rows = items.map((item) => (typeof item.toObject === 'function' ? item.toObject() : { ...item }));
+  const ids = [...new Set(rows.map((item) => String(item.product)))];
+  const products = await Product.find({ _id: { $in: ids } }).select('en.title en.colorLabels en.sizeLabels').lean();
+  const byId = new Map(products.map((doc) => [String(doc._id), doc]));
+  return rows.map((item) => ({ ...item, ...englishLine(byId.get(String(item.product)), item) }));
+};
+
 // @desc    Kullanıcının sepetini getirir
 // @route   GET /api/cart
 // @access  Private (Sadece giriş yapmış kullanıcılar)
@@ -42,7 +63,8 @@ exports.getCart = async (req, res) => {
         image: product?.image || item.image,
         quantity: item.quantity,
         color: item.color || '',
-        size: item.size || ''
+        size: item.size || '',
+        ...englishLine(product, item)
       };
     });
 
@@ -111,7 +133,7 @@ exports.addToCart = async (req, res) => {
     }
 
     await cart.save();
-    res.status(200).json({ success: true, message: 'Ürün sepete eklendi.', items: cart.items });
+    res.status(200).json({ success: true, message: 'Ürün sepete eklendi.', items: await withTitles(cart.items) });
   } catch (error) {
     console.error('Sepete ekleme hatası:', error);
     res.status(500).json({ success: false, message: 'Ürün sepete eklenemedi.' });
@@ -163,7 +185,7 @@ exports.removeFromCart = async (req, res) => {
       }
 
       await cart.save();
-      return res.status(200).json({ success: true, message: 'Sepet güncellendi.', items: cart.items });
+      return res.status(200).json({ success: true, message: 'Sepet güncellendi.', items: await withTitles(cart.items) });
     }
 
     res.status(404).json({ success: false, message: 'Ürün sepette bulunamadı.' });
@@ -201,7 +223,7 @@ exports.updateCartItem = async (req, res) => {
 
     cart.items[itemIndex].quantity = nextQty;
     await cart.save();
-    res.status(200).json({ success: true, message: 'Adet güncellendi.', items: cart.items });
+    res.status(200).json({ success: true, message: 'Adet güncellendi.', items: await withTitles(cart.items) });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Adet güncellenemedi.' });
   }

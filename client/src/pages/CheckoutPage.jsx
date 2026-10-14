@@ -46,11 +46,12 @@ import { getSitePublic } from '../api/siteService';
 import LegalTextDialog from '../components/LegalTextDialog';
 import BankTransferDetails from '../components/BankTransferDetails';
 import { hasBankAccount } from '../utils/bank';
+import i18n from '../i18n';
 
 const FALLBACK_IMAGE = imgBagOrange;
 
 const formatPrice = (value) =>
-  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(value || 0).toLocaleString(i18n.language === 'en' ? 'en-US' : 'tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const productIdOf = (item) => item.product?._id || item.product || item.id;
 
@@ -262,7 +263,7 @@ export default function CheckoutPage({ user }) {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', email: '', phone: '', identityNumber: '', address: '', city: '', district: '', addressTitle: 'Ev'
+    firstName: '', lastName: '', email: '', phone: '', identityNumber: '', address: '', city: '', district: '', addressTitle: t('page.defaultAddressTitle', 'Ev')
   });
   const [cardForm, setCardForm] = useState({
     kartSahibi: '', kartNumarasi: '', skt: '', cvc: ''
@@ -312,7 +313,7 @@ export default function CheckoutPage({ user }) {
         const response = await cartService.getCart();
         setCartItems(normalizeCartItems(response.items));
       } catch {
-        showToast('Sepet bilgileri yüklenemedi.', 'error');
+        showToast(t('page.cartLoadFailed', 'Sepet bilgileri yüklenemedi.'), 'error');
         setCartItems([]);
       } finally {
         setCartLoading(false);
@@ -376,14 +377,14 @@ export default function CheckoutPage({ user }) {
         setCouponLocked(used);
         if (!kod || used) {
           setCouponApplied(null);
-          setCouponMessage(used ? 'Hoş geldin indirimin yalnızca ilk siparişte geçerlidir.' : '');
+          setCouponMessage(used ? t('page.welcomeUsed', 'Hoş geldin indirimin yalnızca ilk siparişte geçerlidir.') : '');
           return;
         }
         const data = await authService.verifyCampaign(kod);
         if (cancelled) return;
         if (data.success) {
           setCouponApplied({ code: data.kod || kod, percent: data.indirimOrani || 10 });
-          setCouponMessage(data.mesaj || '%10 hoş geldin indirimi uygulandı.');
+          setCouponMessage(data.mesaj || t('page.welcomeApplied', '%10 hoş geldin indirimi uygulandı.'));
         } else {
           setCouponApplied(null);
           setCouponLocked(true);
@@ -405,13 +406,13 @@ export default function CheckoutPage({ user }) {
 
   const applyCoupon = async () => {
     if (!user) {
-      showToast('İndirim kodu için giriş yap.', 'warning');
+      showToast(t('page.loginForCode', 'İndirim kodu için giriş yap.'), 'warning');
       navigate('/giris');
       return;
     }
     const kod = couponInput.trim();
     if (!kod) {
-      showToast('Bir indirim kodu yaz.', 'warning');
+      showToast(t('page.enterCode', 'Bir indirim kodu yaz.'), 'warning');
       return;
     }
     try {
@@ -419,15 +420,15 @@ export default function CheckoutPage({ user }) {
       const data = await authService.verifyCampaign(kod);
       if (!data.success) {
         setCouponApplied(null);
-        setCouponMessage(data.mesaj || 'Kod uygulanamadı.');
+        setCouponMessage(data.mesaj || t('page.codeFailed', 'Kod uygulanamadı.'));
         return;
       }
       setCouponApplied({ code: data.kod || kod, percent: data.indirimOrani || 10 });
       setCouponInput(data.kod || kod);
-      setCouponMessage(data.mesaj || '%10 indirim uygulandı.');
+      setCouponMessage(data.mesaj || t('page.discountApplied', '%10 indirim uygulandı.'));
     } catch (error) {
       setCouponApplied(null);
-      setCouponMessage(error.response?.data?.mesaj || error.message || 'Kod geçersiz.');
+      setCouponMessage(error.response?.data?.mesaj || error.message || t('page.codeInvalid', 'Kod geçersiz.'));
     } finally {
       setCouponBusy(false);
     }
@@ -439,7 +440,7 @@ export default function CheckoutPage({ user }) {
       ? currentSubtotal
       : cartItems.reduce((acc, item) => acc + (Number(item.price) * Number(item.quantity || 1)), 0);
     if (!kod) {
-      showToast('Bir kampanya kodu yaz.', 'warning');
+      showToast(t('page.enterPromo', 'Bir kampanya kodu yaz.'), 'warning');
       return;
     }
     try {
@@ -447,7 +448,7 @@ export default function CheckoutPage({ user }) {
       const data = await promoService.verify(kod, sub, promoItemsOf(cartItems));
       if (!data.success) {
         setPromoApplied(null);
-        setPromoMessage(data.mesaj || 'Kod uygulanamadı.');
+        setPromoMessage(data.mesaj || t('page.codeFailed', 'Kod uygulanamadı.'));
         return;
       }
       setPromoApplied({
@@ -458,10 +459,10 @@ export default function CheckoutPage({ user }) {
         shopName: data.shopName || ''
       });
       setPromoInput(data.kod || kod);
-      setPromoMessage(data.mesaj || 'Kampanya uygulandı.');
+      setPromoMessage(data.mesaj || t('page.promoApplied', 'Kampanya uygulandı.'));
     } catch (error) {
       setPromoApplied(null);
-      setPromoMessage(error.response?.data?.mesaj || error.message || 'Kod geçersiz.');
+      setPromoMessage(error.response?.data?.mesaj || error.message || t('page.codeInvalid', 'Kod geçersiz.'));
     } finally {
       setPromoBusy(false);
     }
@@ -500,7 +501,7 @@ export default function CheckoutPage({ user }) {
         if (cancelled) return;
         if (!data.success) {
           setPromoApplied(null);
-          setPromoMessage(data.mesaj || 'Kampanya bu tutarda geçerli değil.');
+          setPromoMessage(data.mesaj || t('page.promoNotEligible', 'Kampanya bu tutarda geçerli değil.'));
           return;
         }
         setPromoApplied((prev) => (prev ? {
@@ -510,12 +511,12 @@ export default function CheckoutPage({ user }) {
           sellerScoped: Boolean(data.sellerScoped),
           shopName: data.shopName || prev.shopName || ''
         } : prev));
-        setPromoMessage(data.mesaj || 'Kampanya uygulandı.');
+        setPromoMessage(data.mesaj || t('page.promoApplied', 'Kampanya uygulandı.'));
       })
       .catch((error) => {
         if (cancelled) return;
         setPromoApplied(null);
-        setPromoMessage(error.response?.data?.mesaj || 'Kampanya bu tutarda geçerli değil.');
+        setPromoMessage(error.response?.data?.mesaj || t('page.promoNotEligible', 'Kampanya bu tutarda geçerli değil.'));
       });
     return () => { cancelled = true; };
   }, [subtotal, promoCartKey, promoApplied?.code]);
@@ -550,7 +551,7 @@ export default function CheckoutPage({ user }) {
       });
       if (response.success) syncCart(response.items);
     } catch (error) {
-      showToast(error.message || 'Ürün silinemedi.', 'error');
+      showToast(error.message || t('page.removeFailed', 'Ürün silinemedi.'), 'error');
     }
   };
 
@@ -567,7 +568,7 @@ export default function CheckoutPage({ user }) {
       });
       if (response.success) syncCart(response.items);
     } catch (error) {
-      showToast(error.message || 'Adet güncellenemedi.', 'error');
+      showToast(error.message || t('page.qtyFailed', 'Adet güncellenemedi.'), 'error');
     }
   };
 
@@ -575,14 +576,14 @@ export default function CheckoutPage({ user }) {
     const next = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneDigits = formData.phone.replace(/\D/g, '');
-    if (!formData.firstName.trim()) next.firstName = 'Ad zorunlu';
-    if (!formData.lastName.trim()) next.lastName = 'Soyad zorunlu';
-    if (!formData.email.trim()) next.email = 'E-posta zorunlu';
-    else if (!emailRegex.test(formData.email)) next.email = 'Geçerli bir e-posta girin';
-    if (phoneDigits.length < 10) next.phone = 'Geçerli bir telefon girin';
-    if (!formData.address.trim()) next.address = 'Adres zorunlu';
-    if (!formData.city.trim()) next.city = 'İl zorunlu';
-    if (!formData.district.trim()) next.district = 'İlçe zorunlu';
+    if (!formData.firstName.trim()) next.firstName = t('page.errFirstName', 'Ad zorunlu');
+    if (!formData.lastName.trim()) next.lastName = t('page.errLastName', 'Soyad zorunlu');
+    if (!formData.email.trim()) next.email = t('page.errEmail', 'E-posta zorunlu');
+    else if (!emailRegex.test(formData.email)) next.email = t('page.errEmailInvalid', 'Geçerli bir e-posta girin');
+    if (phoneDigits.length < 10) next.phone = t('page.errPhone', 'Geçerli bir telefon girin');
+    if (!formData.address.trim()) next.address = t('page.errAddress', 'Adres zorunlu');
+    if (!formData.city.trim()) next.city = t('page.errCity', 'İl zorunlu');
+    if (!formData.district.trim()) next.district = t('page.errDistrict', 'İlçe zorunlu');
     // Iyzico kapalı
     // if (paymentMethod === 'credit_card' && formData.identityNumber.replace(/\D/g, '').length !== 11) {
     //   next.identityNumber = 'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli';
@@ -590,7 +591,7 @@ export default function CheckoutPage({ user }) {
     if (paymentMethod === 'transfer' && !hasBankAccount(site?.bank)) {
       next.payment = t('bankMissing');
     }
-    if (!legalAccepted) next.legal = 'Sözleşmeleri onaylayın';
+    if (!legalAccepted) next.legal = t('page.errLegal', 'Sözleşmeleri onaylayın');
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -598,7 +599,7 @@ export default function CheckoutPage({ user }) {
   const openNewAddress = () => {
     setSelectedAddressId('');
     setShowAddressForm(true);
-    setFormData((prev) => ({ ...prev, address: '', city: '', district: '', addressTitle: 'Ev' }));
+    setFormData((prev) => ({ ...prev, address: '', city: '', district: '', addressTitle: t('page.defaultAddressTitle', 'Ev') }));
   };
 
   const openCardForm = () => {
@@ -612,18 +613,18 @@ export default function CheckoutPage({ user }) {
 
   const handleSaveAddress = async () => {
     if (!user) {
-      showToast('Adresi kaydetmek için giriş yapın.', 'warning');
+      showToast(t('page.loginForAddress', 'Adresi kaydetmek için giriş yapın.'), 'warning');
       navigate('/giris');
       return;
     }
     if (!formData.address.trim() || !formData.city.trim() || !formData.district.trim()) {
-      showToast('Kaydetmek için il, ilçe ve açık adres gerekli.', 'warning');
+      showToast(t('page.addressIncomplete', 'Kaydetmek için il, ilçe ve açık adres gerekli.'), 'warning');
       return;
     }
     try {
       setSavingAddress(true);
       const response = await userService.addAddress({
-        baslik: formData.addressTitle.trim() || 'Teslimat',
+        baslik: formData.addressTitle.trim() || t('page.deliveryAddressTitle', 'Teslimat'),
         adSoyad: `${formData.firstName} ${formData.lastName}`.trim() || user.adSoyad,
         telefon: formData.phone.trim() || user.telefon || '05000000000',
         adres: formData.address.trim(),
@@ -633,9 +634,9 @@ export default function CheckoutPage({ user }) {
       const list = response.addresses || [];
       setAddresses(list);
       applyAddress(response.addedAddress || list[list.length - 1]);
-      showToast('Adres kaydedildi.', 'success');
+      showToast(t('page.addressSaved', 'Adres kaydedildi.'), 'success');
     } catch (error) {
-      showToast(error.response?.data?.message || error.message || 'Adres kaydedilemedi.', 'error');
+      showToast(error.response?.data?.message || error.message || t('page.addressSaveFailed', 'Adres kaydedilemedi.'), 'error');
     } finally {
       setSavingAddress(false);
     }
@@ -643,12 +644,12 @@ export default function CheckoutPage({ user }) {
 
   const handleSaveCard = async () => {
     if (!user) {
-      showToast('Kart kaydetmek için giriş yapın. Misafir olarak İyzico ile devam edebilirsiniz.', 'warning');
+      showToast(t('page.loginForCard', 'Kart kaydetmek için giriş yapın.'), 'warning');
       return;
     }
     const digits = cardForm.kartNumarasi.replace(/\D/g, '');
     if (!cardForm.kartSahibi.trim() || digits.length < 15 || !/^\d{2}\/\d{2}$/.test(cardForm.skt)) {
-      showToast('Kart adı, 16 haneli numara ve AA/YY son kullanma tarihi gerekli.', 'warning');
+      showToast(t('page.cardIncomplete', 'Kart adı, 16 haneli numara ve AA/YY son kullanma tarihi gerekli.'), 'warning');
       return;
     }
     try {
@@ -664,9 +665,9 @@ export default function CheckoutPage({ user }) {
       if (added?._id) setSelectedCardId(added._id);
       setShowCardForm(false);
       setCardForm({ kartSahibi: cardForm.kartSahibi, kartNumarasi: '', skt: '', cvc: '' });
-      showToast('Kart kaydedildi.', 'success');
+      showToast(t('page.cardSaved', 'Kart kaydedildi.'), 'success');
     } catch (error) {
-      showToast(error.response?.data?.message || error.message || 'Kart kaydedilemedi.', 'error');
+      showToast(error.response?.data?.message || error.message || t('page.cardSaveFailed', 'Kart kaydedilemedi.'), 'error');
     } finally {
       setSavingCard(false);
     }
@@ -703,11 +704,11 @@ export default function CheckoutPage({ user }) {
   const handleOrderSubmit = async () => {
     if (submittingRef.current) return;
     if (!validateForm()) {
-      showToast('Lütfen eksik alanları tamamlayın.', 'warning');
+      showToast(t('page.fillMissing', 'Lütfen eksik alanları tamamlayın.'), 'warning');
       return;
     }
     if (!cartItems.length) {
-      showToast('Sepetiniz boş.', 'error');
+      showToast(t('page.cartEmpty', 'Sepetiniz boş.'), 'error');
       return;
     }
     if (paymentMethod === 'transfer' && !hasBankAccount(site?.bank)) {
@@ -720,7 +721,7 @@ export default function CheckoutPage({ user }) {
       setLoading(true);
       const response = await orderService.createOrder(buildPayload(paymentMethod));
       if (!response.success) {
-        showToast(response.message || 'Sipariş oluşturulamadı.', 'error');
+        showToast(response.message || t('page.orderFailed', 'Sipariş oluşturulamadı.'), 'error');
         return;
       }
 
@@ -745,7 +746,7 @@ export default function CheckoutPage({ user }) {
       window.dispatchEvent(new Event('cartUpdated'));
       navigate(`/siparis-basarili?orderId=${response.orderId}&method=${paymentMethod}`);
     } catch (error) {
-      showToast(error.message || 'Siparişiniz şu an alınamadı. Lütfen tekrar deneyin.', 'error');
+      showToast(error.message || t('page.orderUnavailable', 'Siparişiniz şu an alınamadı. Lütfen tekrar deneyin.'), 'error');
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -754,12 +755,12 @@ export default function CheckoutPage({ user }) {
 
   const handleWhatsAppOrder = async () => {
     if (!validateForm()) {
-      showToast('WhatsApp siparişi için iletişim ve adres bilgileri gerekli.', 'warning');
+      showToast(t('page.whatsappIncomplete', 'WhatsApp siparişi için iletişim ve adres bilgileri gerekli.'), 'warning');
       return;
     }
     const number = site?.whatsapp;
     if (!number) {
-      showToast('WhatsApp numarası henüz tanımlanmamış.', 'warning');
+      showToast(t('page.whatsappMissing', 'WhatsApp numarası henüz tanımlanmamış.'), 'warning');
       return;
     }
     const lines = cartItems.map((item) => {
@@ -770,22 +771,28 @@ export default function CheckoutPage({ user }) {
         .join('\n');
       return `- ${item.name} x${item.quantity} (${formatPrice(item.price * item.quantity)} ₺)${notes ? `\n${notes}` : ''}`;
     }).join('\n');
-    const welcomeLine = couponDiscount > 0 ? `\nHoş geldin (%${couponApplied?.percent || 10}): -${formatPrice(couponDiscount)} ₺` : '';
-    const promoLine = promoDiscount > 0 ? `\nKampanya (${promoApplied?.code || ''} %${promoApplied?.percent || ''}): -${formatPrice(promoDiscount)} ₺` : '';
+    const welcomeLine = couponDiscount > 0
+      ? `\n${t('page.waWelcome', { defaultValue: 'Hoş geldin (%{{percent}})', percent: couponApplied?.percent || 10 })}: -${formatPrice(couponDiscount)} ₺`
+      : '';
+    const promoLine = promoDiscount > 0
+      ? `\n${t('page.waPromo', { defaultValue: 'Kampanya ({{code}} %{{percent}})', code: promoApplied?.code || '', percent: promoApplied?.percent || '' })}: -${formatPrice(promoDiscount)} ₺`
+      : '';
     const discountLine = `${welcomeLine}${promoLine}`;
 
     setWhatsappLoading(true);
     try {
       const response = await orderService.createOrder(buildPayload('whatsapp'));
+      const payLabelText = t('page.waPayment', 'Ödeme');
       const pay = site?.bank?.iban
-        ? `\n\nÖdeme: ${formatPrice(total)} ₺\n${site.bank.holder || site.bank.name || ''}\n${site.bank.iban}`
-        : `\n\nÖdeme: ${formatPrice(total)} ₺`;
-      const text = `Merhaba NikBag, sipariş vermek istiyorum.\n\n${formData.firstName} ${formData.lastName}\n${formData.phone}\n${formData.address}, ${formData.district}/${formData.city}\n\n${lines}${discountLine}\n\nToplam: ${formatPrice(total)} ₺${pay}${response?.orderId ? `\nSipariş: ${response.orderId}` : ''}`;
+        ? `\n\n${payLabelText}: ${formatPrice(total)} ₺\n${site.bank.holder || site.bank.name || ''}\n${site.bank.iban}`
+        : `\n\n${payLabelText}: ${formatPrice(total)} ₺`;
+      const orderLine = response?.orderId ? `\n${t('page.waOrder', 'Sipariş')}: ${response.orderId}` : '';
+      const text = `${t('page.waGreeting', 'Merhaba NikBag, sipariş vermek istiyorum.')}\n\n${formData.firstName} ${formData.lastName}\n${formData.phone}\n${formData.address}, ${formData.district}/${formData.city}\n\n${lines}${discountLine}\n\n${t('page.waTotal', 'Toplam')}: ${formatPrice(total)} ₺${pay}${orderLine}`;
       window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank');
       await cartService.clearCart();
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
-      showToast(error.message || 'Sipariş kaydı oluşturulamadı.', 'error');
+      showToast(error.message || t('page.orderRecordFailed', 'Sipariş kaydı oluşturulamadı.'), 'error');
     } finally {
       setWhatsappLoading(false);
     }
@@ -809,11 +816,11 @@ export default function CheckoutPage({ user }) {
       <SiteContainer sx={{ px: { xs: 1.5, sm: 2, md: 3 }, maxWidth: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 1.5, mb: 3, flexWrap: 'wrap', minWidth: 0 }}>
           <Button startIcon={<ArrowBackIosNewRoundedIcon sx={{ fontSize: 16 }} />} onClick={() => navigate(-1)} sx={{ color: '#6E5252', fontWeight: 700, flexShrink: 0 }}>
-            Geri
+            {t('actions.back', { ns: 'common' })}
           </Button>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.35rem', sm: '1.5rem', md: '2rem' } }}>Güvenli ödeme</Typography>
-            <Typography variant="body2" sx={{ color: '#6E5252', pr: { xs: 6, sm: 0 } }}>Siparişi havale/EFT ile tamamlayın veya WhatsApp üzerinden iletin.</Typography>
+            <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.35rem', sm: '1.5rem', md: '2rem' } }}>{t('page.title', 'Güvenli ödeme')}</Typography>
+            <Typography variant="body2" sx={{ color: '#6E5252', pr: { xs: 6, sm: 0 } }}>{t('page.lead', 'Siparişi havale/EFT ile tamamlayın veya WhatsApp üzerinden iletin.')}</Typography>
           </Box>
         </Box>
 
@@ -842,8 +849,8 @@ export default function CheckoutPage({ user }) {
               <SectionTitle step="2" title={t('addressTitle')} hint={t('addressHint')} />
               {!user && (
                 <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
-                  Adresi profilinize kaydetmek için{' '}
-                  <Box component="span" onClick={() => navigate('/giris')} sx={{ fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>giriş yapın</Box>.
+                  {t('page.guestAddressBefore', 'Adresi profilinize kaydetmek için')}{' '}
+                  <Box component="span" onClick={() => navigate('/giris')} sx={{ fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>{t('page.guestAddressLink', 'giriş yapın')}</Box>.
                 </Alert>
               )}
               {addresses.length > 0 && (
@@ -868,7 +875,7 @@ export default function CheckoutPage({ user }) {
                 onClick={openNewAddress}
                 sx={{ mb: 2, borderRadius: '14px', fontWeight: 800, borderColor: 'rgba(148,109,109,0.35)', color: '#946D6D', width: { xs: '100%', sm: 'auto' } }}
               >
-                Yeni adres ekle
+                {t('page.newAddress', 'Yeni adres ekle')}
               </Button>
               <Collapse in={showAddressForm || !selectedAddressId} unmountOnExit={false}>
                 <Stack spacing={2} sx={{ minWidth: 0 }}>
@@ -880,7 +887,7 @@ export default function CheckoutPage({ user }) {
                   </Box>
                   {user && (
                     <Button disabled={savingAddress} onClick={handleSaveAddress} sx={{ alignSelf: 'flex-start', fontWeight: 800, color: '#2E3B55' }}>
-                      {savingAddress ? 'Kaydediliyor...' : 'Bu adresi profilime kaydet'}
+                      {savingAddress ? t('page.saving', 'Kaydediliyor...') : t('page.saveAddress', 'Bu adresi profilime kaydet')}
                     </Button>
                   )}
                 </Stack>
@@ -957,12 +964,12 @@ export default function CheckoutPage({ user }) {
                 }
                 label={
                   <Typography variant="body2" sx={{ color: errors.legal ? '#d32f2f' : '#6E5252', lineHeight: 1.5 }}>
-                    <Box component="button" type="button" onClick={() => setLegalDoc('on-bilgilendirme')} sx={legalLinkSx}>Ön bilgilendirme</Box>
+                    <Box component="button" type="button" onClick={() => setLegalDoc('on-bilgilendirme')} sx={legalLinkSx}>{t('page.legalPre', 'Ön bilgilendirme')}</Box>
                     {', '}
-                    <Box component="button" type="button" onClick={() => setLegalDoc('mesafeli-satis')} sx={legalLinkSx}>mesafeli satış sözleşmesi</Box>
-                    {' ve '}
-                    <Box component="button" type="button" onClick={() => setLegalDoc('gizlilik')} sx={legalLinkSx}>gizlilik</Box>
-                    {' metinlerini okudum, kabul ediyorum.'}
+                    <Box component="button" type="button" onClick={() => setLegalDoc('mesafeli-satis')} sx={legalLinkSx}>{t('page.legalDistance', 'mesafeli satış sözleşmesi')}</Box>
+                    {t('page.legalAnd', ' ve ')}
+                    <Box component="button" type="button" onClick={() => setLegalDoc('gizlilik')} sx={legalLinkSx}>{t('page.legalPrivacy', 'gizlilik')}</Box>
+                    {t('page.legalAccept', ' metinlerini okudum, kabul ediyorum.')}
                   </Typography>
                 }
               />
@@ -975,20 +982,20 @@ export default function CheckoutPage({ user }) {
                 onClick={handleWhatsAppOrder}
                 sx={{ mt: 1, py: 1.2, borderRadius: '14px', borderColor: '#25D366', color: '#1B8F47', fontWeight: 800, backgroundColor: 'rgba(37,211,102,0.08)', '&:hover': { backgroundColor: '#25D366', color: '#FFFFFF', borderColor: '#25D366' } }}
               >
-                {whatsappLoading ? t('actions.loading', { ns: 'common' }) : 'WhatsApp ile sipariş'}
+                {whatsappLoading ? t('actions.loading', { ns: 'common' }) : t('page.whatsappOrder', 'WhatsApp ile sipariş')}
               </Button>
             </Paper>
           </Stack>
 
           {/* SİPARİŞ ÖZETİ (SAĞ PANEL) */}
           <Paper elevation={0} sx={{ ...cardSx, position: { lg: 'sticky' }, top: { lg: 100 } }}>
-            <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2, fontSize: '1.15rem' }}>Sipariş özeti</Typography>
+            <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2, fontSize: '1.15rem' }}>{t('page.summary', 'Sipariş özeti')}</Typography>
             {cartLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={28} sx={{ color: '#946D6D' }} /></Box>
             ) : cartItems.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 3 }}>
-                <Typography sx={{ color: '#6E5252', mb: 2 }}>Sepetiniz boş.</Typography>
-                <Button variant="contained" onClick={() => navigate('/urunler')} sx={{ ...darkBtnSx }}>Ürünlere git</Button>
+                <Typography sx={{ color: '#6E5252', mb: 2 }}>{t('page.cartEmpty', 'Sepetiniz boş.')}</Typography>
+                <Button variant="contained" onClick={() => navigate('/urunler')} sx={{ ...darkBtnSx }}>{t('page.goToProducts', 'Ürünlere git')}</Button>
               </Box>
             ) : (
               <Stack spacing={1.5} sx={{ mb: 2, minWidth: 0 }}>
@@ -1012,7 +1019,7 @@ export default function CheckoutPage({ user }) {
                     />
                     <Box sx={{ minWidth: 0 }}>
                       <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</Typography>
-                      <Typography variant="caption" sx={{ color: '#6E5252' }}>{[item.color, item.size].filter(Boolean).join(' · ') || 'Standart'}</Typography>
+                      <Typography variant="caption" sx={{ color: '#6E5252' }}>{[item.colorLabel || item.color, item.sizeLabel || item.size].filter(Boolean).join(' · ') || t('page.standard', 'Standart')}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.6, flexWrap: 'wrap' }}>
                         <IconButton size="small" onClick={() => handleQty(item, item.quantity - 1)} sx={{ border: '1px solid rgba(148,109,109,0.2)', width: 36, height: 36 }}><RemoveIcon sx={{ fontSize: 18 }} /></IconButton>
                         <Typography fontWeight={800} sx={{ minWidth: 22, textAlign: 'center' }}>{item.quantity}</Typography>
@@ -1043,8 +1050,8 @@ export default function CheckoutPage({ user }) {
                   <Typography sx={{ fontSize: '1.2rem' }}>{remainingForFreeShipping > 0 ? '📦' : '🚚'}</Typography>
                   <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: remainingForFreeShipping > 0 ? '#2E3B55' : '#2E7D32' }}>
                     {remainingForFreeShipping > 0
-                      ? `Kargonun bedava olmasına ${formatPrice(remainingForFreeShipping)} ₺ kaldı!`
-                      : 'Tebrikler! Kargo bedava.'}
+                      ? t('page.freeShippingLeft', { defaultValue: 'Kargonun bedava olmasına {{amount}} ₺ kaldı!', amount: formatPrice(remainingForFreeShipping) })
+                      : t('page.freeShippingDone', 'Tebrikler! Kargo bedava.')}
                   </Typography>
                 </Box>
                 {remainingForFreeShipping > 0 && (
@@ -1065,7 +1072,7 @@ export default function CheckoutPage({ user }) {
             <Box sx={{ mb: 2, p: 1.6, borderRadius: '16px', backgroundColor: 'rgba(253,244,210,0.7)', border: '1px dashed rgba(148,109,109,0.28)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
                 <CardGiftcardOutlinedIcon sx={{ color: '#946D6D', fontSize: 20 }} />
-                <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>Hoş geldin kodu</Typography>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>{t('page.welcomeTitle', 'Hoş geldin kodu')}</Typography>
               </Box>
               {user ? (
                 <>
@@ -1085,7 +1092,7 @@ export default function CheckoutPage({ user }) {
                       onClick={applyCoupon}
                       sx={{ borderRadius: '12px', fontWeight: 800, px: 1.8, flexShrink: 0, width: { xs: '100%', sm: 'auto' }, backgroundColor: '#946D6D', '&:hover': { backgroundColor: '#2E3B55' } }}
                     >
-                      {couponBusy ? '...' : 'Uygula'}
+                      {couponBusy ? '...' : t('page.apply', 'Uygula')}
                     </Button>
                   </Box>
                   {couponMessage && (
@@ -1096,20 +1103,20 @@ export default function CheckoutPage({ user }) {
                 </>
               ) : (
                 <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>
-                  Üye ol, ilk siparişine özel %10 indirim kodunu kullan.
+                  {t('page.welcomeGuest', 'Üye ol, ilk siparişine özel %10 indirim kodunu kullan.')}
                 </Typography>
               )}
             </Box>
             <Box sx={{ mb: 2, p: 1.6, borderRadius: '16px', backgroundColor: '#fff', border: '1px dashed rgba(46,59,85,0.18)' }}>
-              <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem', mb: 1 }}>Kampanya kodu</Typography>
+              <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem', mb: 1 }}>{t('page.promoTitle', 'Kampanya kodu')}</Typography>
               <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#6E5252', fontWeight: 600 }}>
-                Site kodları tüm sepette, atölye kodları yalnızca o satıcının ürünlerinde geçerlidir.
+                {t('page.promoHint', 'Site kodları tüm sepette, atölye kodları yalnızca o satıcının ürünlerinde geçerlidir.')}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
                 <TextField
                   size="small"
                   fullWidth
-                  placeholder="Site veya atölye kodu"
+                  placeholder={t('page.promoPlaceholder', 'Site veya atölye kodu')}
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                   disabled={promoBusy}
@@ -1121,7 +1128,7 @@ export default function CheckoutPage({ user }) {
                   onClick={() => applyPromo()}
                   sx={{ borderRadius: '12px', fontWeight: 800, px: 1.8, flexShrink: 0, width: { xs: '100%', sm: 'auto' }, backgroundColor: '#2E3B55', '&:hover': { backgroundColor: '#946D6D' } }}
                 >
-                  {promoBusy ? '...' : 'Uygula'}
+                  {promoBusy ? '...' : t('page.apply', 'Uygula')}
                 </Button>
               </Box>
               {promoMessage && (
@@ -1133,16 +1140,16 @@ export default function CheckoutPage({ user }) {
 
              {cartItems.length > 0 && (
               <Box sx={{ mb: 2, p: 1.6, borderRadius: '16px', border: '1px solid rgba(148,109,109,0.16)', bgcolor: 'rgba(253,244,210,0.45)' }}>
-                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Sipariş Notu</Typography>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>{t('page.noteTitle', 'Sipariş Notu')}</Typography>
                 <Typography sx={{ color: '#6E5252', fontSize: 13, mb: 1.4 }}>
-                  Varsa özel üretim ürünleriniz için ölçü/renk taleplerinizi veya siparişinizle ilgili diğer notlarınızı buraya yazabilirsiniz.
+                  {t('page.noteHint', 'Varsa özel üretim ürünleriniz için ölçü/renk taleplerinizi veya siparişinizle ilgili diğer notlarınızı buraya yazabilirsiniz.')}
                 </Typography>
                 <TextField
                   size="small"
                   fullWidth
                   multiline
                   minRows={3}
-                  placeholder="Sipariş notunuz (Örn: Siyah çantanın sapı 5cm daha uzun olsun)"
+                  placeholder={t('page.notePlaceholder', 'Sipariş notunuz (Örn: Siyah çantanın sapı 5cm daha uzun olsun)')}
                   value={briefs.generalNote || ''}
                   onChange={(event) => setBriefs((prev) => ({
                     ...prev,
@@ -1155,15 +1162,15 @@ export default function CheckoutPage({ user }) {
 
             
             <Divider sx={{ my: 2, borderColor: 'rgba(148,109,109,0.12)' }} />
-            <Row label="Ara toplam" value={`${formatPrice(subtotal)} ₺`} />
+            <Row label={t('charges.subtotal', 'Ara toplam')} value={`${formatPrice(subtotal)} ₺`} />
             {couponDiscount > 0 && (
-              <Row label={`Hoş geldin (%${couponApplied?.percent || 10})`} value={`-${formatPrice(couponDiscount)} ₺`} accent />
+              <Row label={t('page.waWelcome', { defaultValue: 'Hoş geldin (%{{percent}})', percent: couponApplied?.percent || 10 })} value={`-${formatPrice(couponDiscount)} ₺`} accent />
             )}
             {promoDiscount > 0 && (
               <Row
                 label={promoApplied?.sellerScoped && promoApplied.shopName
-                  ? `Kampanya · ${promoApplied.shopName} (%${promoApplied.percent || 0})`
-                  : `Kampanya (%${promoApplied?.percent || 0})`}
+                  ? t('page.promoShop', { defaultValue: 'Kampanya · {{shop}} (%{{percent}})', shop: promoApplied.shopName, percent: promoApplied.percent || 0 })
+                  : t('page.promoPercent', { defaultValue: 'Kampanya (%{{percent}})', percent: promoApplied?.percent || 0 })}
                 value={`-${formatPrice(promoDiscount)} ₺`}
                 accent
               />
@@ -1171,13 +1178,13 @@ export default function CheckoutPage({ user }) {
 
             {/* GÜNCELLENEN KARGO SATIRI */}
             <Row
-              label="Kargo"
-              value={shippingCost === 0 ? 'Ücretsiz' : `${formatPrice(shippingCost)} ₺`}
+              label={t('charges.shipping', 'Kargo')}
+              value={shippingCost === 0 ? t('page.free', 'Ücretsiz') : `${formatPrice(shippingCost)} ₺`}
               accent={shippingCost === 0}
             />
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
-              <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Toplam</Typography>
+              <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{t('charges.total', 'Toplam')}</Typography>
               <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: '1.45rem' }}>{formatPrice(total)} ₺</Typography>
             </Box>
             <Button
@@ -1215,7 +1222,7 @@ export default function CheckoutPage({ user }) {
         }}
       >
         <Box sx={{ minWidth: 0, flexShrink: 0 }}>
-          <Typography variant="caption" sx={{ color: '#6E5252', fontWeight: 700, display: 'block', lineHeight: 1.1 }}>Toplam</Typography>
+          <Typography variant="caption" sx={{ color: '#6E5252', fontWeight: 700, display: 'block', lineHeight: 1.1 }}>{t('charges.total', 'Toplam')}</Typography>
           <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>{formatPrice(total)} ₺</Typography>
         </Box>
         <Button
@@ -1231,7 +1238,7 @@ export default function CheckoutPage({ user }) {
             ...darkBtnSx
           }}
         >
-          {loading ? 'İşleniyor...' : 'Tamamla'}
+          {loading ? t('page.processing', 'İşleniyor...') : t('page.complete', 'Tamamla')}
         </Button>
       </Paper>
       <LegalTextDialog

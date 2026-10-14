@@ -1,7 +1,7 @@
 import { Box, ButtonBase } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { localeFromPath, switchLocalePath } from './locale';
+import { localeFromPath, switchLocalePath, writeLocaleCookie } from './locale';
 
 export default function LanguageSwitch({ solid = true }) {
   const { t } = useTranslation('common');
@@ -14,7 +14,11 @@ export default function LanguageSwitch({ solid = true }) {
 
   const go = (next) => {
     if (next === locale) return;
-    navigate(switchLocalePath(location.pathname, location.search, location.hash, next));
+    const target = switchLocalePath(location.pathname, location.search, location.hash, next);
+    writeLocaleCookie(next);
+    // Ürün, kategori ve atölye içeriği sunucudan dile göre gelir; tam yükleme her şeyi yeniden çeker.
+    if (typeof window !== 'undefined') window.location.assign(target);
+    else navigate(target);
   };
 
   return (

@@ -4,12 +4,15 @@ const Seller = require('../models/Seller');
 const User = require('../models/User');
 const Lookbook = require('../models/Lookbook');
 const Category = require('../models/Category');
-const { CATEGORY_IDS } = require('../constants/categories');
+const { CATEGORY_IDS, CATEGORY_LABELS_EN } = require('../constants/categories');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { HOUSE_ATELIER, serializePublicAtelier } = require('../utils/publicAtelier');
 const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
 const { buildFulfillment } = require('../utils/productFulfillment');
+const { localizeBody } = require('../utils/localize');
+const { lookupColor } = require('../i18n/contentGlossary');
+const { translateTexts } = require('../services/translationService');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 const { notifyFavoritesIfDiscounted } = require('../services/whatsappService');
 
@@ -39,7 +42,7 @@ const publicMatch = (extra = {}) => ({
 });
 
 // GET ALL PRODUCTS
-const LIST_SELECT = 'title name image images description price category discountPercentage soldCount rating numReviews stock isNewProduct slug seller vendorName createdAt isSponsored';
+const LIST_SELECT = 'title name image images description price category discountPercentage soldCount rating numReviews stock isNewProduct slug seller vendorName createdAt isSponsored en.title en.description';
 
 const listProjection = {
     title: 1,
@@ -61,7 +64,9 @@ const listProjection = {
     createdAt: 1,
     isSponsored: 1,
     sponsoredUntil: 1,
-    finalPrice: 1
+    finalPrice: 1,
+    'en.title': 1,
+    'en.description': 1
 };
 
 const getAllProducts = async (req, res) => {
@@ -111,8 +116,16 @@ const getFilteredProducts = async (req, res) => {
                 { description: { $regex: term, $options: 'i' } },
                 { category: { $regex: term, $options: 'i' } },
                 { colors: { $regex: term, $options: 'i' } },
-                { productCode: { $regex: term, $options: 'i' } }
+                { productCode: { $regex: term, $options: 'i' } },
+                { 'en.title': { $regex: term, $options: 'i' } },
+                { 'en.description': { $regex: term, $options: 'i' } },
+                { 'en.features': { $regex: term, $options: 'i' } }
             ];
+            const needle = search.trim().toLowerCase();
+            const enCategories = Object.entries(CATEGORY_LABELS_EN)
+                .filter(([, label]) => label.toLowerCase().includes(needle))
+                .map(([id]) => id);
+            if (needle.length >= 3 && enCategories.length) matchStage.$or.push({ category: { $in: enCategories } });
         }
 
         if (category) {
@@ -275,7 +288,9 @@ const getProductById = async (req, res) => {
             payload.video = ownVideo;
         }
 
-        payload.fulfillment = buildFulfillment(payload);
+        payload.fulfillment = req.lang === 'en'
+            ? buildFulfillment(localizeBody({ product: payload }, 'en').product, 'en')
+            : buildFulfillment(payload);
 
         res.status(200).json({ success: true, product: payload });
     } catch (error) {
@@ -387,6 +402,11 @@ const getCategories = async (req, res) => {
     }
 };
 
+const colorLabelsEn = async (colors = []) => {
+    const map = await translateTexts(colors.filter((color) => !lookupColor(color))).catch(() => new Map());
+    return Object.fromEntries(colors.map((color) => [color, lookupColor(color) || map.get(color) || color]));
+};
+
 const getFilterOptions = async (req, res) => {
     try {
         const [catalogIds, used, colors, priceAgg] = await Promise.all([
@@ -400,11 +420,13 @@ const getFilterOptions = async (req, res) => {
         ]);
 
         const price = priceAgg[0] || { minPrice: 0, maxPrice: 10000 };
+        const colorList = (colors || []).filter(Boolean).sort((a, b) => a.localeCompare(b, 'tr'));
 
         res.status(200).json({
             success: true,
             categories: mergeCatalogWithUsed(catalogIds, used),
-            colors: (colors || []).filter(Boolean).sort(),
+            colors: colorList,
+            ...(req.lang === 'en' ? { colorLabels: await colorLabelsEn(colorList) } : {}),
             minPrice: Math.max(0, Math.floor(price.minPrice || 0)),
             maxPrice: Math.max(100, Math.ceil(price.maxPrice || 10000))
         });
@@ -683,7 +705,8 @@ const getCategoryHighlights = async (req, res) => {
                                 soldCount: '$soldCount',
                                 slug: '$slug',
                                 category: '$category',
-                                stock: '$stock'
+                                stock: '$stock',
+                                en: { title: '$en.title', description: '$en.description' }
                             }
                         }
                     }
@@ -695,7 +718,7 @@ const getCategoryHighlights = async (req, res) => {
         const seen = new Set();
         const highlights = [];
 
-        const pushGroup = (id, name, image, order = 0) => {
+        const pushGroup = (id, name, image, order = 0, en = null) => {
             const products = (byId.get(id) || []).slice(0, 3);
             if (!products.length) return;
             seen.add(id);
@@ -705,14 +728,15 @@ const getCategoryHighlights = async (req, res) => {
                 image: image || products[0].image || '',
                 order,
                 productCount: (byId.get(id) || []).length,
-                products
+                products,
+                ...(en?.name ? { en: { name: en.name } } : {})
             });
         };
 
         docs.forEach((doc) => {
             const id = String(doc.categoryId || '').toLowerCase();
             if (!id) return;
-            pushGroup(id, doc.name, doc.image, doc.order || 0);
+            pushGroup(id, doc.name, doc.image, doc.order || 0, doc.en);
         });
 
         byId.forEach((products, id) => {

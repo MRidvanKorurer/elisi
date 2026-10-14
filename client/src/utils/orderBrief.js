@@ -1,15 +1,29 @@
+import i18n from '../i18n';
+
+const field = (key, label, placeholder, max, extra = {}) => ({
+  key,
+  max,
+  ...extra,
+  get label() {
+    return i18n.t(`brief.${key}.label`, { ns: 'checkout', defaultValue: label });
+  },
+  get placeholder() {
+    return i18n.t(`brief.${key}.placeholder`, { ns: 'checkout', defaultValue: placeholder });
+  }
+});
+
 export const BRIEF_FIELDS = [
-  { key: 'neededBy', label: 'Ne zaman elinde olsun?', placeholder: 'Örn. 12 Ekim düğünü', max: 80 },
-  { key: 'fitNote', label: 'Ölçü veya kalıp', placeholder: 'Omuz 38 cm, sap biraz daha kısa olsun', max: 400 },
-  { key: 'colorNote', label: 'Renk, sap, astar', placeholder: 'Bej keten, iç astar koyu olsun', max: 400 },
-  { key: 'occasion', label: 'Kime, hangi gün?', placeholder: 'Anneme, doğum günü hediyesi', max: 200 },
-  { key: 'extra', label: 'Atölyeye ek not', placeholder: 'İçine küçük bir cep isterim', max: 800, multiline: true }
+  field('neededBy', 'Ne zaman elinde olsun?', 'Örn. 12 Ekim düğünü', 80),
+  field('fitNote', 'Ölçü veya kalıp', 'Omuz 38 cm, sap biraz daha kısa olsun', 400),
+  field('colorNote', 'Renk, sap, astar', 'Bej keten, iç astar koyu olsun', 400),
+  field('occasion', 'Kime, hangi gün?', 'Anneme, doğum günü hediyesi', 200),
+  field('extra', 'Atölyeye ek not', 'İçine küçük bir cep isterim', 800, { multiline: true })
 ];
 
-export const emptyBrief = () => Object.fromEntries(BRIEF_FIELDS.map((field) => [field.key, '']));
+export const emptyBrief = () => Object.fromEntries(BRIEF_FIELDS.map((item) => [item.key, '']));
 
 export const briefLines = (brief = {}) => BRIEF_FIELDS
-  .map((field) => ({ ...field, value: String(brief[field.key] || '').trim() }))
-  .filter((field) => field.value);
+  .map((item) => ({ key: item.key, max: item.max, label: item.label, placeholder: item.placeholder, value: String(brief[item.key] || '').trim() }))
+  .filter((item) => item.value);
 
 export const lineKey = (item) => `${item.product?._id || item.product || item.id || item.name}-${item.color || ''}-${item.size || ''}`;

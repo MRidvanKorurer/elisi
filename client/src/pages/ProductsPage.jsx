@@ -79,8 +79,8 @@ const parseList = (value) =>
 
 const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value || '').trim());
 
-const formatPrice = (value) =>
-    Number(value || 0).toLocaleString('tr-TR', { maximumFractionDigits: 0 });
+const formatPrice = (value, locale = 'tr') =>
+    Number(value || 0).toLocaleString(locale === 'en' ? 'en-US' : 'tr-TR', { maximumFractionDigits: 0 });
 
 function buildQueryParams({
     search,
@@ -157,29 +157,31 @@ function colorTone(value) {
 
 const COLOR_PREVIEW_LIMIT = 12;
 
-function ColorFilter({ colors, selectedColors, onToggleColor }) {
+function ColorFilter({ colors, colorLabels = {}, selectedColors, onToggleColor }) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const needle = query.trim().toLocaleLowerCase('tr-TR');
+    const labelOf = (color) => colorLabels[color] || color;
 
     const visible = useMemo(() => {
         const matches = colors.filter((color) =>
             String(color).toLocaleLowerCase('tr-TR').includes(needle)
+            || String(colorLabels[color] || '').toLocaleLowerCase('en-US').includes(needle)
         );
         if (!needle && matches.length > COLOR_PREVIEW_LIMIT) {
             return { items: matches.slice(0, COLOR_PREVIEW_LIMIT), extra: matches.length - COLOR_PREVIEW_LIMIT };
         }
         return { items: matches, extra: 0 };
-    }, [colors, needle]);
+    }, [colors, colorLabels, needle]);
 
     return (
         <Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.8 }}>
                 <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.4 }}>
-                    RENK
+                    {t('list.colorHeading', { ns: 'catalog', defaultValue: 'RENK' })}
                 </Typography>
                 <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.68rem' }}>
-                    {colors.length} seçenek
+                    {t('list.colorOptions', { ns: 'catalog', defaultValue: '{{count}} seçenek', count: colors.length })}
                 </Typography>
             </Box>
 
@@ -201,7 +203,7 @@ function ColorFilter({ colors, selectedColors, onToggleColor }) {
                                             border: '1px solid rgba(46,59,85,0.16)'
                                         }}
                                     />
-                                    {color}
+                                    {labelOf(color)}
                                 </Box>
                             }
                             sx={{
@@ -244,7 +246,7 @@ function ColorFilter({ colors, selectedColors, onToggleColor }) {
 
             {visible.items.length === 0 ? (
                 <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.75rem', px: 0.4 }}>
-                    Bu ada uygun renk yok.
+                    {t('list.colorNone', { ns: 'catalog', defaultValue: 'Bu ada uygun renk yok.' })}
                 </Typography>
             ) : (
                 <Box
@@ -306,7 +308,7 @@ function ColorFilter({ colors, selectedColors, onToggleColor }) {
                                         whiteSpace: 'nowrap'
                                     }}
                                 >
-                                    {color}
+                                    {labelOf(color)}
                                 </Typography>
                             </Box>
                         );
@@ -316,7 +318,7 @@ function ColorFilter({ colors, selectedColors, onToggleColor }) {
 
             {visible.extra > 0 && (
                 <Typography sx={{ mt: 0.8, color: '#6E5252', fontWeight: 600, fontSize: '0.7rem', lineHeight: 1.45 }}>
-                    +{visible.extra} renk daha var. Görmek için yukarıya yaz.
+                    {t('list.colorMore', { ns: 'catalog', defaultValue: '+{{count}} renk daha var. Görmek için yukarıya yaz.', count: visible.extra })}
                 </Typography>
             )}
         </Box>
@@ -373,6 +375,7 @@ function FilterPanel({
     selectedCategories,
     onToggleCategory,
     colors,
+    colorLabels,
     selectedColors,
     onToggleColor,
     priceRange,
@@ -388,7 +391,7 @@ function FilterPanel({
     onClear,
     resultCount = 0
 }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const flagState = { inStock, onSale, isNew, immediateDelivery, madeToOrder, minRating: minRating >= 4 };
     const activeCount = [
         searchTerm.trim(),
@@ -407,14 +410,14 @@ function FilterPanel({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.15, position: 'relative', zIndex: 1 }}>
             <Box>
                 <Typography sx={{ color: '#A290B7', fontWeight: 800, fontSize: '0.66rem', letterSpacing: 2 }}>
-                    ATÖLYE FİLTRESİ
+                    {t('list.filterEyebrow', { ns: 'catalog', defaultValue: 'ATÖLYE FİLTRESİ' })}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mt: 0.35 }}>
                     <Typography sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.4px', lineHeight: 1.15 }}>
-                        Filtreler
+                        {t('list.filters', { ns: 'catalog', defaultValue: 'Filtreler' })}
                     </Typography>
                     <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.72rem' }}>
-                        {resultCount} parça
+                        {t('list.pieceCount', { ns: 'catalog', defaultValue: '{{count}} parça', count: resultCount })}
                     </Typography>
                 </Box>
             </Box>
@@ -444,7 +447,7 @@ function FilterPanel({
 
             <Box>
                 <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.4, mb: 0.7 }}>
-                    DURUM
+                    {t('list.statusHeading', { ns: 'catalog', defaultValue: 'DURUM' })}
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
                     {QUICK_FILTERS.map((item) => {
@@ -466,7 +469,7 @@ function FilterPanel({
 
             <Box>
                 <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.4, mb: 0.5 }}>
-                    KATEGORİ
+                    {t('list.categoryHeading', { ns: 'catalog', defaultValue: 'KATEGORİ' })}
                 </Typography>
                 {categoriesLoading ? (
                     <Stack spacing={0.8}>
@@ -474,7 +477,7 @@ function FilterPanel({
                         <Skeleton height={28} width="72%" />
                     </Stack>
                 ) : categories.length === 0 ? (
-                    <Typography variant="caption" sx={{ color: '#6E5252' }}>Kategori bulunamadı.</Typography>
+                    <Typography variant="caption" sx={{ color: '#6E5252' }}>{t('list.categoryNone', { ns: 'catalog', defaultValue: 'Kategori bulunamadı.' })}</Typography>
                 ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
                         {categories.map((cat) => (
@@ -497,6 +500,7 @@ function FilterPanel({
                     <Divider sx={{ borderColor: 'rgba(162, 144, 183, 0.14)' }} />
                     <ColorFilter
                         colors={colors}
+                        colorLabels={colorLabels}
                         selectedColors={selectedColors}
                         onToggleColor={onToggleColor}
                     />
@@ -508,10 +512,10 @@ function FilterPanel({
             <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.4 }}>
                     <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 1.4 }}>
-                        FİYAT
+                        {t('list.priceHeading', { ns: 'catalog', defaultValue: 'FİYAT' })}
                     </Typography>
                     <Typography sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.74rem' }}>
-                        ₺{formatPrice(priceRange[0])} – ₺{formatPrice(priceRange[1])}
+                        ₺{formatPrice(priceRange[0], i18n.language)} – ₺{formatPrice(priceRange[1], i18n.language)}
                     </Typography>
                 </Box>
                 <Slider
@@ -556,7 +560,7 @@ function FilterPanel({
                         '&:hover': { backgroundColor: 'rgba(148,109,109,0.08)' }
                     }}
                 >
-                    {activeCount} filtreyi temizle
+                    {t('list.clearCount', { ns: 'catalog', defaultValue: '{{count}} filtreyi temizle', count: activeCount })}
                 </Button>
             )}
         </Box>
@@ -796,6 +800,7 @@ export default function ProductsPage() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [colors, setColors] = useState([]);
+    const [colorLabels, setColorLabels] = useState({});
     const [loading, setLoading] = useState(true);
     const [filtering, setFiltering] = useState(true);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -925,6 +930,7 @@ export default function ProductsPage() {
                 if (response?.success) {
                     setCategories(mergeCatalogCategories(response.categories || []));
                     setColors(response.colors || []);
+                    setColorLabels(response.colorLabels || {});
                     const min = Number(response.minPrice) || 0;
                     const max = Number(response.maxPrice) || DEFAULT_MAX_PRICE;
                     setPriceBounds([min, max]);
@@ -940,7 +946,7 @@ export default function ProductsPage() {
                     setCategories(mergeCatalogCategories());
                 }
             } catch (error) {
-                console.error('Filtre seçenekleri alınamadı:', error);
+                console.error('Filter options failed:', error);
                 try {
                     const fallback = await productService.getCategories();
                     if (!cancelled) setCategories(mergeCatalogCategories(fallback?.categories || []));
@@ -1039,7 +1045,7 @@ export default function ProductsPage() {
                     setPagination({ totalProducts: 0, totalPages: 1 });
                 }
             } catch (error) {
-                console.error('Filtrelenmiş ürünler çekilemedi:', error);
+                console.error('Filtered products failed:', error);
                 if (!cancelled && seq === requestSeq.current && requestPage <= 1) {
                     setProducts([]);
                     setPagination({ totalProducts: 0, totalPages: 1 });
@@ -1093,19 +1099,19 @@ export default function ProductsPage() {
 
     const activeChips = useMemo(() => {
         const chips = [];
-        if (debouncedSearchTerm.trim()) chips.push({ key: 'q', label: `Arama: ${debouncedSearchTerm.trim()}` });
+        if (debouncedSearchTerm.trim()) chips.push({ key: 'q', label: t('list.chips.search', { ns: 'catalog', term: debouncedSearchTerm.trim() }) });
         selectedCategories.forEach((cat) => chips.push({ key: `cat-${cat}`, label: categoryLabel(cat, t), onDelete: () => handleToggle(selectedCategories, cat, setSelectedCategories) }));
-        selectedColors.forEach((color) => chips.push({ key: `color-${color}`, label: `Renk: ${color}`, onDelete: () => handleToggle(selectedColors, color, setSelectedColors) }));
-        if (inStock) chips.push({ key: 'stock', label: 'Stokta var', onDelete: () => setInStock(false) });
-        if (onSale) chips.push({ key: 'sale', label: 'İndirimli', onDelete: () => setOnSale(false) });
-        if (isNew) chips.push({ key: 'new', label: 'Yeni', onDelete: () => setIsNew(false) });
-        if (immediateDelivery) chips.push({ key: 'ship', label: 'Hemen kargo', onDelete: () => setImmediateDelivery(false) });
-        if (madeToOrder) chips.push({ key: 'custom', label: 'Sipariş üzerine', onDelete: () => setMadeToOrder(false) });
-        if (minRating >= 4) chips.push({ key: 'rating', label: '4+ puan', onDelete: () => setMinRating(0) });
+        selectedColors.forEach((color) => chips.push({ key: `color-${color}`, label: t('list.chips.color', { ns: 'catalog', name: colorLabels[color] || color }), onDelete: () => handleToggle(selectedColors, color, setSelectedColors) }));
+        if (inStock) chips.push({ key: 'stock', label: t('list.chips.inStock', { ns: 'catalog' }), onDelete: () => setInStock(false) });
+        if (onSale) chips.push({ key: 'sale', label: t('list.chips.onSale', { ns: 'catalog' }), onDelete: () => setOnSale(false) });
+        if (isNew) chips.push({ key: 'new', label: t('list.quick.isNew', { ns: 'catalog' }), onDelete: () => setIsNew(false) });
+        if (immediateDelivery) chips.push({ key: 'ship', label: t('list.chips.ship', { ns: 'catalog' }), onDelete: () => setImmediateDelivery(false) });
+        if (madeToOrder) chips.push({ key: 'custom', label: t('list.quick.madeToOrder', { ns: 'catalog' }), onDelete: () => setMadeToOrder(false) });
+        if (minRating >= 4) chips.push({ key: 'rating', label: t('list.quick.minRating', { ns: 'catalog' }), onDelete: () => setMinRating(0) });
         if (debouncedPriceRange[0] > priceBounds[0] || debouncedPriceRange[1] < priceBounds[1]) {
             chips.push({
                 key: 'price',
-                label: `₺${formatPrice(debouncedPriceRange[0])} – ₺${formatPrice(debouncedPriceRange[1])}`,
+                label: `₺${formatPrice(debouncedPriceRange[0], locale)} – ₺${formatPrice(debouncedPriceRange[1], locale)}`,
                 onDelete: () => setPriceRange(priceBounds)
             });
         }
@@ -1122,6 +1128,8 @@ export default function ProductsPage() {
         minRating,
         debouncedPriceRange,
         priceBounds,
+        colorLabels,
+        locale,
         t
     ]);
 
@@ -1133,6 +1141,7 @@ export default function ProductsPage() {
         selectedCategories,
         onToggleCategory: (cat) => handleToggle(selectedCategories, cat, setSelectedCategories),
         colors,
+        colorLabels,
         selectedColors,
         onToggleColor: (color) => handleToggle(selectedColors, color, setSelectedColors),
         priceRange,
@@ -1175,16 +1184,15 @@ export default function ProductsPage() {
                 description={seoDescription}
                 path={categoryPath || '/urunler'}
                 noindex={Boolean(searchTerm)}
-                trOnly={Boolean(categoryPath)}
                 type="website"
                 jsonLd={[
                     breadcrumbSchema([
                         { name: t('list.home', { ns: 'catalog' }), path: '/' },
                         { name: t('list.products', { ns: 'catalog' }), path: '/urunler' },
                         ...(categoryPath ? [{ name: categoryLabel(activeCategory, t), path: categoryPath }] : [])
-                    ], categoryPath ? 'tr' : locale),
+                    ], locale),
                     products.length > 0 && (!isFilteredView || (categoryPath && !searchTerm && !selectedColors.length))
-                        ? itemListSchema(products, { path: categoryPath || '/urunler', locale: categoryPath ? 'tr' : locale })
+                        ? itemListSchema(products, { path: categoryPath || '/urunler', locale })
                         : null
                 ]}
             />
@@ -1243,7 +1251,7 @@ export default function ProductsPage() {
                                 {activeCategory ? t('list.categoryModels', { ns: 'catalog', name: categoryLabel(activeCategory, t) }) : t('list.allProducts', { ns: 'catalog' })}
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#6E5252', mt: 0.4 }}>
-                                {pagination.totalProducts || 0} üründen {products.length} tanesi gösteriliyor
+                                {t('list.showing', { ns: 'catalog', defaultValue: '{{total}} üründen {{count}} tanesi gösteriliyor', total: pagination.totalProducts || 0, count: products.length })}
                             </Typography>
                         </Box>
 
@@ -1262,7 +1270,7 @@ export default function ProductsPage() {
                                         '&:hover': { backgroundColor: '#946D6D' }
                                     }}
                                 >
-                                    Filtrele
+                                    {t('list.filterButton', { ns: 'catalog', defaultValue: 'Filtrele' })}
                                 </Button>
                             )}
                             <FormControl size="small" sx={{ minWidth: { xs: 0, sm: 220 }, flex: 1 }}>
@@ -1346,17 +1354,17 @@ export default function ProductsPage() {
                                     }}
                                 >
                                     <Typography variant="h6" fontWeight={800} sx={{ color: '#2E3B55', mb: 1 }}>
-                                        Sonuç bulunamadı
+                                        {t('list.emptyTitle', { ns: 'catalog', defaultValue: 'Sonuç bulunamadı' })}
                                     </Typography>
                                     <Typography variant="body2" sx={{ color: '#6E5252', mb: 2.5 }}>
-                                        Seçtiğiniz filtrelere uygun ürün yok. Filtreleri gevşetmeyi deneyin.
+                                        {t('list.emptyText', { ns: 'catalog', defaultValue: 'Seçtiğiniz filtrelere uygun ürün yok. Filtreleri gevşetmeyi deneyin.' })}
                                     </Typography>
                                     <Button
                                         onClick={clearFilters}
                                         variant="contained"
                                         sx={{ backgroundColor: '#946D6D', color: '#FFF', borderRadius: '12px', px: 3, fontWeight: 700 }}
                                     >
-                                        Filtreleri temizle
+                                        {t('list.clearFilters', { ns: 'catalog', defaultValue: 'Filtreleri temizle' })}
                                     </Button>
                                 </Paper>
                             ) : (
@@ -1426,8 +1434,8 @@ export default function ProductsPage() {
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                    <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Filtreler</Typography>
-                    <IconButton onClick={() => setDrawerOpen(false)} aria-label="Kapat">
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{t('list.filters', { ns: 'catalog', defaultValue: 'Filtreler' })}</Typography>
+                    <IconButton onClick={() => setDrawerOpen(false)} aria-label={t('actions.close')}>
                         <CloseRoundedIcon />
                     </IconButton>
                 </Box>
@@ -1438,7 +1446,7 @@ export default function ProductsPage() {
                     onClick={() => setDrawerOpen(false)}
                     sx={{ mt: 2, backgroundColor: '#2E3B55', fontWeight: 700, py: 1.2, '&:hover': { backgroundColor: '#946D6D' } }}
                 >
-                    Sonuçları göster
+                    {t('list.showResults', { ns: 'catalog', defaultValue: 'Sonuçları göster' })}
                 </Button>
             </Drawer>
         </Box>

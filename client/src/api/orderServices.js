@@ -1,4 +1,7 @@
 import API from './api'; // api.js dosyanın bulunduğu yolu kendi yapına göre ayarla
+import i18n from '../i18n';
+
+const fallback = (key, defaultValue) => ({ message: i18n.t(`orderErrors.${key}`, { ns: 'checkout', defaultValue }) });
 
 export const orderService = {
   
@@ -13,7 +16,7 @@ export const orderService = {
       console.error("Sipariş API Hatası:", error);
       throw {
         success: false,
-        message: error.message || 'Siparişiniz şu an alınamadı. Lütfen tekrar deneyin.'
+        message: error.message || fallback('create', 'Siparişiniz şu an alınamadı. Lütfen tekrar deneyin.').message
       };
     }
   },
@@ -23,7 +26,7 @@ export const orderService = {
       const response = await API.get(`/orders/guest/${orderId}`, { params: { email } });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Sipariş notları alınamadı.' };
+      throw error.response?.data || fallback('thread', 'Sipariş notları alınamadı.');
     }
   },
 
@@ -32,7 +35,7 @@ export const orderService = {
       const response = await API.post(`/orders/guest/${orderId}/notes`, { email, text });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Soru iletilemedi.' };
+      throw error.response?.data || fallback('question', 'Soru iletilemedi.');
     }
   },
 
@@ -41,7 +44,7 @@ export const orderService = {
       const response = await API.post(`/orders/myorders/${orderId}/notes`, { text });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Not iletilemedi.' };
+      throw error.response?.data || fallback('note', 'Not iletilemedi.');
     }
   }
 };

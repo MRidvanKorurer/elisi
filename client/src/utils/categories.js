@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 export const CATEGORY_LABELS = {
   giyim: 'Giyim',
   canta: 'Çanta & Cüzdan',
@@ -77,12 +79,9 @@ export const CATEGORY_ICON_NAMES = {
   diger: 'CategoryOutlined'
 };
 
-export const categoryLabel = (value, t) => {
+export const categoryLabel = (value, t = i18n.t.bind(i18n)) => {
   const key = String(value || '').toLowerCase();
-  if (typeof t === 'function') {
-    return t(key, { ns: 'categories', defaultValue: CATEGORY_LABELS[key] || value || t('diger', { ns: 'categories' }) });
-  }
-  return CATEGORY_LABELS[key] || value || 'Diğer';
+  return t(key, { ns: 'categories', defaultValue: CATEGORY_LABELS[key] || value || t('diger', { ns: 'categories', defaultValue: 'Diğer' }) });
 };
 
 export const mergeCatalogCategories = (values = []) => {

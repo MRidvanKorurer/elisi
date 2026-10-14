@@ -203,10 +203,38 @@ const CATEGORY_LABELS = Object.fromEntries([
   ['diger', 'Diğer']
 ]);
 
+// client/src/locales/en/categories.json ile aynı tutulmalı
+const CATEGORY_LABELS_EN = {
+  giyim: 'Apparel',
+  canta: 'Bags & wallets',
+  'banyo-tekstili': 'Bath textiles',
+  mum: 'Candles & home scent',
+  taki: 'Jewelry',
+  'ev-dekorasyon': 'Home décor',
+  'bebek-cocuk': 'Baby & kids',
+  mobilya: 'Furniture',
+  'hediye-kutulari': 'Gift boxes',
+  kisisellestirilebilir: 'Personalizable pieces',
+  'kitap-kirtasiye': 'Books & stationery',
+  seramik: 'Ceramics',
+  'evcil-hayvan': 'Pet goods',
+  ahsap: 'Woodwork',
+  'parti-malzemeleri': 'Party supplies',
+  kozmetik: 'Beauty',
+  epoksi: 'Epoxy pieces',
+  'hobi-malzemeleri': 'Craft supplies',
+  'mutfak-esyalari': 'Kitchenware',
+  makrome: 'Macramé',
+  deri: 'Leather',
+  aksesuar: 'Accessories',
+  diger: 'Other'
+};
+
 module.exports = {
   CATEGORIES,
   CATEGORY_IDS,
   ALL_CATEGORY_IDS,
   LEGACY_CATEGORY_IDS,
-  CATEGORY_LABELS
+  CATEGORY_LABELS,
+  CATEGORY_LABELS_EN
 };

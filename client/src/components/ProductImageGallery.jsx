@@ -5,6 +5,7 @@ import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
 import ZoomInRounded from '@mui/icons-material/ZoomInRounded';
 import { useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const ZOOM = 2.5;
 const LENS = 132;
@@ -23,6 +24,7 @@ export default function ProductImageGallery({
   fallback = '',
   onOpenLightbox
 }) {
+  const { t } = useTranslation('catalog');
   const reduced = useReducedMotion();
   const frameRef = useRef(null);
   const trackRef = useRef(null);
@@ -403,7 +405,7 @@ export default function ProductImageGallery({
           <>
             <IconButton
               data-gallery-nav="true"
-              aria-label="Önceki görsel"
+              aria-label={t('gallery.prev', 'Önceki görsel')}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -415,7 +417,7 @@ export default function ProductImageGallery({
             </IconButton>
             <IconButton
               data-gallery-nav="true"
-              aria-label="Sonraki görsel"
+              aria-label={t('gallery.next', 'Sonraki görsel')}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -480,7 +482,7 @@ export default function ProductImageGallery({
                 component="button"
                 type="button"
                 onClick={() => selectIndex(idx)}
-                aria-label={`${title} görsel ${idx + 1}`}
+                aria-label={t('gallery.thumb', { title, index: idx + 1, defaultValue: '{{title}} görsel {{index}}' })}
                 aria-current={active ? 'true' : undefined}
                 sx={{
                   p: 0,

@@ -25,7 +25,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
       type="button"
       onClick={() => onSelect(item.categoryId)}
       aria-pressed={selected}
-      aria-label={t('categories.showProducts', { name: item.name })}
+      aria-label={t('categories.showProducts', { ns: 'home', name: item.name })}
       sx={{
         position: 'relative',
         display: 'block',
@@ -103,7 +103,7 @@ function CategoryTile({ item, index, selected, reduced, onSelect, t }) {
             letterSpacing: 1.3
           }}
         >
-          {selected ? t('categories.selected') : t('categories.discover')}
+          {selected ? t('categories.selected', { ns: 'home' }) : t('categories.discover', { ns: 'home' })}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1 }}>

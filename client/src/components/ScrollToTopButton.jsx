@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IconButton } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
 import { scrollPageTop } from '../hooks/useSmoothScroll';
 
@@ -8,6 +9,7 @@ import { scrollPageTop } from '../hooks/useSmoothScroll';
  * z-index/isolation katmanının altında kaybolur.
  */
 export default function ScrollToTopButton() {
+  const { t } = useTranslation('common');
   const [showTop, setShowTop] = useState(false);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function ScrollToTopButton() {
 
   return (
     <IconButton
-      aria-label="En üste git"
+      aria-label={t('actions.scrollTop', 'En üste git')}
       onClick={() => scrollPageTop(false)}
       sx={{
         position: 'fixed',

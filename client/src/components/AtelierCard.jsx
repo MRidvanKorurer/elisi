@@ -94,7 +94,11 @@ export default function AtelierCard({ atelier, compact = false, showStoreButton 
             </Box>
           ) : null}
           <Box component="span">{countLabel}</Box>
-          {atelier.sinceYear ? <Box component="span">{atelier.sinceYear} yılından beri</Box> : null}
+          {atelier.sinceYear ? (
+            <Box component="span">
+              {t('atelier.sinceYear', { year: atelier.sinceYear, defaultValue: '{{year}} yılından beri' })}
+            </Box>
+          ) : null}
         </Typography>
 
         {atelier.aciklama ? (

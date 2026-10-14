@@ -1,7 +1,7 @@
 const slugify = require('slugify');
 const Category = require('../models/Category');
 const Product = require('../models/Product');
-const { CATEGORIES } = require('../constants/categories');
+const { CATEGORIES, CATEGORY_LABELS_EN } = require('../constants/categories');
 const { publicPath } = require('../middleware/uploadMiddleware');
 
 const publicMatch = {
@@ -61,7 +61,11 @@ const toPublicCategory = (doc, productCount = 0, fallbackImage = '') => ({
   iconName: doc.iconName,
   color: doc.color,
   bgGradient: doc.bgGradient,
-  bgRGBA: doc.bgRGBA
+  bgRGBA: doc.bgRGBA,
+  en: {
+    name: doc.en?.name || CATEGORY_LABELS_EN[String(doc.categoryId || '').toLowerCase()] || '',
+    description: doc.en?.description || ''
+  }
 });
 
 const toAdminCategory = (doc, productCount = 0) => ({

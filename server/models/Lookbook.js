@@ -15,9 +15,17 @@ const lookbookSchema = new mongoose.Schema(
       index: true
     },
     order: { type: Number, default: 0 },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    en: {
+      title: { type: String, default: '' },
+      label: { type: String, default: '' },
+      sourceHash: { type: String, default: '' },
+      translatedAt: { type: Date }
+    }
   },
   { timestamps: true }
 );
+
+lookbookSchema.post('save', () => require('../services/contentTranslation').scheduleSweep());
 
 module.exports = mongoose.model('Lookbook', lookbookSchema);

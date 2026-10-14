@@ -589,7 +589,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
 
             {option.kind === 'product' && (() => {
               const product = option.product;
-              const title = product.title || product.baslik || 'Ürün';
+              const title = product.title || product.baslik || t('search.untitled', { ns: 'catalog', defaultValue: 'Ürün' });
               const price = salePriceOf(product);
               const hasDiscount = Number(product.discountPercentage) > 0;
 
@@ -650,7 +650,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
                   }}
                 >
                   <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#2E3B55' }}>
-                    Tüm sonuçları gör
+                    {t('search.seeAll', { ns: 'catalog', defaultValue: 'Tüm sonuçları gör' })}
                   </Typography>
                   <ArrowForwardRounded sx={{ fontSize: 18, color: '#946D6D' }} />
                 </Box>
@@ -662,9 +662,11 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
 
       {settled && results.length === 0 && (
         <Box sx={{ px: 2, py: 2.4, textAlign: 'center' }}>
-          <Typography sx={{ fontWeight: 800, color: '#2E3B55', fontSize: '0.92rem' }}>Sonuç bulunamadı</Typography>
+          <Typography sx={{ fontWeight: 800, color: '#2E3B55', fontSize: '0.92rem' }}>
+            {t('search.noResults', { ns: 'catalog', defaultValue: 'Sonuç bulunamadı' })}
+          </Typography>
           <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.82rem', mt: 0.4 }}>
-            “{term}” ile eşleşen ürün yok. Farklı bir kelime deneyebilirsiniz.
+            {t('search.noResultsText', { ns: 'catalog', term, defaultValue: '“{{term}}” ile eşleşen ürün yok. Farklı bir kelime deneyebilirsiniz.' })}
           </Typography>
         </Box>
       )}
@@ -672,7 +674,9 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       {busy && options.length === 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.4, px: 2, py: 2 }}>
           <CircularProgress size={17} sx={{ color: '#946D6D' }} />
-          <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.85rem' }}>Aranıyor…</Typography>
+          <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.85rem' }}>
+            {t('search.searching', { ns: 'catalog', defaultValue: 'Aranıyor…' })}
+          </Typography>
         </Box>
       )}
     </Paper>

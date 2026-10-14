@@ -230,7 +230,7 @@ export default function AtelierPage() {
         if (!cancelled && seq === requestSeq.current && requestPage <= 1) {
           setAtelier(null);
           setProducts([]);
-          setError('Atölye bulunamadı veya yayında değil.');
+          setError(t('atelier.notFound', { defaultValue: 'Atölye bulunamadı veya yayında değil.' }));
         }
       })
       .finally(() => {
@@ -289,33 +289,32 @@ export default function AtelierPage() {
       <Box sx={{ pt: PAGE_PT, pb: 10, textAlign: 'center', overflowX: 'hidden' }}>
         <Seo title={t('atelier.notFoundTitle')} path={`/atolye/${slug || ''}`} noindex />
         <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '1.4rem', mb: 1 }}>{t('atelier.notFoundTitle')}</Typography>
-        <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 3 }}>{error || 'Bu vitrin yayında değil.'}</Typography>
+        <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 3 }}>{error || t('atelier.offline', { defaultValue: 'Bu vitrin yayında değil.' })}</Typography>
         <Button
           onClick={() => navigate('/urunler')}
           endIcon={<ArrowForwardRounded />}
           sx={{ bgcolor: '#946D6D', color: '#fff', borderRadius: '14px', px: 3, fontWeight: 800, '&:hover': { bgcolor: '#7c5a5a' } }}
         >
-          Ürünlere dön
+          {t('atelier.backToProducts', { defaultValue: 'Ürünlere dön' })}
         </Button>
       </Box>
     );
   }
 
   const stats = [
-    { label: 'Vitrin', value: atelier.productCount || 0 },
-    { label: 'Satış', value: atelier.soldCount || 0 },
-    { label: 'Yorum', value: atelier.reviewCount || 0 },
-    { label: 'Kuruluş', value: atelier.sinceYear || '—' }
+    { label: t('atelier.statVitrine'), value: atelier.productCount || 0 },
+    { label: t('atelier.statSales'), value: atelier.soldCount || 0 },
+    { label: t('atelier.statReviews'), value: atelier.reviewCount || 0 },
+    { label: t('atelier.statSince'), value: atelier.sinceYear || '—' }
   ];
 
   return (
     <Box sx={{ pt: PAGE_PT, pb: { xs: 8, md: 12 }, minHeight: '100vh', overflowX: 'hidden' }}>
       <Seo
-        title={`${atelier.magazaAdi} | Atölye`}
-        description={atelier.aciklama || `${atelier.magazaAdi} el yapımı vitrini.`}
+        title={t('atelier.seoTitle', { defaultValue: '{{name}} | Atölye', name: atelier.magazaAdi })}
+        description={atelier.aciklama || t('atelier.seoDescription', { defaultValue: '{{name}} el yapımı vitrini.', name: atelier.magazaAdi })}
         path={`/atolye/${atelier.slug}`}
         image={covers[0]}
-        trOnly
       />
       <SiteContainer sx={{ minWidth: 0 }}>
         <Breadcrumbs
@@ -328,7 +327,7 @@ export default function AtelierPage() {
           }}
         >
           <Link underline="hover" color="inherit" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>{t('atelier.home')}</Link>
-          <Link underline="hover" color="inherit" onClick={() => navigate('/urunler')} sx={{ cursor: 'pointer' }}>Ürünler</Link>
+          <Link underline="hover" color="inherit" onClick={() => navigate('/urunler')} sx={{ cursor: 'pointer' }}>{t('atelier.products')}</Link>
           <Typography sx={{ color: '#2E3B55', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 180, sm: 320 } }}>
             {atelier.magazaAdi}
           </Typography>
@@ -345,7 +344,7 @@ export default function AtelierPage() {
             boxShadow: '0 22px 48px -28px rgba(46,59,85,0.45)'
           }}
         >
-          <CoverGallery images={covers} alt={`${atelier.magazaAdi} vitrini`} />
+          <CoverGallery images={covers} alt={t('atelier.coverAlt', { defaultValue: '{{name}} vitrini', name: atelier.magazaAdi })} />
 
           <Box sx={{ px: { xs: 2, md: 3.2 }, pb: { xs: 2.4, md: 3.2 }, pt: { xs: 2, md: 2.4 }, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1.4, md: 1.8 }, mb: 1.6 }}>
@@ -394,7 +393,7 @@ export default function AtelierPage() {
                 </Typography>
                 <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.35, fontSize: { xs: '0.88rem', md: '0.95rem' } }}>
                   {atelier.makerName && atelier.makerName !== atelier.magazaAdi ? `${atelier.makerName} · ` : ''}
-                  {atelier.magazaTuruEtiket || 'El yapımı'}
+                  {atelier.magazaTuruEtiket || t('atelier.handmade')}
                 </Typography>
               </Box>
             </Box>
@@ -408,7 +407,7 @@ export default function AtelierPage() {
               ) : null}
               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
                 <StorefrontOutlined sx={{ fontSize: 18 }} />
-                {atelier.productCount} parça vitrinde
+                {t('atelier.inVitrine', { defaultValue: '{{count}} parça vitrinde', count: atelier.productCount || 0 })}
               </Box>
               {atelier.rating > 0 ? (
                 <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
@@ -419,7 +418,7 @@ export default function AtelierPage() {
             </Box>
 
             <Typography sx={{ color: '#2E3B55', fontWeight: 600, lineHeight: 1.7, maxWidth: 640, mb: 2.2 }}>
-              {atelier.aciklama || 'Bu atölye Nik Bag vitrininde onaylı üretim yapıyor.'}
+              {atelier.aciklama || t('atelier.defaultBio')}
             </Typography>
 
             <Box
@@ -456,11 +455,11 @@ export default function AtelierPage() {
               ) : null}
               {site ? (
                 <Button component="a" href={site} target="_blank" rel="noopener noreferrer" startIcon={<LanguageRounded />} sx={socialBtnSx}>
-                  Web sitesi
+                  {t('atelier.website', { defaultValue: 'Web sitesi' })}
                 </Button>
               ) : null}
               <Button onClick={scrollToVitrin} endIcon={<ArrowForwardRounded />} sx={{ ...socialBtnSx, bgcolor: '#2E3B55', color: '#FFFFFF', borderColor: '#2E3B55', '&:hover': { bgcolor: '#946D6D', borderColor: '#946D6D' } }}>
-                Vitrine bak
+                {t('atelier.seeVitrine', { defaultValue: 'Vitrine bak' })}
               </Button>
             </Box>
           </Box>
@@ -469,18 +468,18 @@ export default function AtelierPage() {
         <Box id="atolye-vitrin" sx={{ display: 'flex', alignItems: { xs: 'flex-start', md: 'flex-end' }, justifyContent: 'space-between', gap: 2, mb: 2, flexWrap: 'wrap', scrollMarginTop: '96px' }}>
           <Box sx={{ minWidth: 0 }}>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.35rem', md: '1.7rem' }, letterSpacing: '-0.03em' }}>
-              Atölye vitrini
+              {t('atelier.vitrineTitle', { defaultValue: 'Atölye vitrini' })}
             </Typography>
             <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.4 }}>
               {pagination.total > 0
-                ? `${pagination.total} parçadan ${products.length} tanesi gösteriliyor`
-                : 'Bu atölyenin vitrininde henüz ürün yok.'}
+                ? t('atelier.showing', { defaultValue: '{{total}} parçadan {{count}} tanesi gösteriliyor', total: pagination.total, count: products.length })
+                : t('atelier.empty')}
             </Typography>
           </Box>
         </Box>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8, mb: 1.6 }}>
-          <Chip label={`Tümü (${atelier.productCount || 0})`} onClick={() => setFilter({ kategori: '' })} sx={chipSx(!category)} />
+          <Chip label={t('atelier.all', { count: atelier.productCount || 0 })} onClick={() => setFilter({ kategori: '' })} sx={chipSx(!category)} />
           {categories.map((item) => (
             <Chip
               key={item.id}
@@ -493,7 +492,7 @@ export default function AtelierPage() {
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8, mb: 3 }}>
           {SORTS.map((item) => (
-            <Chip key={item.id} label={item.label} onClick={() => setFilter({ sira: item.id })} sx={chipSx(sort === item.id)} />
+            <Chip key={item.id} label={t(`atelier.sort.${item.id}`, { defaultValue: item.label })} onClick={() => setFilter({ sira: item.id })} sx={chipSx(sort === item.id)} />
           ))}
         </Box>
 
@@ -533,10 +532,10 @@ export default function AtelierPage() {
           </>
         ) : (
           <Box sx={{ textAlign: 'center', py: 7, px: 2, borderRadius: '22px', bgcolor: 'rgba(255,255,255,0.7)', border: '1px dashed rgba(148,109,109,0.25)' }}>
-            <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.8 }}>Bu seçimde ürün yok</Typography>
-            <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 2 }}>Başka bir kategori veya sıralama dene.</Typography>
+            <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.8 }}>{t('atelier.noMatch', { defaultValue: 'Bu seçimde ürün yok' })}</Typography>
+            <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 2 }}>{t('atelier.noMatchText', { defaultValue: 'Başka bir kategori veya sıralama dene.' })}</Typography>
             <Button onClick={() => setFilter({ kategori: '', sira: 'newest' })} sx={{ fontWeight: 800, color: '#946D6D' }}>
-              Filtreleri temizle
+              {t('atelier.clearFilters', { defaultValue: 'Filtreleri temizle' })}
             </Button>
           </Box>
         )}

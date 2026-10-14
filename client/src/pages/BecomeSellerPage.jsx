@@ -54,13 +54,13 @@ import {
   validateFields
 } from '../utils/sellerValidation';
 
-import { CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
+import { CATEGORY_LABELS, CATEGORY_OPTIONS, categoryLabel } from '../utils/categories';
 import { categoryService } from '../api/categoryService';
 
 const STEPS = [
-  { id: 0, label: 'Hesap', hint: 'Kimlik ve iletişim' },
-  { id: 1, label: 'Atölye', hint: 'Mağaza kimliği' },
-  { id: 2, label: 'Ödeme', hint: 'Adres ve IBAN' }
+  { id: 0, key: 'account', label: 'Hesap', hint: 'Kimlik ve iletişim' },
+  { id: 1, key: 'atelier', label: 'Atölye', hint: 'Mağaza kimliği' },
+  { id: 2, key: 'pay', label: 'Ödeme', hint: 'Adres ve IBAN' }
 ];
 
 const fieldSx = {
@@ -159,6 +159,7 @@ const glassPanel = {
 };
 
 function Stepper({ step }) {
+  const { t } = useTranslation('seller');
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.8, sm: 1.2 }, mb: { xs: 3, md: 4 } }}>
       {STEPS.map((item, index) => {
@@ -190,10 +191,10 @@ function Stepper({ step }) {
               </Box>
               <Box sx={{ display: { xs: index === step ? 'block' : 'none', sm: 'block' }, minWidth: 0 }}>
                 <Typography sx={{ fontWeight: 800, fontSize: '0.78rem', color: '#2E3B55', lineHeight: 1.1 }}>
-                  {item.label}
+                  {t(`steps.${item.key}`, item.label)}
                 </Typography>
                 <Typography sx={{ fontSize: '0.68rem', color: '#6E5252', fontWeight: 600, display: { xs: 'none', md: 'block' } }}>
-                  {item.hint}
+                  {t(`steps.${item.key}Hint`, item.hint)}
                 </Typography>
               </Box>
             </Box>
@@ -281,7 +282,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
           .filter((item) => item?.categoryId)
           .map((item) => ({
             value: String(item.categoryId).toLowerCase(),
-            label: item.name || categoryLabel(item.categoryId)
+            label: item.name || categoryLabel(item.categoryId, t)
           }));
         if (!fromApi.length) return;
         const map = new Map(CATEGORY_OPTIONS.map((item) => [item.value, item.label]));
@@ -414,7 +415,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
         onLoginSuccess(data.kullanici, { redirect: false });
       }
     } catch (err) {
-      const serverMessage = err.response?.data?.mesaj || err.response?.data?.message || 'Başvuru gönderilemedi. Lütfen tekrar deneyin.';
+      const serverMessage = err.response?.data?.mesaj || err.response?.data?.message || t('form.submitFailed', 'Başvuru gönderilemedi. Lütfen tekrar deneyin.');
       const field = mapServerErrorToField(serverMessage);
       if (field) setErrors((prev) => ({ ...prev, [field]: serverMessage }));
       setError(serverMessage);
@@ -430,7 +431,11 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
     onBlur: handleBlur(name)
   });
 
-  const durum = useMemo(() => DURUM_METIN[seller?.durum] || DURUM_METIN.pending, [seller]);
+  const durum = useMemo(() => {
+    const key = DURUM_METIN[seller?.durum] ? seller.durum : 'pending';
+    const base = DURUM_METIN[key];
+    return { ...base, title: t(`status.${key}Title`, base.title), text: t(`status.${key}Text`, base.text) };
+  }, [seller, t]);
 
   if (checking) {
     return (
@@ -470,7 +475,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                 {seller.durum === 'pending' ? <HourglassEmptyRounded sx={{ fontSize: 42 }} /> : <CheckCircleRounded sx={{ fontSize: 46 }} />}
               </Box>
               <Typography variant="overline" sx={{ letterSpacing: 2.4, fontWeight: 800, color: '#A290B7' }}>
-                Nik Bag Atölye
+                {t('form.brandEyebrow', 'Nik Bag Atölye')}
               </Typography>
               <Typography variant="h3" fontWeight={800} sx={{ color: durum.color, letterSpacing: '-1.2px', mb: 1.5, fontSize: { xs: '1.85rem', sm: '2.3rem' } }}>
                 {durum.title}
@@ -525,7 +530,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
         title={t('seoTitle')}
         description={t('seoDescription')}
         path="/satici-ol"
-        keywords={['el yapımı ürün satmak', 'online satıcı ol', 'butik satıcı başvurusu', 'Nik Bag satıcı']}
+        keywords={t('form.keywords', { returnObjects: true, defaultValue: ['el yapımı ürün satmak', 'online satıcı ol', 'butik satıcı başvurusu', 'Nik Bag satıcı'] })}
         jsonLd={breadcrumbSchema([
           { name: t('home'), path: '/' },
           { name: t('crumb'), path: '/satici-ol' }
@@ -556,7 +561,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
             >
               <Chip
                 icon={<AutoAwesomeOutlined sx={{ fontSize: '18px !important', color: '#946D6D !important' }} />}
-                label="El emeği üreticiler için vitrin"
+                label={t('form.heroChip', 'El emeği üreticiler için vitrin')}
                 sx={{
                   mb: 3,
                   fontWeight: 800,
@@ -576,20 +581,20 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                   fontSize: { xs: '2.15rem', md: '3.05rem' }
                 }}
               >
-                Atölyeni
+                {t('form.heroTitle1', 'Atölyeni')}
                 <Box component="span" sx={{ display: 'block', background: 'linear-gradient(120deg, #946D6D 10%, #A290B7 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  vitrine taşı.
+                  {t('form.heroTitle2', 'vitrine taşı.')}
                 </Box>
               </Typography>
               <Typography sx={{ color: '#6E5252', fontWeight: 600, lineHeight: 1.8, mb: 4, maxWidth: 420 }}>
-                Koleksiyonunu Nik Bag’de sergile. Başvurun kaydedilir, onayın ardından mağazan yayına alınır.
+                {t('form.heroLead', 'Koleksiyonunu Nik Bag’de sergile. Başvurun kaydedilir, onayın ardından mağazan yayına alınır.')}
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 1.2, mb: 4, flexWrap: 'wrap' }}>
                 {[
-                  { n: '01', t: 'Başvur' },
-                  { n: '02', t: 'Onaylan' },
-                  { n: '03', t: 'Sat' }
+                  { n: '01', t: t('form.flowApply', 'Başvur') },
+                  { n: '02', t: t('form.flowApproved', 'Onaylan') },
+                  { n: '03', t: t('form.flowSell', 'Sat') }
                 ].map((item) => (
                   <Box
                     key={item.n}
@@ -609,9 +614,9 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
               </Box>
 
               {[
-                { icon: <VerifiedOutlined />, title: 'Güvenli hesap', text: 'Oturum ve başvuru bilgilerin korunur.' },
-                { icon: <PaymentsOutlined />, title: 'Tek şeffaf pay', text: 'Ürün satışından %10. 90 günde 50.000 ₺ ciroda %8. Kargo komisyona girmez.' },
-                { icon: <LocalShippingOutlined />, title: 'Kendi tempo', text: 'Üretim ve kargo takvimini sen kurarsın.' }
+                { icon: <VerifiedOutlined />, title: t('perks.safeTitle', 'Güvenli hesap'), text: t('perks.safeText', 'Oturum ve başvuru bilgilerin korunur.') },
+                { icon: <PaymentsOutlined />, title: t('perks.feeTitle', 'Tek şeffaf pay'), text: t('perks.feeText', 'Ürün satışından %10. 90 günde 50.000 ₺ ciroda %8. Kargo komisyona girmez.') },
+                { icon: <LocalShippingOutlined />, title: t('perks.paceTitle', 'Kendi tempo'), text: t('perks.paceText', 'Üretim ve kargo takvimini sen kurarsın.') }
               ].map((item) => (
                 <Box key={item.title} sx={{ display: 'flex', gap: 1.8, mb: 2.2 }}>
                   <Box
@@ -644,15 +649,15 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 1 }}>
                 <Box>
                   <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#A290B7' }}>
-                    Satıcı başvurusu
+                    {t('form.eyebrow', 'Satıcı başvurusu')}
                   </Typography>
                   <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', letterSpacing: '-0.8px', fontSize: { xs: '1.55rem', sm: '1.9rem' } }}>
-                    {STEPS[step].label}
+                    {t(`steps.${STEPS[step].key}`, STEPS[step].label)}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.4 }}>
                     {loggedIn
-                      ? 'Hesabın bağlı. Adımları tamamla, başvurun sisteme düşsün.'
-                      : 'Üç kısa adım. Kayıt sonrası oturumun otomatik açılır.'}
+                      ? t('form.leadLoggedIn', 'Hesabın bağlı. Adımları tamamla, başvurun sisteme düşsün.')
+                      : t('form.leadGuest', 'Üç kısa adım. Kayıt sonrası oturumun otomatik açılır.')}
                   </Typography>
                 </Box>
                 <Box
@@ -689,11 +694,11 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                 >
                   {step === 0 && (
                     <Box>
-                      <Typography sx={{ fontWeight: 800, color: '#2E3B55', mb: 1.4 }}>Hesap tipi</Typography>
+                      <Typography sx={{ fontWeight: 800, color: '#2E3B55', mb: 1.4 }}>{t('form.accountType', 'Hesap tipi')}</Typography>
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.4, mb: 2.6 }}>
                         {[
-                          { value: 'bireysel', title: 'Bireysel', text: 'Kendi atölyen, kendi imzan.', icon: <BadgeOutlined /> },
-                          { value: 'kurumsal', title: 'Kurumsal', text: 'Şirket veya kooperatif.', icon: <BusinessOutlined /> }
+                          { value: 'bireysel', title: t('type.individual', 'Bireysel'), text: t('type.individualText', 'Kendi atölyen, kendi imzan.'), icon: <BadgeOutlined /> },
+                          { value: 'kurumsal', title: t('type.company', 'Kurumsal'), text: t('type.companyText', 'Şirket veya kooperatif.'), icon: <BusinessOutlined /> }
                         ].map((option) => {
                           const selected = form.hesapTipi === option.value;
                           return (
@@ -723,14 +728,14 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                         {!loggedIn && (
                           <>
-                            <TextField fullWidth required label="Ad Soyad" value={form.adSoyad} onChange={handleChange('adSoyad')} sx={fieldSx}
+                            <TextField fullWidth required label={t('form.fullName', 'Ad Soyad')} value={form.adSoyad} onChange={handleChange('adSoyad')} sx={fieldSx}
                               {...fieldProps('adSoyad')}
                               InputProps={{ startAdornment: <InputAdornment position="start"><PersonOutlineOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
-                            <TextField fullWidth required type="email" label="E-posta" value={form.email} onChange={handleChange('email')} sx={fieldSx}
+                            <TextField fullWidth required type="email" label={t('form.email', 'E-posta')} value={form.email} onChange={handleChange('email')} sx={fieldSx}
                               {...fieldProps('email')}
                               InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
-                            <TextField fullWidth required type={showPassword ? 'text' : 'password'} label="Şifre" value={form.sifre} onChange={handleChange('sifre')} sx={fieldSx}
-                              {...fieldProps('sifre', 'En az 6 karakter, bir harf ve bir rakam')}
+                            <TextField fullWidth required type={showPassword ? 'text' : 'password'} label={t('form.password', 'Şifre')} value={form.sifre} onChange={handleChange('sifre')} sx={fieldSx}
+                              {...fieldProps('sifre', t('form.passwordHint', 'En az 6 karakter, bir harf ve bir rakam'))}
                               InputProps={{
                                 startAdornment: <InputAdornment position="start"><LockOutlined sx={{ color: '#946D6D' }} /></InputAdornment>,
                                 endAdornment: (
@@ -743,12 +748,12 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                               }} />
                           </>
                         )}
-                        <TextField fullWidth required label="Telefon" value={form.telefon} onChange={handleChange('telefon')} placeholder="05xx xxx xx xx" sx={fieldSx}
+                        <TextField fullWidth required label={t('form.phone', 'Telefon')} value={form.telefon} onChange={handleChange('telefon')} placeholder="05xx xxx xx xx" sx={fieldSx}
                           {...fieldProps('telefon')}
                           InputProps={{ startAdornment: <InputAdornment position="start"><PhoneOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
                         {form.hesapTipi === 'kurumsal' && (
-                          <TextField fullWidth required label="Vergi No" value={form.vergiNo} onChange={handleChange('vergiNo')} inputProps={{ maxLength: 10, inputMode: 'numeric' }} sx={fieldSx}
-                            {...fieldProps('vergiNo', '10 haneli vergi kimlik numarası')} />
+                          <TextField fullWidth required label={t('form.taxNo', 'Vergi No')} value={form.vergiNo} onChange={handleChange('vergiNo')} inputProps={{ maxLength: 10, inputMode: 'numeric' }} sx={fieldSx}
+                            {...fieldProps('vergiNo', t('form.taxHint', '10 haneli vergi kimlik numarası'))} />
                         )}
                       </Box>
                     </Box>
@@ -756,14 +761,14 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
 
                   {step === 1 && (
                     <Box>
-                      <TextField fullWidth required label="Mağaza adı" value={form.magazaAdi} onChange={handleChange('magazaAdi')} sx={{ ...fieldSx, mb: 2.4 }}
+                      <TextField fullWidth required label={t('form.shopName', 'Mağaza adı')} value={form.magazaAdi} onChange={handleChange('magazaAdi')} sx={{ ...fieldSx, mb: 2.4 }}
                         {...fieldProps('magazaAdi')}
                         inputProps={{ maxLength: 60 }}
                         InputProps={{ startAdornment: <InputAdornment position="start"><StorefrontOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
 
-                      <Typography sx={{ fontWeight: 800, color: errors.magazaTuru ? '#d32f2f' : '#2E3B55', mb: 0.6 }}>Üretim alanı</Typography>
+                      <Typography sx={{ fontWeight: 800, color: errors.magazaTuru ? '#d32f2f' : '#2E3B55', mb: 0.6 }}>{t('form.craft', 'Üretim alanı')}</Typography>
                       <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.82rem', mb: 1.2 }}>
-                        Birden fazla alan seçebilirsiniz.
+                        {t('form.craftHint', 'Birden fazla alan seçebilirsiniz.')}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: errors.magazaTuru ? 0.6 : 2.4 }}>
                         {magazaTurleri.map((item) => {
@@ -772,7 +777,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                             <Chip
                               key={item.value}
                               clickable
-                              label={item.label}
+                              label={CATEGORY_LABELS[item.value] ? categoryLabel(item.value, t) : item.label}
                               onClick={() => {
                                 setForm((prev) => {
                                   const current = asMagazaTurleri(prev.magazaTuru);
@@ -808,16 +813,16 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                         </Typography>
                       )}
 
-                      <TextField fullWidth multiline minRows={3.4} label="Atölye hikâyesi" value={form.aciklama} onChange={handleChange('aciklama')}
-                        placeholder="Nasıl üretiyorsun, hangi malzemeleri kullanıyorsun?" sx={{ ...fieldSx, mb: 2 }}
+                      <TextField fullWidth multiline minRows={3.4} label={t('form.story', 'Atölye hikâyesi')} value={form.aciklama} onChange={handleChange('aciklama')}
+                        placeholder={t('form.storyPlaceholder', 'Nasıl üretiyorsun, hangi malzemeleri kullanıyorsun?')} sx={{ ...fieldSx, mb: 2 }}
                         {...fieldProps('aciklama', `${form.aciklama.length}/1000`)}
                         inputProps={{ maxLength: 1000 }} />
 
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                        <TextField fullWidth label="Instagram" value={form.instagram} onChange={handleChange('instagram')} placeholder="@kullaniciadi" sx={fieldSx}
+                        <TextField fullWidth label="Instagram" value={form.instagram} onChange={handleChange('instagram')} placeholder={t('form.instagramPlaceholder', '@kullaniciadi')} sx={fieldSx}
                           {...fieldProps('instagram')}
                           InputProps={{ startAdornment: <InputAdornment position="start"><Instagram sx={{ color: '#946D6D' }} /></InputAdornment> }} />
-                        <TextField fullWidth label="Web sitesi" value={form.website} onChange={handleChange('website')} placeholder="https://" sx={fieldSx}
+                        <TextField fullWidth label={t('form.website', 'Web sitesi')} value={form.website} onChange={handleChange('website')} placeholder="https://" sx={fieldSx}
                           {...fieldProps('website')}
                           InputProps={{ startAdornment: <InputAdornment position="start"><LanguageOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
                       </Box>
@@ -827,16 +832,16 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                   {step === 2 && (
                     <Box>
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 2 }}>
-                        <TextField fullWidth required label="Şehir" value={form.sehir} onChange={handleChange('sehir')} sx={fieldSx}
+                        <TextField fullWidth required label={t('form.city', 'Şehir')} value={form.sehir} onChange={handleChange('sehir')} sx={fieldSx}
                           {...fieldProps('sehir')}
                           InputProps={{ startAdornment: <InputAdornment position="start"><PlaceOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
-                        <TextField fullWidth required label="İlçe" value={form.ilce} onChange={handleChange('ilce')} sx={fieldSx}
+                        <TextField fullWidth required label={t('form.district', 'İlçe')} value={form.ilce} onChange={handleChange('ilce')} sx={fieldSx}
                           {...fieldProps('ilce')} />
                       </Box>
-                      <TextField fullWidth required multiline minRows={2.2} label="Açık adres" value={form.adres} onChange={handleChange('adres')} sx={{ ...fieldSx, mb: 2 }}
+                      <TextField fullWidth required multiline minRows={2.2} label={t('form.address', 'Açık adres')} value={form.adres} onChange={handleChange('adres')} sx={{ ...fieldSx, mb: 2 }}
                         {...fieldProps('adres')} />
                       <TextField fullWidth required label="IBAN" value={form.iban} onChange={handleChange('iban')} placeholder="TR00 ACCT-000003 0000 00" sx={fieldSx}
-                        {...fieldProps('iban', 'TR ile başlayan 26 karakter')}
+                        {...fieldProps('iban', t('form.ibanHint', 'TR ile başlayan 26 karakter'))}
                         InputProps={{ startAdornment: <InputAdornment position="start"><AccountBalanceOutlined sx={{ color: '#946D6D' }} /></InputAdornment> }} />
 
                       <Box
@@ -879,9 +884,9 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                                   cursor: 'pointer'
                                 }}
                               >
-                                Satıcı sözleşmesini
+                                {t('form.agreementLink', 'Satıcı sözleşmesini')}
                               </Box>
-                              {', ürün sorumluluğunu ve verdiğim bilgilerin doğruluğunu kabul ediyorum.'}
+                              {t('form.agreementText', ', ürün sorumluluğunu ve verdiğim bilgilerin doğruluğunu kabul ediyorum.')}
                             </Typography>
                           }
                         />
@@ -912,7 +917,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                       '&:hover': { bgcolor: '#FDF4D2' }
                     }}
                   >
-                    Geri
+                    {t('actions.back', { ns: 'common' })}
                   </Button>
                 )}
                 {step < 2 ? (
@@ -932,7 +937,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                       '&:hover': { background: '#946D6D', color: '#fff' }
                     }}
                   >
-                    Devam et
+                    {t('actions.continue', { ns: 'common' })}
                   </Button>
                 ) : (
                   <Button
@@ -952,16 +957,16 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
                       '&.Mui-disabled': { background: 'rgba(148,109,109,0.28)', color: 'rgba(255,255,255,0.7)' }
                     }}
                   >
-                    {loading ? 'Kaydediliyor...' : 'Başvuruyu gönder'}
+                    {loading ? t('form.saving', 'Kaydediliyor...') : t('form.submit', 'Başvuruyu gönder')}
                   </Button>
                 )}
               </Box>
 
               {!loggedIn && (
                 <Typography variant="body2" sx={{ mt: 2.2, textAlign: 'center', color: '#6E5252', fontWeight: 600 }}>
-                  Zaten hesabın var mı?{' '}
+                  {t('form.haveAccount', 'Zaten hesabın var mı?')}{' '}
                   <Box component={LocaleLink} to="/giris" sx={{ color: '#946D6D', fontWeight: 800, textDecoration: 'none' }}>
-                    Giriş yap
+                    {t('form.login', 'Giriş yap')}
                   </Box>
                 </Typography>
               )}

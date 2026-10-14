@@ -10,6 +10,10 @@ export const DEFAULT_DESCRIPTION =
   'Nik Bag; giyim, çanta, mum, takı, seramik, ahşap ve ev dekorasyonu dahil el yapımı tasarım ürünleri sunan butik atölye. ' +
   'Sınırlı sayıda üretilen özel parçaları keşfedin, güvenli ödeme ve hızlı kargo ile kapınıza gelsin.';
 
+export const DEFAULT_DESCRIPTION_EN =
+  'Nik Bag is a boutique atelier offering handmade design pieces, including clothing, bags, candles, jewelry, ceramics, woodwork and home decor. ' +
+  'Discover limited-run pieces with secure payment and fast shipping to your door.';
+
 export const DEFAULT_KEYWORDS = [
   'el yapımı çanta',
   'el örgüsü çanta',
@@ -57,15 +61,23 @@ export const clampDescription = (text = '', limit = 158) => {
 };
 
 /** Ürün adından okunabilir bir arama açıklaması üretir. */
-export const productDescription = (product) => {
-  if (!product) return DEFAULT_DESCRIPTION;
+export const productDescription = (product, locale = 'tr', categoryName = '') => {
+  const en = locale === 'en';
+  if (!product) return en ? DEFAULT_DESCRIPTION_EN : DEFAULT_DESCRIPTION;
   const base = product.description || product.aciklama;
   if (base) return clampDescription(base);
-  const parts = [
-    product.title || product.name,
-    product.category ? `${product.category} kategorisinde` : null,
-    'el yapımı tasarım.',
-    'Nik Bag güvencesiyle hızlı kargo ve kolay iade.'
-  ].filter(Boolean);
+  const category = categoryName || product.category;
+  const parts = (en
+    ? [
+      product.title || product.name,
+      category ? `— a handmade design in ${category}.` : '— a handmade design.',
+      'Fast shipping and easy returns with Nik Bag.'
+    ]
+    : [
+      product.title || product.name,
+      category ? `${category} kategorisinde` : null,
+      'el yapımı tasarım.',
+      'Nik Bag güvencesiyle hızlı kargo ve kolay iade.'
+    ]).filter(Boolean);
   return clampDescription(parts.join(' '));
 };

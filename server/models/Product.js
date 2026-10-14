@@ -102,7 +102,10 @@ const productSchema = new mongoose.Schema(
             depthCm: { type: Number, default: null },
             strapCm: { type: Number, default: null },
             weightG: { type: Number, default: null },
-            fits: { type: String, default: '', trim: true }
+            fits: { type: String, default: '', trim: true },
+            en: {
+                fits: { type: String, default: '', trim: true }
+            }
         },
 
         // Medya
@@ -182,6 +185,22 @@ const productSchema = new mongoose.Schema(
         sponsoredUntil: {
             type: Date
         },
+
+        // İngilizce içerik (/en). sourceHash, çevrildiği andaki Türkçe metnin özetidir.
+        en: {
+            title: { type: String, default: '', trim: true },
+            description: { type: String, default: '' },
+            // Renk/beden değerleri siparişte Türkçe kalır; burada yalnızca görünen etiketler tutulur.
+            colorLabels: { type: mongoose.Schema.Types.Mixed, default: undefined },
+            sizeLabels: { type: mongoose.Schema.Types.Mixed, default: undefined },
+            features: { type: [String], default: undefined },
+            careInstructions: { type: String, default: '' },
+            customProductionTime: { type: String, default: '' },
+            measureNote: { type: String, default: '' },
+            lookbookLabel: { type: String, default: '' },
+            sourceHash: { type: String, default: '' },
+            translatedAt: { type: Date }
+        },
     },
     {
         timestamps: true
@@ -213,6 +232,11 @@ productSchema.pre('save', async function () {
     } catch (error) {
         throw error; // next(error) YERİNE hatayı fırlatıyoruz
     }
+});
+
+// İngilizce kopya: Türkçe metin değiştiyse tarama yeniden çevirir (hash karşılaştırması).
+productSchema.post('save', () => {
+    require('../services/contentTranslation').scheduleSweep();
 });
 
 module.exports = mongoose.model('Product', productSchema);

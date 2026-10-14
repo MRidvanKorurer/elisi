@@ -41,7 +41,10 @@
     "categories": "Categories",
     "rights": "© {{year}} NikBag. All rights reserved.",
     "invalidEmail": "Enter a valid email address.",
-    "subscribed": "You’re on the list."
+    "subscribed": "You’re on the list.",
+    "kvkk": "Data protection (KVKK)",
+    "distanceSales": "Distance sales contract",
+    "sellerAgreement": "Seller agreement"
   },
   "actions": {
     "close": "Close",
@@ -60,6 +63,8 @@
     "keepShopping": "Keep shopping",
     "startShopping": "Start shopping",
     "tryAgain": "Try again",
-    "myOrders": "My orders"
+    "myOrders": "My orders",
+    "scrollTop": "Back to top",
+    "clear": "Clear"
   }
 }

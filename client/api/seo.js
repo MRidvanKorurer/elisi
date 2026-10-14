@@ -45,8 +45,32 @@ const TEXT = {
   }
 };
 
+// JavaScript çalıştırmayan botlar /en sayfalarında index.html'deki Türkçe varsayılanları görmesin
+const STATIC_PAGES = {
+  home: {
+    pathname: '/',
+    title: `${SITE_NAME} | Handmade bags and a design atelier`,
+    description: 'Limited handmade work across 19 categories — apparel, bags, candles, jewelry, ceramics, wood, and home. From the Nik Bag atelier: secure checkout, considered shipping, 14-day returns.'
+  },
+  products: {
+    pathname: '/urunler',
+    title: `Handmade design collection | ${SITE_NAME}`,
+    description: 'Browse Nik Bag apparel, bags, candles, jewelry, ceramics, woodwork, and other handmade pieces. Filter by price, color, and category.'
+  },
+  ateliers: {
+    pathname: '/atolyeler',
+    title: `Ateliers | ${SITE_NAME}`,
+    description: 'Browse independent handmade ateliers across Turkey by city, craft, and rating. Open any shop’s full vitrine.'
+  },
+  seller: {
+    pathname: '/satici-ol',
+    title: `Sell on Nik Bag — list your handmade work | ${SITE_NAME}`,
+    description: 'Bring handmade pieces to the Nik Bag vitrine. The platform share is clear: 10% of product sales, 8% after 50,000 ₺ in 90 days. Shipping is separate. Applying is free.'
+  }
+};
+
 let templateCache = null;
-let categoriesCache = { at: 0, list: [] };
+const categoriesCache = { tr: { at: 0, list: [] }, en: { at: 0, list: [] } };
 
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -71,7 +95,8 @@ const salePrice = (product) => {
   return discount > 0 ? Math.round(price * (100 - discount)) / 100 : price;
 };
 
-const formatTRY = (value) => Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const formatTRY = (value, locale = 'tr') => Number(value || 0).toLocaleString(locale === 'en' ? 'en-US' : 'tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const withLang = (url, locale) => (locale === 'en' ? `${url}${url.includes('?') ? '&' : '?'}lang=en` : url);
 
 const getJson = async (url) => {
   const response = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS), headers: { accept: 'application/json' } });
@@ -102,15 +127,16 @@ const loadTemplate = async (req) => {
   return templateCache;
 };
 
-const loadCategories = async () => {
-  if (Date.now() - categoriesCache.at < 10 * 60_000 && categoriesCache.list.length) return categoriesCache.list;
+const loadCategories = async (locale) => {
+  const cache = categoriesCache[locale];
+  if (Date.now() - cache.at < 10 * 60_000 && cache.list.length) return cache.list;
   try {
-    const data = await getJson(`${API_BASE}/categories`);
+    const data = await getJson(withLang(`${API_BASE}/categories`, locale));
     const list = Array.isArray(data?.categories) ? data.categories : [];
-    categoriesCache = { at: Date.now(), list };
+    categoriesCache[locale] = { at: Date.now(), list };
     return list;
   } catch {
-    return categoriesCache.list;
+    return cache.list;
   }
 };
 
@@ -132,8 +158,8 @@ const breadcrumb = (items, locale) => ({
 
 const buildProduct = async (id, locale) => {
   const [data, categories] = await Promise.all([
-    getJson(`${API_BASE}/products/${encodeURIComponent(id)}`),
-    loadCategories()
+    getJson(withLang(`${API_BASE}/products/${encodeURIComponent(id)}`, locale)),
+    loadCategories(locale)
   ]);
   if (data?.notFound || !data?.product) return { notFound: true };
 
@@ -143,7 +169,7 @@ const buildProduct = async (id, locale) => {
   const catName = categoryName(categories, product.category);
   const pathname = `/urun/${encodeURIComponent(product.slug || product._id || product.id)}`;
   if (product.slug && id !== product.slug) return { redirect: localePath(pathname, locale) };
-  const url = `${SITE_URL}${pathname}`;
+  const url = `${SITE_URL}${localePath(pathname, locale)}`;
   const images = [product.image, ...(Array.isArray(product.additionalImages) ? product.additionalImages : [])]
     .filter(Boolean)
     .map(absolute);
@@ -185,7 +211,6 @@ const buildProduct = async (id, locale) => {
   ];
 
   return {
-    trOnly: true,
     title: `${name}${catName ? ` - ${t.handmade(catName)}` : ''} | ${SITE_NAME}`,
     description,
     pathname,
@@ -196,16 +221,16 @@ const buildProduct = async (id, locale) => {
       ['property', 'product:price:currency', 'TRY'],
       ['property', 'product:availability', stock > 0 ? 'in stock' : 'out of stock']
     ],
-    jsonLd: [schema, breadcrumb(crumbs, 'tr')],
+    jsonLd: [schema, breadcrumb(crumbs, locale)],
     body: `<h1>${escapeHtml(name)}</h1>
         ${images[0] ? `<img src="${escapeHtml(images[0])}" alt="${escapeHtml(name)}" width="600" height="600" />` : ''}
-        <p>${escapeHtml(t.price)}: ${escapeHtml(formatTRY(price))} ₺ · ${escapeHtml(stock > 0 ? t.inStock : t.outOfStock)}</p>
+        <p>${escapeHtml(t.price)}: ${escapeHtml(formatTRY(price, locale))} ₺ · ${escapeHtml(stock > 0 ? t.inStock : t.outOfStock)}</p>
         <p>${escapeHtml(product.description || '')}</p>`
   };
 };
 
 const buildAtelier = async (slug, locale) => {
-  const data = await getJson(`${API_BASE}/sellers/public/${encodeURIComponent(slug)}?limit=12`);
+  const data = await getJson(withLang(`${API_BASE}/sellers/public/${encodeURIComponent(slug)}?limit=12`, locale));
   if (data?.notFound || !data?.atelier) return { notFound: true };
 
   const t = TEXT[locale];
@@ -213,7 +238,7 @@ const buildAtelier = async (slug, locale) => {
   const name = atelier.magazaAdi || SITE_NAME;
   const pathname = `/atolye/${encodeURIComponent(atelier.slug || slug)}`;
   if (atelier.slug && slug !== atelier.slug) return { redirect: localePath(pathname, locale) };
-  const url = `${SITE_URL}${pathname}`;
+  const url = `${SITE_URL}${localePath(pathname, locale)}`;
   const products = Array.isArray(data.products) ? data.products : [];
   const image = (atelier.coverImages || [])[0] || atelier.avatarUrl || products[0]?.image;
   const place = [atelier.ilce, atelier.sehir].filter(Boolean).join(', ');
@@ -238,12 +263,11 @@ const buildAtelier = async (slug, locale) => {
       '@type': 'ListItem',
       position: index + 1,
       name: product.title,
-      url: `${SITE_URL}${productPath(product)}`
+      url: `${SITE_URL}${localePath(productPath(product), locale)}`
     }))
   };
 
   return {
-    trOnly: true,
     title: `${t.atelierTitle(name)} | ${SITE_NAME}`,
     description: clamp(atelier.aciklama || t.atelierDescription(name)),
     pathname,
@@ -253,7 +277,7 @@ const buildAtelier = async (slug, locale) => {
       { name: t.home, path: '/' },
       { name: t.ateliers, path: '/atolyeler' },
       { name, path: pathname }
-    ], 'tr')].filter(Boolean),
+    ], locale)].filter(Boolean),
     body: `<h1>${escapeHtml(name)}</h1>
         ${place ? `<p>${escapeHtml(place)}</p>` : ''}
         <p>${escapeHtml(atelier.aciklama || '')}</p>
@@ -263,8 +287,8 @@ const buildAtelier = async (slug, locale) => {
 
 const buildCategory = async (categoryId, locale) => {
   const [categories, data] = await Promise.all([
-    loadCategories(),
-    getJson(`${API_BASE}/products/filter?category=${encodeURIComponent(categoryId)}&sort=popular&limit=24`).catch(() => null)
+    loadCategories(locale),
+    getJson(withLang(`${API_BASE}/products/filter?category=${encodeURIComponent(categoryId)}&sort=popular&limit=24`, locale)).catch(() => null)
   ]);
   const category = categories.find((item) => item.categoryId === categoryId);
   if (!category && categories.length) return { notFound: true };
@@ -272,11 +296,10 @@ const buildCategory = async (categoryId, locale) => {
   const t = TEXT[locale];
   const name = category?.name || categoryName(categories, categoryId);
   const pathname = `/kategori/${encodeURIComponent(categoryId)}`;
-  const url = `${SITE_URL}${pathname}`;
+  const url = `${SITE_URL}${localePath(pathname, locale)}`;
   const products = Array.isArray(data?.products) ? data.products : [];
 
   return {
-    trOnly: true,
     title: `${t.categoryTitle(name)} | ${SITE_NAME}`,
     description: clamp(t.categoryDescription(name.toLocaleLowerCase(locale === 'en' ? 'en-US' : 'tr-TR'))),
     pathname,
@@ -299,14 +322,14 @@ const buildCategory = async (categoryId, locale) => {
           '@type': 'ListItem',
           position: index + 1,
           name: product.title,
-          url: `${SITE_URL}${productPath(product)}`
+          url: `${SITE_URL}${localePath(productPath(product), locale)}`
         }))
       } : null,
       breadcrumb([
         { name: t.home, path: '/' },
         { name: t.products, path: '/urunler' },
         { name, path: pathname }
-      ], 'tr')
+      ], locale)
     ].filter(Boolean),
     body: `<h1>${escapeHtml(t.categoryTitle(name))}</h1>
         ${category?.description ? `<p>${escapeHtml(category.description)}</p>` : ''}
@@ -316,15 +339,13 @@ const buildCategory = async (categoryId, locale) => {
 
 const productPath = (product) => `/urun/${encodeURIComponent(product.slug || product._id || product.id)}`;
 
-const productLinks = (products) => (products.length
-  ? `<ul>${products.slice(0, 24).map((product) => `<li><a href="${escapeHtml(productPath(product))}">${escapeHtml(product.title)}</a> - ${escapeHtml(formatTRY(salePrice(product)))} ₺</li>`).join('')}</ul>`
+const productLinks = (products, locale) => (products.length
+  ? `<ul>${products.slice(0, 24).map((product) => `<li><a href="${escapeHtml(localePath(productPath(product), locale))}">${escapeHtml(product.title)}</a> - ${escapeHtml(formatTRY(salePrice(product), locale))} ₺</li>`).join('')}</ul>`
   : '');
 
 const renderHead = (page, locale) => {
-  // Ürün/atölye/kategori içerikleri yalnızca Türkçe: /en sürümü Türkçe adresi canonical gösterir
-  const headLocale = page.trOnly ? 'tr' : locale;
-  const t = TEXT[headLocale];
-  const canonical = page.canonical || `${SITE_URL}${localePath(page.pathname, headLocale)}`;
+  const t = TEXT[locale];
+  const canonical = page.canonical || `${SITE_URL}${localePath(page.pathname, locale)}`;
   const trUrl = `${SITE_URL}${localePath(page.pathname, 'tr')}`;
   const enUrl = `${SITE_URL}${localePath(page.pathname, 'en')}`;
   const image = page.image || `${SITE_URL}/og-cover.jpg`;
@@ -335,11 +356,10 @@ const renderHead = (page, locale) => {
     tag('name', 'description', page.description),
     tag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'),
     `<link rel="canonical" data-default-seo href="${escapeHtml(canonical)}" />`,
-    ...(page.trOnly ? [] : [
-      `<link rel="alternate" data-default-seo hreflang="tr" href="${escapeHtml(trUrl)}" />`,
-      `<link rel="alternate" data-default-seo hreflang="en" href="${escapeHtml(enUrl)}" />`,
-      `<link rel="alternate" data-default-seo hreflang="x-default" href="${escapeHtml(trUrl)}" />`
-    ]),
+    `<link rel="alternate" data-default-seo hreflang="tr" href="${escapeHtml(trUrl)}" />`,
+    `<link rel="alternate" data-default-seo hreflang="en" href="${escapeHtml(enUrl)}" />`,
+    `<link rel="alternate" data-default-seo hreflang="x-default" href="${escapeHtml(trUrl)}" />`,
+    tag('property', 'og:locale:alternate', TEXT[locale === 'en' ? 'tr' : 'en'].ogLocale),
     tag('property', 'og:type', page.type || 'website'),
     tag('property', 'og:site_name', SITE_NAME),
     tag('property', 'og:locale', t.ogLocale),
@@ -371,7 +391,19 @@ const inject = (html, page, locale) => {
   return out;
 };
 
-const BUILDERS = { product: buildProduct, atelier: buildAtelier, category: buildCategory };
+const buildStatic = async (id, locale) => {
+  const page = locale === 'en' ? STATIC_PAGES[id] : null;
+  if (!page) return { passthrough: true };
+  return {
+    ...page,
+    description: clamp(page.description),
+    type: 'website',
+    body: `<h1>${escapeHtml(page.title)}</h1>
+        <p>${escapeHtml(page.description)}</p>`
+  };
+};
+
+const BUILDERS = { product: buildProduct, atelier: buildAtelier, category: buildCategory, page: buildStatic };
 
 export default async function handler(req, res) {
   const type = String(req.query.type || '');
@@ -415,6 +447,7 @@ export default async function handler(req, res) {
   try {
     const page = await builder(id, locale);
     if (page?.redirect) return redirect(page.redirect);
+    if (page?.passthrough) return send(200, html, 'public, max-age=0, s-maxage=600');
     if (page?.notFound) {
       return send(404, html.replace(/<meta name="robots"[^>]*>/i, '<meta name="robots" data-default-seo content="noindex, follow" />'), 'public, max-age=0, s-maxage=120');
     }

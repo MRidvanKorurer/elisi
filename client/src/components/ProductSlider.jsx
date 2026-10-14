@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
 import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
 import ProductCard, { PRODUCT_CARD_WIDTH, productCardFlexBasis } from './ProductCard';
@@ -20,7 +21,8 @@ const arrowSx = (disabled) => ({
   '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(148,109,109,0.12)' }
 });
 
-export default function ProductSlider({ products = [], ariaLabel = 'Ürünler' }) {
+export default function ProductSlider({ products = [], ariaLabel }) {
+  const { t } = useTranslation('catalog');
   const trackRef = useRef(null);
   const progressRef = useRef(null);
   const reduced = useReducedMotion();
@@ -87,7 +89,7 @@ export default function ProductSlider({ products = [], ariaLabel = 'Ürünler' }
       <Box
         ref={trackRef}
         role="region"
-        aria-label={ariaLabel}
+        aria-label={ariaLabel || t('slider.products', 'Ürünler')}
         tabIndex={0}
         onKeyDown={(event) => {
           if (event.key === 'ArrowLeft') {
@@ -136,7 +138,7 @@ export default function ProductSlider({ products = [], ariaLabel = 'Ürünler' }
       {scrollable && (
         <>
           <IconButton
-            aria-label="Önceki ürünler"
+            aria-label={t('slider.prev', 'Önceki ürünler')}
             disabled={edges.start}
             onClick={() => scrollByPage(-1)}
             sx={{ ...arrowSx(edges.start), position: 'absolute', top: '38%', left: { xs: 6, md: -18 }, zIndex: 2, display: { xs: 'none', sm: 'inline-flex' } }}
@@ -144,7 +146,7 @@ export default function ProductSlider({ products = [], ariaLabel = 'Ürünler' }
             <ArrowBackIosNewRounded sx={{ fontSize: 16, ml: 0.4 }} />
           </IconButton>
           <IconButton
-            aria-label="Sonraki ürünler"
+            aria-label={t('slider.next', 'Sonraki ürünler')}
             disabled={edges.end}
             onClick={() => scrollByPage(1)}
             sx={{ ...arrowSx(edges.end), position: 'absolute', top: '38%', right: { xs: 6, md: -18 }, zIndex: 2, display: { xs: 'none', sm: 'inline-flex' } }}

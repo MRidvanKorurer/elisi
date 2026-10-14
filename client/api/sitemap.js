@@ -1,6 +1,6 @@
 /**
  * sitemap.xml: ürün, atölye ve kategori adresleri API'den canlı alınır.
- * Ürün/atölye/kategori içerikleri yalnızca Türkçe olduğundan /en sürümleri listelenmez.
+ * Her adres Türkçe ve /en sürümüyle, hreflang eşleriyle birlikte listelenir.
  */
 const SITE_URL = (process.env.VITE_SITE_URL && !process.env.VITE_SITE_URL.includes('localhost')
   ? process.env.VITE_SITE_URL
@@ -14,7 +14,7 @@ const BILINGUAL_PAGES = [
   { path: '/satici-ol', changefreq: 'monthly', priority: '0.6' }
 ];
 
-const TURKISH_PAGES = [
+const LEGAL_PAGES = [
   { path: '/gizlilik', changefreq: 'yearly', priority: '0.3' },
   { path: '/kvkk', changefreq: 'yearly', priority: '0.3' },
   { path: '/mesafeli-satis', changefreq: 'yearly', priority: '0.3' },
@@ -84,27 +84,24 @@ export default async function handler(req, res) {
 
   const urls = [
     ...BILINGUAL_PAGES.flatMap((page) => bilingual(page, page.path === '/' || page.path === '/urunler' ? latest : undefined)),
-    ...TURKISH_PAGES.map((page) => entry({ ...page, loc: `${SITE_URL}${page.path}` })),
-    ...categories.map((item) => entry({
-      loc: `${SITE_URL}/kategori/${encodeURIComponent(item.id)}`,
-      lastmod: day(item.updatedAt),
+    ...LEGAL_PAGES.flatMap((page) => bilingual(page)),
+    ...categories.flatMap((item) => bilingual({
+      path: `/kategori/${encodeURIComponent(item.id)}`,
       changefreq: 'daily',
       priority: '0.8'
-    })),
-    ...ateliers.map((item) => entry({
-      loc: `${SITE_URL}/atolye/${encodeURIComponent(item.slug)}`,
-      lastmod: day(item.updatedAt),
+    }, day(item.updatedAt))),
+    ...ateliers.flatMap((item) => bilingual({
+      path: `/atolye/${encodeURIComponent(item.slug)}`,
       changefreq: 'weekly',
       priority: '0.6'
-    })),
-    ...products.map((item) => entry({
-      loc: `${SITE_URL}/urun/${encodeURIComponent(item.slug || item.id)}`,
-      lastmod: day(item.updatedAt),
+    }, day(item.updatedAt))),
+    ...products.flatMap((item) => bilingual({
+      path: `/urun/${encodeURIComponent(item.slug || item.id)}`,
       changefreq: 'weekly',
       priority: '0.8',
       image: absoluteImage(item.image),
       imageTitle: item.title
-    }))
+    }, day(item.updatedAt)))
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

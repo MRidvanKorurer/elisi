@@ -1,3 +1,7 @@
+import i18n from '../i18n';
+
+const msg = (key, defaultValue) => i18n.t(`validation.${key}`, { ns: 'seller', defaultValue });
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const NAME_RE = /^[A-Za-zÇĞİÖŞÜçğıöşüÂâÊêÎîÔôÛû'\- ]{3,80}$/;
 const CITY_RE = /^[A-Za-zÇĞİÖŞÜçğıöşü.\- ]{2,40}$/;
@@ -71,88 +75,88 @@ export function getFieldError(name, form, { loggedIn } = {}) {
   switch (name) {
     case 'adSoyad': {
       if (loggedIn) return '';
-      if (!text) return 'Ad soyad zorunludur.';
-      if (text.length < 3) return 'Ad soyad en az 3 karakter olmalıdır.';
-      if (!NAME_RE.test(text)) return 'Ad soyad yalnızca harf içermelidir.';
-      if (!text.includes(' ')) return 'Lütfen ad ve soyadı birlikte yazın.';
+      if (!text) return msg('nameRequired', 'Ad soyad zorunludur.');
+      if (text.length < 3) return msg('nameShort', 'Ad soyad en az 3 karakter olmalıdır.');
+      if (!NAME_RE.test(text)) return msg('nameLetters', 'Ad soyad yalnızca harf içermelidir.');
+      if (!text.includes(' ')) return msg('nameFull', 'Lütfen ad ve soyadı birlikte yazın.');
       return '';
     }
     case 'email': {
       if (loggedIn) return '';
-      if (!text) return 'E-posta zorunludur.';
-      if (!EMAIL_RE.test(text)) return 'Geçerli bir e-posta adresi girin.';
+      if (!text) return msg('emailRequired', 'E-posta zorunludur.');
+      if (!EMAIL_RE.test(text)) return msg('emailInvalid', 'Geçerli bir e-posta adresi girin.');
       return '';
     }
     case 'sifre': {
       if (loggedIn) return '';
-      if (!text) return 'Şifre zorunludur.';
-      if (text.length < 6) return 'Şifre en az 6 karakter olmalıdır.';
-      if (text.length > 72) return 'Şifre en fazla 72 karakter olabilir.';
+      if (!text) return msg('passwordRequired', 'Şifre zorunludur.');
+      if (text.length < 6) return msg('passwordShort', 'Şifre en az 6 karakter olmalıdır.');
+      if (text.length > 72) return msg('passwordLong', 'Şifre en fazla 72 karakter olabilir.');
       if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(text) || !/\d/.test(text)) {
-        return 'Şifre en az bir harf ve bir rakam içermelidir.';
+        return msg('passwordMix', 'Şifre en az bir harf ve bir rakam içermelidir.');
       }
       return '';
     }
     case 'telefon': {
-      if (!text) return 'Telefon numarası zorunludur.';
-      if (!isValidPhone(text)) return 'Geçerli bir cep telefonu girin (05xx xxx xx xx).';
+      if (!text) return msg('phoneRequired', 'Telefon numarası zorunludur.');
+      if (!isValidPhone(text)) return msg('phoneInvalid', 'Geçerli bir cep telefonu girin (05xx xxx xx xx).');
       return '';
     }
     case 'vergiNo': {
       if (form.hesapTipi !== 'kurumsal') return '';
-      if (!text) return 'Vergi numarası zorunludur.';
-      if (!/^\d{10}$/.test(text)) return 'Vergi numarası 10 haneli olmalıdır.';
+      if (!text) return msg('taxRequired', 'Vergi numarası zorunludur.');
+      if (!/^\d{10}$/.test(text)) return msg('taxInvalid', 'Vergi numarası 10 haneli olmalıdır.');
       return '';
     }
     case 'magazaAdi': {
-      if (!text) return 'Mağaza adı zorunludur.';
-      if (text.length < 3) return 'Mağaza adı en az 3 karakter olmalıdır.';
-      if (text.length > 60) return 'Mağaza adı en fazla 60 karakter olabilir.';
+      if (!text) return msg('shopRequired', 'Mağaza adı zorunludur.');
+      if (text.length < 3) return msg('shopShort', 'Mağaza adı en az 3 karakter olmalıdır.');
+      if (text.length > 60) return msg('shopLong', 'Mağaza adı en fazla 60 karakter olabilir.');
       return '';
     }
     case 'magazaTuru': {
       const list = asMagazaTurleri(value);
-      if (!list.length) return 'En az bir üretim alanı seçin.';
-      if (list.some((item) => !CATEGORY_ID_RE.test(item))) return 'Geçerli bir üretim alanı seçin.';
+      if (!list.length) return msg('craftRequired', 'En az bir üretim alanı seçin.');
+      if (list.some((item) => !CATEGORY_ID_RE.test(item))) return msg('craftInvalid', 'Geçerli bir üretim alanı seçin.');
       return '';
     }
     case 'aciklama': {
-      if (text && text.length > 1000) return 'Atölye hikâyesi en fazla 1000 karakter olabilir.';
+      if (text && text.length > 1000) return msg('storyLong', 'Atölye hikâyesi en fazla 1000 karakter olabilir.');
       return '';
     }
     case 'instagram': {
       if (!text) return '';
-      if (!INSTAGRAM_RE.test(text)) return 'Geçerli bir Instagram kullanıcı adı girin.';
+      if (!INSTAGRAM_RE.test(text)) return msg('instagramInvalid', 'Geçerli bir Instagram kullanıcı adı girin.');
       return '';
     }
     case 'website': {
       if (!text) return '';
-      if (!WEBSITE_RE.test(text)) return 'Geçerli bir web adresi girin.';
+      if (!WEBSITE_RE.test(text)) return msg('websiteInvalid', 'Geçerli bir web adresi girin.');
       return '';
     }
     case 'sehir': {
-      if (!text) return 'Şehir zorunludur.';
-      if (!CITY_RE.test(text)) return 'Şehir adında yalnızca harf kullanın.';
+      if (!text) return msg('cityRequired', 'Şehir zorunludur.');
+      if (!CITY_RE.test(text)) return msg('cityLetters', 'Şehir adında yalnızca harf kullanın.');
       return '';
     }
     case 'ilce': {
-      if (!text) return 'İlçe zorunludur.';
-      if (!CITY_RE.test(text)) return 'İlçe adında yalnızca harf kullanın.';
+      if (!text) return msg('districtRequired', 'İlçe zorunludur.');
+      if (!CITY_RE.test(text)) return msg('districtLetters', 'İlçe adında yalnızca harf kullanın.');
       return '';
     }
     case 'adres': {
-      if (!text) return 'Açık adres zorunludur.';
-      if (text.length < 10) return 'Adres en az 10 karakter olmalıdır.';
-      if (text.length > 250) return 'Adres en fazla 250 karakter olabilir.';
+      if (!text) return msg('addressRequired', 'Açık adres zorunludur.');
+      if (text.length < 10) return msg('addressShort', 'Adres en az 10 karakter olmalıdır.');
+      if (text.length > 250) return msg('addressLong', 'Adres en fazla 250 karakter olabilir.');
       return '';
     }
     case 'iban': {
-      if (!text) return 'IBAN zorunludur.';
-      if (!isValidIbanTr(text)) return 'Geçerli bir TR IBAN girin (TR + 24 hane).';
+      if (!text) return msg('ibanRequired', 'IBAN zorunludur.');
+      if (!isValidIbanTr(text)) return msg('ibanInvalid', 'Geçerli bir TR IBAN girin (TR + 24 hane).');
       return '';
     }
     case 'sozlesmeOnay': {
-      if (!value) return 'Satıcı sözleşmesini onaylamanız gerekir.';
+      if (!value) return msg('agreementRequired', 'Satıcı sözleşmesini onaylamanız gerekir.');
       return '';
     }
     default:
@@ -177,12 +181,12 @@ export function mapServerErrorToField(message = '') {
   const text = message.toLowerCase();
   if (text.includes('e-posta') || text.includes('email')) return 'email';
   if (text.includes('iban')) return 'iban';
-  if (text.includes('telefon')) return 'telefon';
-  if (text.includes('mağaza adı') || text.includes('magaza')) return 'magazaAdi';
+  if (text.includes('telefon') || text.includes('phone')) return 'telefon';
+  if (text.includes('mağaza adı') || text.includes('magaza') || text.includes('shop name')) return 'magazaAdi';
   if (text.includes('kimlik')) return 'tcKimlik';
-  if (text.includes('vergi')) return 'vergiNo';
-  if (text.includes('sözleşme') || text.includes('sozlesme')) return 'sozlesmeOnay';
-  if (text.includes('şifre') || text.includes('sifre')) return 'sifre';
+  if (text.includes('vergi') || text.includes('tax')) return 'vergiNo';
+  if (text.includes('sözleşme') || text.includes('sozlesme') || text.includes('agreement')) return 'sozlesmeOnay';
+  if (text.includes('şifre') || text.includes('sifre') || text.includes('password')) return 'sifre';
   if (text.includes('üretim') || text.includes('tür')) return 'magazaTuru';
   return '';
 }

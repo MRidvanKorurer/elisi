@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Avatar, Box, Button, TextField, Typography } from '@mui/material';
 import { questionService } from '../api/questionService';
 import { isSuperAdmin } from '../utils/roles';
+import { dateLocale } from '../i18n/locale';
 
 const initialsOf = (name = '') => String(name).trim().charAt(0).toUpperCase() || 'N';
 
@@ -11,9 +13,9 @@ const sameUser = (user, other) => {
   return Boolean(a && b && a === b);
 };
 
-const formatDate = (value) => {
+const formatDate = (value, locale) => {
   if (!value) return '';
-  return new Date(value).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(value).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 function PersonAvatar({ name, src, size = 34 }) {
@@ -25,6 +27,10 @@ function PersonAvatar({ name, src, size = 34 }) {
 }
 
 export default function ProductQuestions({ productId, productSellerId, user, onAnsweredChange }) {
+  const { t, i18n } = useTranslation('catalog');
+  const q = (key, defaultValue, options = {}) => t(`questions.${key}`, { defaultValue, ...options });
+  const dateOf = (value) => formatDate(value, i18n.language);
+  const guestLabel = q('guest', 'Misafir');
   const [questions, setQuestions] = useState([]);
   const [numQuestions, setNumQuestions] = useState(0);
   const [numAnswered, setNumAnswered] = useState(0);
@@ -91,7 +97,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
       setComposerOpen(false);
       await loadQuestions();
     } catch (err) {
-      setError(err.response?.data?.mesaj || err.response?.data?.message || 'Soru gönderilemedi.');
+      setError(err.response?.data?.mesaj || err.response?.data?.message || q('askFailed', 'Soru gönderilemedi.'));
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +112,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
       setAnswerDrafts((prev) => ({ ...prev, [questionId]: '' }));
       await loadQuestions();
     } catch (err) {
-      setError(err.response?.data?.mesaj || 'Yanıt kaydedilemedi.');
+      setError(err.response?.data?.mesaj || q('answerFailed', 'Yanıt kaydedilemedi.'));
     } finally {
       setAnsweringId('');
     }
@@ -118,7 +124,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
       await questionService.deleteQuestion(questionId);
       await loadQuestions();
     } catch (err) {
-      setError(err.response?.data?.mesaj || 'Soru silinemedi.');
+      setError(err.response?.data?.mesaj || q('deleteFailed', 'Soru silinemedi.'));
     } finally {
       setDeletingId('');
     }
@@ -132,12 +138,12 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.2, mb: 1.5, flexWrap: 'wrap' }}>
         <Box>
           <Typography component="h2" fontWeight={800} sx={{ color: '#2E3B55', fontSize: '1.15rem', lineHeight: 1.2 }}>
-            Soru & cevap
+            {q('title', 'Soru & cevap')}
           </Typography>
           <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.85rem', mt: 0.3 }}>
             {numQuestions > 0
-              ? `${numQuestions} soru · ${numAnswered} yanıtlandı`
-              : 'Bu ürün hakkında satıcıya sorun'}
+              ? q('summary', '{{count}} soru · {{answered}} yanıtlandı', { count: numQuestions, answered: numAnswered })
+              : q('empty', 'Bu ürün hakkında satıcıya sorun')}
           </Typography>
         </Box>
         {canAsk && !composerOpen && (
@@ -145,7 +151,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
             onClick={() => setComposerOpen(true)}
             sx={{ flexShrink: 0, borderRadius: '999px', px: 1.8, py: 0.7, fontWeight: 800, fontSize: '0.82rem', color: '#FFFFFF', backgroundColor: '#946D6D', textTransform: 'none', '&:hover': { backgroundColor: '#7c5a5a' } }}
           >
-            Soru sor
+            {q('ask', 'Soru sor')}
           </Button>
         )}
       </Box>
@@ -157,15 +163,15 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
           sx={{ mb: 1.6, p: 1.6, borderRadius: '16px', backgroundColor: '#FFFFFF', border: '1px solid rgba(148,109,109,0.16)' }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <PersonAvatar name={user?.adSoyad || guestName || 'Misafir'} src={user?.avatarUrl} size={32} />
-            <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>{user?.adSoyad || guestName || 'Misafir'}</Typography>
+            <PersonAvatar name={user?.adSoyad || guestName || guestLabel} src={user?.avatarUrl} size={32} />
+            <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.9rem' }}>{user?.adSoyad || guestName || guestLabel}</Typography>
           </Box>
           {!user && (
             <TextField
               fullWidth
               value={guestName}
               onChange={(event) => setGuestName(event.target.value.slice(0, 40))}
-              placeholder="Adınız"
+              placeholder={q('namePlaceholder', 'Adınız')}
               sx={{
                 mb: 1.1,
                 '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#FFFDF6' },
@@ -180,7 +186,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
             maxRows={5}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ölçü, renk, teslimat… aklındaki soruyu yaz"
+            placeholder={q('placeholder', 'Ölçü, renk, teslimat… aklındaki soruyu yaz')}
             sx={{
               mb: 1.1,
               '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#FFFDF6' },
@@ -188,16 +194,18 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
             }}
           />
           <Typography sx={{ color: '#6E5252', fontSize: '0.75rem', mb: 1 }}>
-            Soru satıcıya iletilir. 3 gün içinde yanıtlanmazsa satıcı uyarılır.
+            {q('hint', 'Soru satıcıya iletilir. 3 gün içinde yanıtlanmazsa satıcı uyarılır.')}
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.8 }}>
-            <Button type="button" onClick={() => setComposerOpen(false)} sx={{ fontWeight: 800, fontSize: '0.8rem', color: '#6E5252', textTransform: 'none' }}>Vazgeç</Button>
+            <Button type="button" onClick={() => setComposerOpen(false)} sx={{ fontWeight: 800, fontSize: '0.8rem', color: '#6E5252', textTransform: 'none' }}>
+              {q('cancel', 'Vazgeç')}
+            </Button>
             <Button
               type="submit"
               disabled={submitting || draft.trim().length < 10 || (!user && guestName.trim().length < 2)}
               sx={{ borderRadius: '999px', fontWeight: 800, fontSize: '0.8rem', px: 1.8, color: '#FFFFFF', backgroundColor: '#2E3B55', textTransform: 'none', '&:hover': { backgroundColor: '#946D6D' }, '&.Mui-disabled': { color: '#FFFFFF', backgroundColor: '#C4B4B4' } }}
             >
-              {submitting ? 'Gönderiliyor' : 'Soruyu gönder'}
+              {submitting ? q('sending', 'Gönderiliyor') : q('submit', 'Soruyu gönder')}
             </Button>
           </Box>
         </Box>
@@ -206,9 +214,9 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
       {error ? <Typography sx={{ color: '#946D6D', fontWeight: 700, mb: 1, fontSize: '0.8rem' }}>{error}</Typography> : null}
 
       {loading ? (
-        <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.9rem' }}>Sorular yükleniyor…</Typography>
+        <Typography sx={{ color: '#6E5252', fontWeight: 700, fontSize: '0.9rem' }}>{q('loading', 'Sorular yükleniyor…')}</Typography>
       ) : questions.length === 0 ? (
-        <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.9rem' }}>Henüz soru yok. İlk soruyu sen sor.</Typography>
+        <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.9rem' }}>{q('none', 'Henüz soru yok. İlk soruyu sen sor.')}</Typography>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1 }}>
           {visible.map((item) => {
@@ -229,9 +237,9 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
                       <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.88rem' }}>
-                        {item.user?.adSoyad} {mine ? '(siz)' : ''}
+                        {item.user?.adSoyad} {mine ? q('you', '(siz)') : ''}
                       </Typography>
-                      <Typography sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.72rem' }}>{formatDate(item.createdAt)}</Typography>
+                      <Typography sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.72rem' }}>{dateOf(item.createdAt)}</Typography>
                     </Box>
                     <Typography sx={{ color: '#6E5252', mt: 0.4, fontSize: '0.9rem', lineHeight: 1.55 }}>{item.question}</Typography>
                     {(mine || canAnswer) && (
@@ -240,7 +248,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
                         disabled={deletingId === item.id}
                         sx={{ mt: 0.4, minWidth: 0, p: 0, fontWeight: 800, fontSize: '0.75rem', color: '#946D6D', textTransform: 'none' }}
                       >
-                        {deletingId === item.id ? 'Siliniyor…' : 'Sil'}
+                        {deletingId === item.id ? q('deleting', 'Siliniyor…') : q('delete', 'Sil')}
                       </Button>
                     )}
                   </Box>
@@ -249,7 +257,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
                 {item.answer ? (
                   <Box sx={{ mt: 1.2, ml: { xs: 0, sm: 5.6 }, p: 1.2, borderRadius: '14px', bgcolor: 'rgba(176,205,230,0.22)' }}>
                     <Typography sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.75rem', letterSpacing: 0.4, mb: 0.4 }}>
-                      SATICI YANITI · {formatDate(item.answeredAt)}
+                      {q('sellerAnswer', 'SATICI YANITI')} · {dateOf(item.answeredAt)}
                     </Typography>
                     <Typography sx={{ color: '#2E3B55', fontSize: '0.88rem', lineHeight: 1.55 }}>{item.answer}</Typography>
                     {canAnswer ? (
@@ -257,13 +265,13 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
                         onClick={() => setAnswerDrafts((prev) => ({ ...prev, [item.id]: prev[item.id] ?? item.answer }))}
                         sx={{ mt: 0.6, minWidth: 0, p: 0, fontWeight: 800, fontSize: '0.75rem', color: '#946D6D', textTransform: 'none' }}
                       >
-                        Yanıtı düzenle
+                        {q('editAnswer', 'Yanıtı düzenle')}
                       </Button>
                     ) : null}
                   </Box>
                 ) : !canAnswer ? (
                   <Typography sx={{ mt: 1, ml: { xs: 0, sm: 5.6 }, color: '#A290B7', fontWeight: 700, fontSize: '0.78rem' }}>
-                    Satıcı henüz yanıtlamadı
+                    {q('awaiting', 'Satıcı henüz yanıtlamadı')}
                   </Typography>
                 ) : null}
 
@@ -275,7 +283,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
                       minRows={2}
                       value={answerDrafts[item.id] ?? ''}
                       onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [item.id]: event.target.value }))}
-                      placeholder="Müşteriye yanıt yazın"
+                      placeholder={q('answerPlaceholder', 'Müşteriye yanıt yazın')}
                       sx={{
                         mb: 0.8,
                         '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#FFFDF6' }
@@ -286,7 +294,9 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
                       disabled={answeringId === item.id || String(answerDrafts[item.id] || '').trim().length < 8}
                       sx={{ borderRadius: '999px', fontWeight: 800, fontSize: '0.78rem', px: 1.6, color: '#FFFFFF', backgroundColor: '#2E3B55', textTransform: 'none', '&:hover': { backgroundColor: '#946D6D' } }}
                     >
-                      {answeringId === item.id ? 'Kaydediliyor' : item.answer ? 'Yanıtı güncelle' : 'Yanıtla'}
+                      {answeringId === item.id
+                        ? q('saving', 'Kaydediliyor')
+                        : item.answer ? q('updateAnswer', 'Yanıtı güncelle') : q('answer', 'Yanıtla')}
                     </Button>
                   </Box>
                 )}
@@ -298,7 +308,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
               onClick={() => setVisibleCount((prev) => prev + 4)}
               sx={{ alignSelf: 'flex-start', fontWeight: 800, color: '#946D6D', textTransform: 'none' }}
             >
-              Daha fazla göster ({remainingQuestions})
+              {t('actions.showMoreCount', { ns: 'common', count: remainingQuestions })}
             </Button>
           )}
         </Box>

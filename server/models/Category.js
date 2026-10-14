@@ -11,9 +11,19 @@ const categorySchema = new mongoose.Schema(
         iconName: { type: String, default: 'CategoryOutlined' },
         color: { type: String, default: '#946D6D' },
         bgGradient: { type: String, default: 'linear-gradient(135deg, #FDF4D2 0%, #B0CDE6 100%)' },
-        bgRGBA: { type: String, default: 'rgba(148, 109, 109, 0.12)' }
+        bgRGBA: { type: String, default: 'rgba(148, 109, 109, 0.12)' },
+        en: {
+            name: { type: String, default: '', trim: true },
+            description: { type: String, default: '', trim: true },
+            sourceHash: { type: String, default: '' },
+            translatedAt: { type: Date }
+        }
     },
     { timestamps: true }
 );
+
+categorySchema.post('save', () => {
+    require('../services/contentTranslation').scheduleSweep();
+});
 
 module.exports = mongoose.model('Category', categorySchema);

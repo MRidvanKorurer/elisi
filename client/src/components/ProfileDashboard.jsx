@@ -23,6 +23,10 @@ import BankTransferDetails from './BankTransferDetails';
 import { getSitePublic } from '../api/siteService';
 import { PAYMENT_METHOD } from '../utils/panel';
 import { hasBankAccount } from '../utils/bank';
+import i18n from '../i18n';
+import { dateLocale } from '../i18n/locale';
+
+const d = (key, defaultValue, options = {}) => i18n.t(`dash.${key}`, { ns: 'account', defaultValue, ...options });
 
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -67,40 +71,50 @@ const fieldSx = {
 const HOLD_MS = 72 * 60 * 60 * 1000;
 
 function paymentHoldLabel(order) {
-  if (order?.paymentStatus === 'completed') return 'Ödendi';
-  if (order?.paymentStatus === 'short') return 'Eksik ödeme geldi';
-  if (order?.paymentStatus === 'over') return 'Fazla ödeme geldi';
-  if (order?.orderStatus === 'cancelled' || order?.paymentStatus === 'failed') return 'İptal edildi';
-  return 'Ödeme bekleniyor';
+  if (order?.paymentStatus === 'completed') return d('holdPaid', 'Ödendi');
+  if (order?.paymentStatus === 'short') return d('holdShort', 'Eksik ödeme geldi');
+  if (order?.paymentStatus === 'over') return d('holdOver', 'Fazla ödeme geldi');
+  if (order?.orderStatus === 'cancelled' || order?.paymentStatus === 'failed') return d('holdCancelled', 'İptal edildi');
+  return d('holdPending', 'Ödeme bekleniyor');
 }
 
 function holdDeadline(order) {
   const start = order?.createdAt ? new Date(order.createdAt).getTime() : 0;
   if (!start) return '';
-  return new Date(start + HOLD_MS).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  return new Date(start + HOLD_MS).toLocaleString(dateLocale(i18n.language), { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 }
 
 const formatPrice = (value) => formatTRY(value);
 
 const FALLBACK_IMAGE = imgBagOrange;
 
-function orderLabel(order) {
-  if (order?.orderStatus === 'delivered') return 'Teslim edildi';
-  if (order?.orderStatus === 'shipped') return 'Kargoda';
-  if (order?.orderStatus === 'cancelled') return 'İptal';
-  if (order?.paymentStatus === 'short') return 'Eksik ödeme';
-  if (order?.paymentStatus === 'over') return 'Fazla ödeme';
-  if (order?.paymentStatus === 'pending') return 'Ödeme bekleniyor';
-  if (order?.paymentStatus === 'failed') return 'Ödeme başarısız';
-  return 'Hazırlanıyor';
+const ORDER_LABELS = {
+  delivered: 'Teslim edildi',
+  shipped: 'Kargoda',
+  cancelled: 'İptal',
+  short: 'Eksik ödeme',
+  over: 'Fazla ödeme',
+  pending: 'Ödeme bekleniyor',
+  failed: 'Ödeme başarısız',
+  processing: 'Hazırlanıyor'
+};
+
+function orderStatusKey(order) {
+  if (['delivered', 'shipped', 'cancelled'].includes(order?.orderStatus)) return order.orderStatus;
+  if (['short', 'over', 'pending', 'failed'].includes(order?.paymentStatus)) return order.paymentStatus;
+  return 'processing';
 }
 
-function statusConfig(label) {
-  const s = String(label || '').toLowerCase();
-  if (s.includes('teslim')) return { color: '#81B29A', icon: <CheckCircleOutlineOutlinedIcon sx={{ color: '#81B29A' }} /> };
-  if (s.includes('kargo')) return { color: '#DDA15E', icon: <LocalShippingOutlinedIcon sx={{ color: '#DDA15E' }} /> };
-  if (s.includes('iptal') || s.includes('başarısız') || s.includes('failed')) return { color: '#946D6D', icon: <HighlightOffOutlinedIcon sx={{ color: '#946D6D' }} /> };
-  if (s.includes('ödeme')) return { color: '#A290B7', icon: <HourglassEmptyRounded sx={{ color: '#A290B7' }} /> };
+function orderLabel(order) {
+  const key = orderStatusKey(order);
+  return d(`status.${key}`, ORDER_LABELS[key]);
+}
+
+function statusConfig(key) {
+  if (key === 'delivered') return { color: '#81B29A', icon: <CheckCircleOutlineOutlinedIcon sx={{ color: '#81B29A' }} /> };
+  if (key === 'shipped') return { color: '#DDA15E', icon: <LocalShippingOutlinedIcon sx={{ color: '#DDA15E' }} /> };
+  if (key === 'cancelled' || key === 'failed') return { color: '#946D6D', icon: <HighlightOffOutlinedIcon sx={{ color: '#946D6D' }} /> };
+  if (key === 'short' || key === 'over' || key === 'pending') return { color: '#A290B7', icon: <HourglassEmptyRounded sx={{ color: '#A290B7' }} /> };
   return { color: '#A290B7', icon: <Inventory2OutlinedIcon sx={{ color: '#A290B7' }} /> };
 }
 
@@ -189,7 +203,7 @@ export default function ProfileDashboard() {
           navigate('/giris');
           return;
         }
-        showAlert('Veriler alınırken hata oluştu.', 'error');
+        showAlert(d('loadFailed', 'Veriler alınırken hata oluştu.'), 'error');
       } finally {
         setLoading(false);
       }
@@ -202,12 +216,12 @@ export default function ProfileDashboard() {
   const handleCardInputChange = (e) => setCardForm({ ...cardForm, [e.target.name]: e.target.value });
 
   const handleSaveProfile = async () => {
-    if (!formData.name.trim()) return showAlert('Ad soyad zorunludur.', 'warning');
+    if (!formData.name.trim()) return showAlert(d('nameRequired', 'Ad soyad zorunludur.'), 'warning');
     if ((formData.currentPassword && !formData.newPassword) || (!formData.currentPassword && formData.newPassword)) {
-      return showAlert('Şifre değiştirmek için mevcut ve yeni şifreyi birlikte girin.', 'warning');
+      return showAlert(d('passwordPair', 'Şifre değiştirmek için mevcut ve yeni şifreyi birlikte girin.'), 'warning');
     }
     if (formData.newPassword && formData.newPassword.length < 6) {
-      return showAlert('Yeni şifre en az 6 karakter olmalıdır.', 'warning');
+      return showAlert(d('passwordShort', 'Yeni şifre en az 6 karakter olmalıdır.'), 'warning');
     }
 
     setSaving(true);
@@ -217,9 +231,9 @@ export default function ProfileDashboard() {
         await userService.changePassword({ currentPassword: formData.currentPassword, newPassword: formData.newPassword });
         setFormData((prev) => ({ ...prev, currentPassword: '', newPassword: '' }));
       }
-      showAlert('Profiliniz güncellendi.');
+      showAlert(d('profileSaved', 'Profiliniz güncellendi.'));
     } catch (error) {
-      showAlert(error.response?.data?.message || 'Güncelleme başarısız oldu.', 'error');
+      showAlert(error.response?.data?.message || d('profileFailed', 'Güncelleme başarısız oldu.'), 'error');
     } finally {
       setSaving(false);
     }
@@ -227,35 +241,35 @@ export default function ProfileDashboard() {
 
   const handleAddAddress = async () => {
     if (!addressForm.baslik || !addressForm.adSoyad || !addressForm.telefon || !addressForm.il || !addressForm.ilce || !addressForm.adres) {
-      return showAlert('Lütfen tüm adres alanlarını doldurun.', 'warning');
+      return showAlert(d('addressIncomplete', 'Lütfen tüm adres alanlarını doldurun.'), 'warning');
     }
     try {
       const response = await userService.addAddress(addressForm);
       setAddresses(response.addresses || response.adresler || []);
       setIsAddressModalOpen(false);
       setAddressForm({ baslik: '', adSoyad: '', telefon: '', il: '', ilce: '', adres: '' });
-      showAlert('Adres eklendi.');
+      showAlert(d('addressAdded', 'Adres eklendi.'));
     } catch (error) {
-      showAlert(error.response?.data?.message || 'Adres eklenirken bir hata oluştu.', 'error');
+      showAlert(error.response?.data?.message || d('addressFailed', 'Adres eklenirken bir hata oluştu.'), 'error');
     }
   };
 
   const handleAddCard = async () => {
     const digits = String(cardForm.kartNumarasi || '').replace(/\D/g, '');
     if (!cardForm.kartSahibi || !digits || !cardForm.skt) {
-      return showAlert('Lütfen tüm kart alanlarını doldurun.', 'warning');
+      return showAlert(d('cardIncomplete', 'Lütfen tüm kart alanlarını doldurun.'), 'warning');
     }
     if (digits.length < 12) {
-      return showAlert('Geçerli bir kart numarası giriniz.', 'warning');
+      return showAlert(d('cardInvalid', 'Geçerli bir kart numarası giriniz.'), 'warning');
     }
     try {
       const response = await userService.addCard({ ...cardForm, kartNumarasi: digits });
       setSavedCards(response.savedCards || response.kayitliKartlar || []);
       setIsCardModalOpen(false);
       setCardForm({ kartSahibi: '', kartNumarasi: '', skt: '' });
-      showAlert('Kart eklendi.');
+      showAlert(d('cardAdded', 'Kart eklendi.'));
     } catch (error) {
-      showAlert(error.response?.data?.message || 'Kart eklenirken bir hata oluştu.', 'error');
+      showAlert(error.response?.data?.message || d('cardFailed', 'Kart eklenirken bir hata oluştu.'), 'error');
     }
   };
 
@@ -264,10 +278,10 @@ export default function ProfileDashboard() {
       isOpen: true,
       type,
       id,
-      title: type === 'address' ? 'Adresi sil' : 'Kartı sil',
+      title: type === 'address' ? d('deleteAddressTitle', 'Adresi sil') : d('deleteCardTitle', 'Kartı sil'),
       message: type === 'address'
-        ? 'Bu adresi silmek istediğinize emin misiniz?'
-        : 'Bu kayıtlı kartı silmek istediğinize emin misiniz?'
+        ? d('deleteAddressText', 'Bu adresi silmek istediğinize emin misiniz?')
+        : d('deleteCardText', 'Bu kayıtlı kartı silmek istediğinize emin misiniz?')
     });
   };
 
@@ -280,14 +294,14 @@ export default function ProfileDashboard() {
       if (type === 'address') {
         await userService.deleteAddress(id);
         setAddresses((prev) => prev.filter((addr) => addr._id !== id));
-        showAlert('Adres silindi.');
+        showAlert(d('addressDeleted', 'Adres silindi.'));
       } else {
         await userService.deleteCard(id);
         setSavedCards((prev) => prev.filter((card) => card._id !== id));
-        showAlert('Kart silindi.');
+        showAlert(d('cardDeleted', 'Kart silindi.'));
       }
     } catch {
-      showAlert('Silme işlemi başarısız.', 'error');
+      showAlert(d('deleteFailed', 'Silme işlemi başarısız.'), 'error');
     } finally {
       closeDeleteModal();
     }
@@ -298,9 +312,9 @@ export default function ProfileDashboard() {
       await userService.removeFavorite(productId);
       setFavorites((prev) => prev.filter((fav) => String(fav._id || fav.id) !== String(productId)));
       setProductFavorite(productId, false);
-      showAlert('Ürün favorilerden çıkarıldı.');
+      showAlert(d('favRemoved', 'Ürün favorilerden çıkarıldı.'));
     } catch {
-      showAlert('Favorilerden çıkarılırken hata oluştu.', 'error');
+      showAlert(d('favFailed', 'Favorilerden çıkarılırken hata oluştu.'), 'error');
     }
   };
 
@@ -312,7 +326,7 @@ export default function ProfileDashboard() {
       const data = await userService.getOrderById(orderId);
       if (data.success) setSelectedOrder(data.order);
     } catch {
-      showAlert('Sipariş detayları alınamadı.', 'error');
+      showAlert(d('orderFailed', 'Sipariş detayları alınamadı.'), 'error');
       setIsOrderModalOpen(false);
     } finally {
       setIsOrderLoading(false);
@@ -334,9 +348,9 @@ export default function ProfileDashboard() {
 
       <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: { xs: 3, md: 4 } }}>
-          <Typography sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.08em', fontSize: '0.75rem', textTransform: 'uppercase' }}>Hesap</Typography>
+          <Typography sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.08em', fontSize: '0.75rem', textTransform: 'uppercase' }}>{d('eyebrow', 'Hesap')}</Typography>
           <Typography variant="h4" fontWeight={800} sx={{ color: '#2E3B55', letterSpacing: '-0.03em', fontSize: { xs: '1.7rem', md: '2.1rem' } }}>
-            {formData.name || 'Hesabım'}
+            {formData.name || d('title', 'Hesabım')}
           </Typography>
           <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.5 }}>{formData.email}</Typography>
         </Box>
@@ -415,23 +429,23 @@ export default function ProfileDashboard() {
                               const res = await userService.uploadAvatar(file);
                               const next = res.user?.avatarUrl || '';
                               setAvatarUrl(next);
-                              showAlert('Profil fotoğrafı güncellendi.');
+                              showAlert(d('avatarSaved', 'Profil fotoğrafı güncellendi.'));
                             } catch {
-                              showAlert('Fotoğraf yüklenemedi.', 'error');
+                              showAlert(d('avatarFailed', 'Fotoğraf yüklenemedi.'), 'error');
                             }
                           }}
                         />
-                        <Typography sx={{ mt: 0.7, color: '#946D6D', fontWeight: 800, fontSize: '0.72rem', textAlign: 'center' }}>Değiştir</Typography>
+                        <Typography sx={{ mt: 0.7, color: '#946D6D', fontWeight: 800, fontSize: '0.72rem', textAlign: 'center' }}>{d('avatarChange', 'Değiştir')}</Typography>
                       </Box>
                       <Box>
-                        <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Kişisel bilgiler</Typography>
-                        <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>E-posta güvenlik nedeniyle değiştirilemez. Fotoğrafa tıklayarak profil resmi yükleyin.</Typography>
+                        <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{d('personal', 'Kişisel bilgiler')}</Typography>
+                        <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }}>{d('personalHint', 'E-posta güvenlik nedeniyle değiştirilemez. Fotoğrafa tıklayarak profil resmi yükleyin.')}</Typography>
                       </Box>
                     </Box>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2 }}>
-                      <TextField fullWidth label="Ad soyad" name="name" value={formData.name} onChange={handleInputChange} sx={fieldSx} />
-                      <TextField fullWidth label="E-posta" value={formData.email} disabled sx={fieldSx} />
-                      <TextField fullWidth label="Telefon" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="05xx xxx xx xx" sx={{ ...fieldSx, gridColumn: { xs: '1', sm: '1 / -1' } }} />
+                      <TextField fullWidth label={d('fullName', 'Ad soyad')} name="name" value={formData.name} onChange={handleInputChange} sx={fieldSx} />
+                      <TextField fullWidth label={d('email', 'E-posta')} value={formData.email} disabled sx={fieldSx} />
+                      <TextField fullWidth label={d('phone', 'Telefon')} name="phone" value={formData.phone} onChange={handleInputChange} placeholder="05xx xxx xx xx" sx={{ ...fieldSx, gridColumn: { xs: '1', sm: '1 / -1' } }} />
                     </Box>
                     {welcomeCoupon.kod && (
                       <Paper elevation={0} sx={{ mt: 2.5, p: 2, borderRadius: '16px', backgroundColor: 'rgba(253,244,210,0.7)', border: '1px dashed rgba(148,109,109,0.3)' }}>
@@ -439,12 +453,12 @@ export default function ProfileDashboard() {
                           <CardGiftcardOutlined sx={{ color: '#946D6D', mt: 0.2 }} />
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>
-                              {welcomeCoupon.used ? 'Hoş geldin indirimin kullanıldı' : 'İlk siparişine %10 indirim'}
+                              {welcomeCoupon.used ? d('couponUsed', 'Hoş geldin indirimin kullanıldı') : d('couponReady', 'İlk siparişine %10 indirim')}
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.4 }}>
                               {welcomeCoupon.used
-                                ? 'Bu kod daha önce bir siparişte uygulandı.'
-                                : 'Kod yalnızca senin hesabına aittir. Ödeme sayfasında otomatik uygulanır.'}
+                                ? d('couponUsedText', 'Bu kod daha önce bir siparişte uygulandı.')
+                                : d('couponReadyText', 'Kod yalnızca senin hesabına aittir. Ödeme sayfasında otomatik uygulanır.')}
                             </Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
                               <Typography fontWeight={800} sx={{ color: '#946D6D', letterSpacing: 1 }}>{welcomeCoupon.kod}</Typography>
@@ -455,13 +469,13 @@ export default function ProfileDashboard() {
                                     try {
                                       await navigator.clipboard.writeText(welcomeCoupon.kod);
                                       setCouponCopied(true);
-                                      showAlert('İndirim kodu kopyalandı.');
+                                      showAlert(d('couponCopied', 'İndirim kodu kopyalandı.'));
                                     } catch {
-                                      showAlert('Kod kopyalanamadı.', 'error');
+                                      showAlert(d('couponCopyFailed', 'Kod kopyalanamadı.'), 'error');
                                     }
                                   }}
                                   sx={{ color: '#946D6D' }}
-                                  aria-label="Kodu kopyala"
+                                  aria-label={d('couponCopy', 'Kodu kopyala')}
                                 >
                                   {couponCopied ? <CheckCircleOutlineOutlinedIcon /> : <ContentCopyRounded fontSize="small" />}
                                 </IconButton>
@@ -472,15 +486,15 @@ export default function ProfileDashboard() {
                       </Paper>
                     )}
                     <Divider sx={{ my: 3, borderColor: 'rgba(148,109,109,0.12)' }}>
-                      <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.06em' }}>ŞİFRE (OPSİYONEL)</Typography>
+                      <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800, letterSpacing: '0.06em' }}>{d('passwordSection', 'ŞİFRE (OPSİYONEL)')}</Typography>
                     </Divider>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                      <TextField fullWidth label="Mevcut şifre" name="currentPassword" type="password" value={formData.currentPassword} onChange={handleInputChange} sx={fieldSx} />
-                      <TextField fullWidth label="Yeni şifre" name="newPassword" type="password" value={formData.newPassword} onChange={handleInputChange} sx={fieldSx} />
+                      <TextField fullWidth label={d('currentPassword', 'Mevcut şifre')} name="currentPassword" type="password" value={formData.currentPassword} onChange={handleInputChange} sx={fieldSx} />
+                      <TextField fullWidth label={d('newPassword', 'Yeni şifre')} name="newPassword" type="password" value={formData.newPassword} onChange={handleInputChange} sx={fieldSx} />
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                       <Button onClick={handleSaveProfile} disabled={saving} variant="contained" sx={primaryBtnSx}>
-                        {saving ? 'Kaydediliyor...' : 'Değişiklikleri kaydet'}
+                        {saving ? d('saving', 'Kaydediliyor...') : d('saveChanges', 'Değişiklikleri kaydet')}
                       </Button>
                     </Box>
                   </Box>
@@ -488,20 +502,20 @@ export default function ProfileDashboard() {
 
                 {activeTab === 'addresses' && (
                   <Box>
-                    <HeaderRow title="Adreslerim" actionLabel="Yeni adres" icon={<AddLocationAltOutlinedIcon />} onClick={() => setIsAddressModalOpen(true)} />
+                    <HeaderRow title={d('addresses', 'Adreslerim')} actionLabel={d('newAddress', 'Yeni adres')} icon={<AddLocationAltOutlinedIcon />} onClick={() => setIsAddressModalOpen(true)} />
                     {addresses.length === 0 ? (
-                      <EmptyState text="Kayıtlı adresiniz yok." />
+                      <EmptyState text={d('noAddresses', 'Kayıtlı adresiniz yok.')} />
                     ) : (
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, alignItems: 'stretch' }}>
                         {addresses.map((addr) => (
                           <Paper key={addr._id} elevation={0} sx={{ ...cardSx, height: '100%', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 1, minWidth: 0 }}>
                               <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55', minWidth: 0 }}>{addr.baslik}</Typography>
-                              {addr.isDefault && <Chip size="small" label="Varsayılan" sx={{ bgcolor: '#B0CDE6', fontWeight: 800, flexShrink: 0 }} />}
+                              {addr.isDefault && <Chip size="small" label={d('default', 'Varsayılan')} sx={{ bgcolor: '#B0CDE6', fontWeight: 800, flexShrink: 0 }} />}
                             </Box>
                             <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 700, wordBreak: 'break-word' }}>{addr.adSoyad} · {addr.telefon}</Typography>
                             <Typography variant="body2" sx={{ color: '#6E5252', mt: 0.8, mb: 1.5, flex: 1, wordBreak: 'break-word' }}>{addr.adres}<br />{addr.ilce} / {addr.il}</Typography>
-                            <Button onClick={() => openDeleteModal('address', addr._id)} size="small" startIcon={<DeleteOutlinedIcon />} sx={{ color: '#946D6D', fontWeight: 700, alignSelf: 'flex-start' }}>Sil</Button>
+                            <Button onClick={() => openDeleteModal('address', addr._id)} size="small" startIcon={<DeleteOutlinedIcon />} sx={{ color: '#946D6D', fontWeight: 700, alignSelf: 'flex-start' }}>{d('delete', 'Sil')}</Button>
                           </Paper>
                         ))}
                       </Box>
@@ -511,9 +525,9 @@ export default function ProfileDashboard() {
 
                 {activeTab === 'cards' && (
                   <Box>
-                    <HeaderRow title="Kayıtlı kartlar" actionLabel="Yeni kart" icon={<AddCardOutlinedIcon />} onClick={() => setIsCardModalOpen(true)} />
+                    <HeaderRow title={d('cards', 'Kayıtlı kartlar')} actionLabel={d('newCard', 'Yeni kart')} icon={<AddCardOutlinedIcon />} onClick={() => setIsCardModalOpen(true)} />
                     {savedCards.length === 0 ? (
-                      <EmptyState text="Kayıtlı kartınız yok. Ödeme sırasında da kart girebilirsiniz." />
+                      <EmptyState text={d('noCards', 'Kayıtlı kartınız yok. Ödeme sırasında da kart girebilirsiniz.')} />
                     ) : (
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, alignItems: 'stretch' }}>
                         {savedCards.map((card) => (
@@ -522,11 +536,11 @@ export default function ProfileDashboard() {
                             <Typography sx={{ letterSpacing: '2px', mb: 2.5, fontFamily: 'monospace', fontWeight: 700 }}>•••• •••• •••• {card.son4Hane}</Typography>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', pr: 4 }}>
                               <Box>
-                                <Typography variant="caption" sx={{ opacity: 0.7 }}>Kart sahibi</Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.7 }}>{d('cardHolder', 'Kart sahibi')}</Typography>
                                 <Typography variant="body2" fontWeight={800}>{card.kartSahibi}</Typography>
                               </Box>
                               <Box>
-                                <Typography variant="caption" sx={{ opacity: 0.7 }}>SKT</Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.7 }}>{d('cardExpiry', 'SKT')}</Typography>
                                 <Typography variant="body2" fontWeight={800}>{card.skt}</Typography>
                               </Box>
                             </Box>
@@ -542,12 +556,12 @@ export default function ProfileDashboard() {
 
                 {activeTab === 'payments' && (
                   <Box>
-                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6, fontSize: '1.2rem' }}>Ödeme durumu</Typography>
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6, fontSize: '1.2rem' }}>{d('payments', 'Ödeme durumu')}</Typography>
                     <Typography sx={{ color: '#6E5252', mb: 2.2, lineHeight: 1.6 }}>
-                      Havale açıklamasına yalnızca ödeme kodunu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur.
+                      {d('paymentsHint', 'Havale açıklamasına yalnızca ödeme kodunu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur.')}
                     </Typography>
                     {orders.filter((order) => order.paymentMethod === 'transfer' || order.paymentCode).length === 0 ? (
-                      <EmptyState text="Kontrol edilecek sipariş yok." action="Alışverişe başla" onAction={() => navigate('/urunler')} />
+                      <EmptyState text={d('noPayments', 'Kontrol edilecek sipariş yok.')} action={t('actions.startShopping')} onAction={() => navigate('/urunler')} />
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.4 }}>
                         {orders.filter((order) => order.paymentMethod === 'transfer' || order.paymentCode).map((order) => {
@@ -555,16 +569,16 @@ export default function ProfileDashboard() {
                           return (
                             <Paper key={order._id} elevation={0} sx={{ ...cardSx, minWidth: 0 }}>
                               <Typography sx={{ fontWeight: 900, color: '#2E3B55', fontSize: '1.2rem', letterSpacing: 0.4 }}>
-                                {order.paymentCode || 'Kod yok'}
+                                {order.paymentCode || d('noCode', 'Kod yok')}
                               </Typography>
                               <Typography sx={{ color: '#946D6D', fontWeight: 800, mt: 0.4 }}>{paymentHoldLabel(order)}</Typography>
                               <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.6 }}>
                                 {formatPrice(order.totalPrice)} ₺
-                                {order.paidAmount ? ` · gelen ${formatPrice(order.paidAmount)} ₺` : ''}
+                                {order.paidAmount ? ` · ${d('received', 'gelen')} ${formatPrice(order.paidAmount)} ₺` : ''}
                               </Typography>
                               {waiting ? (
                                 <Typography sx={{ color: '#6E5252', mt: 0.8, lineHeight: 1.55 }}>
-                                  Son ödeme: {holdDeadline(order)}. Bu saate kadar açıklamaya yalnızca {order.paymentCode || 'ödeme kodunu'} yazın. Aksi halde sipariş iptal edilir.
+                                  {d('holdText', 'Son ödeme: {{deadline}}. Bu saate kadar açıklamaya yalnızca {{code}} yazın. Aksi halde sipariş iptal edilir.', { deadline: holdDeadline(order), code: order.paymentCode || d('holdCodeFallback', 'ödeme kodunu') })}
                                 </Typography>
                               ) : null}
                             </Paper>
@@ -577,22 +591,22 @@ export default function ProfileDashboard() {
 
                 {activeTab === 'orders' && (
                   <Box>
-                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>Siparişlerim</Typography>
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>{d('orders', 'Siparişlerim')}</Typography>
                     {orders.length === 0 ? (
-                      <EmptyState text="Henüz siparişiniz yok." action="Alışverişe başla" onAction={() => navigate('/urunler')} />
+                      <EmptyState text={d('noOrders', 'Henüz siparişiniz yok.')} action={t('actions.startShopping')} onAction={() => navigate('/urunler')} />
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         {orders.map((order) => {
                           const orderId = order._id;
                           const label = orderLabel(order);
-                          const cfg = statusConfig(label);
+                          const cfg = statusConfig(orderStatusKey(order));
                           const itemsCount = order.orderItems?.length || 0;
                           return (
                             <Paper key={orderId} elevation={0} sx={{ ...cardSx, minWidth: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1.4fr) auto auto auto' }, gap: 1.5, alignItems: 'center' }}>
                               <Box sx={{ minWidth: 0 }}>
                                 <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800 }}>#{String(orderId).slice(-6).toUpperCase()}</Typography>
                                 <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600 }} noWrap>
-                                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString('tr-TR') : ''} · {itemsCount} ürün
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString(dateLocale(i18n.language)) : ''} · {d('itemCount', '{{count}} ürün', { count: itemsCount })}
                                 </Typography>
                               </Box>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
@@ -601,7 +615,7 @@ export default function ProfileDashboard() {
                               </Box>
                               <Typography fontWeight={800} sx={{ color: '#2E3B55', whiteSpace: 'nowrap' }}>{formatPrice(order.totalPrice)} ₺</Typography>
                               <Button onClick={() => openOrderDetails(orderId)} endIcon={<VisibilityOutlinedIcon />} sx={{ borderRadius: '12px', color: '#2E3B55', fontWeight: 800, border: '1px solid rgba(46,59,85,0.18)', justifySelf: { sm: 'end' }, whiteSpace: 'nowrap' }}>
-                                Detay
+                                {d('details', 'Detay')}
                               </Button>
                             </Paper>
                           );
@@ -613,9 +627,9 @@ export default function ProfileDashboard() {
 
                 {activeTab === 'favorites' && (
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>Favorilerim</Typography>
+                    <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2.5, fontSize: '1.2rem' }}>{d('favorites', 'Favorilerim')}</Typography>
                     {favorites.length === 0 ? (
-                      <EmptyState text="Favori listeniz boş." action="Ürünlere git" onAction={() => navigate('/urunler')} />
+                      <EmptyState text={d('noFavorites', 'Favori listeniz boş.')} action={t('actions.goToProducts')} onAction={() => navigate('/urunler')} />
                     ) : (
                       <>
                         <Box
@@ -676,7 +690,7 @@ export default function ProfileDashboard() {
                                   <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minWidth: 0 }}>
                                     <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap' }}>{formatPrice(price)} ₺</Typography>
                                     <IconButton
-                                      aria-label="Favorilerden çıkar"
+                                      aria-label={d('removeFav', 'Favorilerden çıkar')}
                                       onClick={(e) => { e.stopPropagation(); handleRemoveFavorite(id); }}
                                       sx={{ bgcolor: 'rgba(148,109,109,0.1)', color: '#946D6D', flexShrink: 0, width: 36, height: 36 }}
                                     >
@@ -711,35 +725,35 @@ export default function ProfileDashboard() {
       </SiteContainer>
 
       <Dialog open={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)} fullScreen={isMobile} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: { xs: 0, sm: '24px' } } }}>
-        <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>Yeni adres</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>{d('newAddress', 'Yeni adres')}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, pt: 1 }}>
-            <TextField fullWidth label="Başlık (Ev, İş)" name="baslik" value={addressForm.baslik} onChange={handleAddressInputChange} sx={{ ...fieldSx, gridColumn: { sm: '1 / -1' } }} />
-            <TextField fullWidth label="Alıcı ad soyad" name="adSoyad" value={addressForm.adSoyad} onChange={handleAddressInputChange} sx={fieldSx} />
-            <TextField fullWidth label="Telefon" name="telefon" value={addressForm.telefon} onChange={handleAddressInputChange} sx={fieldSx} />
-            <TextField fullWidth label="İl" name="il" value={addressForm.il} onChange={handleAddressInputChange} sx={fieldSx} />
-            <TextField fullWidth label="İlçe" name="ilce" value={addressForm.ilce} onChange={handleAddressInputChange} sx={fieldSx} />
-            <TextField fullWidth multiline rows={3} label="Açık adres" name="adres" value={addressForm.adres} onChange={handleAddressInputChange} sx={{ ...fieldSx, gridColumn: '1 / -1' }} />
+            <TextField fullWidth label={d('addressTitle', 'Başlık (Ev, İş)')} name="baslik" value={addressForm.baslik} onChange={handleAddressInputChange} sx={{ ...fieldSx, gridColumn: { sm: '1 / -1' } }} />
+            <TextField fullWidth label={d('recipient', 'Alıcı ad soyad')} name="adSoyad" value={addressForm.adSoyad} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth label={d('phone', 'Telefon')} name="telefon" value={addressForm.telefon} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth label={d('city', 'İl')} name="il" value={addressForm.il} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth label={d('district', 'İlçe')} name="ilce" value={addressForm.ilce} onChange={handleAddressInputChange} sx={fieldSx} />
+            <TextField fullWidth multiline rows={3} label={d('street', 'Açık adres')} name="adres" value={addressForm.adres} onChange={handleAddressInputChange} sx={{ ...fieldSx, gridColumn: '1 / -1' }} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={() => setIsAddressModalOpen(false)} sx={{ fontWeight: 700, color: '#6E5252' }}>İptal</Button>
-          <Button onClick={handleAddAddress} variant="contained" sx={primaryBtnSx}>Kaydet</Button>
+          <Button onClick={() => setIsAddressModalOpen(false)} sx={{ fontWeight: 700, color: '#6E5252' }}>{t('actions.cancel')}</Button>
+          <Button onClick={handleAddAddress} variant="contained" sx={primaryBtnSx}>{t('actions.save')}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={isCardModalOpen} onClose={() => setIsCardModalOpen(false)} fullScreen={isMobile} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: { xs: 0, sm: '24px' } } }}>
-        <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>Yeni kart</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>{d('newCard', 'Yeni kart')}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <TextField fullWidth label="Kart üzerindeki isim" name="kartSahibi" value={cardForm.kartSahibi} onChange={handleCardInputChange} sx={fieldSx} />
-            <TextField fullWidth label="Kart numarası" name="kartNumarasi" value={cardForm.kartNumarasi} onChange={handleCardInputChange} inputProps={{ maxLength: 19 }} sx={fieldSx} />
-            <TextField fullWidth label="Son kullanma (AA/YY)" name="skt" value={cardForm.skt} onChange={handleCardInputChange} placeholder="12/28" sx={fieldSx} />
+            <TextField fullWidth label={d('cardName', 'Kart üzerindeki isim')} name="kartSahibi" value={cardForm.kartSahibi} onChange={handleCardInputChange} sx={fieldSx} />
+            <TextField fullWidth label={d('cardNumber', 'Kart numarası')} name="kartNumarasi" value={cardForm.kartNumarasi} onChange={handleCardInputChange} inputProps={{ maxLength: 19 }} sx={fieldSx} />
+            <TextField fullWidth label={d('cardExpiryLabel', 'Son kullanma (AA/YY)')} name="skt" value={cardForm.skt} onChange={handleCardInputChange} placeholder="12/28" sx={fieldSx} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={() => setIsCardModalOpen(false)} sx={{ fontWeight: 700, color: '#6E5252' }}>İptal</Button>
-          <Button onClick={handleAddCard} variant="contained" sx={primaryBtnSx}>Kaydet</Button>
+          <Button onClick={() => setIsCardModalOpen(false)} sx={{ fontWeight: 700, color: '#6E5252' }}>{t('actions.cancel')}</Button>
+          <Button onClick={handleAddCard} variant="contained" sx={primaryBtnSx}>{t('actions.save')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -751,8 +765,8 @@ export default function ProfileDashboard() {
           <DialogContentText sx={{ color: '#2E3B55', fontWeight: 600 }}>{deleteModal.message}</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={closeDeleteModal} sx={{ fontWeight: 700, color: '#6E5252' }}>İptal</Button>
-          <Button onClick={confirmDelete} variant="contained" sx={{ ...primaryBtnSx, bgcolor: '#946D6D' }}>Evet, sil</Button>
+          <Button onClick={closeDeleteModal} sx={{ fontWeight: 700, color: '#6E5252' }}>{t('actions.cancel')}</Button>
+          <Button onClick={confirmDelete} variant="contained" sx={{ ...primaryBtnSx, bgcolor: '#946D6D' }}>{d('confirmDelete', 'Evet, sil')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -760,34 +774,34 @@ export default function ProfileDashboard() {
         {isOrderLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
             <CircularProgress sx={{ color: '#946D6D', mb: 2 }} />
-            <Typography sx={{ color: '#6E5252', fontWeight: 600 }}>Sipariş detayı yükleniyor...</Typography>
+            <Typography sx={{ color: '#6E5252', fontWeight: 600 }}>{d('orderLoading', 'Sipariş detayı yükleniyor...')}</Typography>
           </Box>
         ) : selectedOrder ? (
           <>
             <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55' }}>
-              Sipariş #{String(selectedOrder._id).slice(-6).toUpperCase()}
+              {d('orderTitle', 'Sipariş #{{id}}', { id: String(selectedOrder._id).slice(-6).toUpperCase() })}
               <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 600, mt: 0.5 }}>{orderLabel(selectedOrder)}</Typography>
               {selectedOrder.paymentMethod ? (
                 <Typography variant="body2" sx={{ color: '#946D6D', fontWeight: 700, mt: 0.3 }}>
-                  {PAYMENT_METHOD[selectedOrder.paymentMethod] || selectedOrder.paymentMethod}
+                  {d(`payMethod.${selectedOrder.paymentMethod}`, PAYMENT_METHOD[selectedOrder.paymentMethod] || selectedOrder.paymentMethod)}
                 </Typography>
               ) : null}
             </DialogTitle>
             <DialogContent dividers>
               {selectedOrder.paymentMethod === 'transfer' && selectedOrder.paymentStatus === 'pending' ? (
                 <Box sx={{ mb: 2.2, p: 1.6, borderRadius: '16px', border: '1px dashed rgba(148,109,109,0.35)', backgroundColor: 'rgba(253,244,210,0.55)' }}>
-                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>Havale / EFT</Typography>
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.4 }}>{d('transfer', 'Havale / EFT')}</Typography>
                   <Typography sx={{ color: '#6E5252', fontSize: '0.85rem', mb: 1 }}>
-                    Ödeme onaylanınca üretim başlar. Açıklamaya yalnızca ödeme kodunu yazın.
+                    {d('transferHint', 'Ödeme onaylanınca üretim başlar. Açıklamaya yalnızca ödeme kodunu yazın.')}
                   </Typography>
                   <BankTransferDetails
                     bank={hasBankAccount(selectedOrder.bankAccount) ? selectedOrder.bankAccount : site?.bank}
                     amount={selectedOrder.totalPrice}
-                    note={`Açıklamaya yalnızca bunu yazın: ${selectedOrder.paymentCode || selectedOrder._id}`}
+                    note={d('transferNote', 'Açıklamaya yalnızca bunu yazın: {{code}}', { code: selectedOrder.paymentCode || selectedOrder._id })}
                   />
                 </Box>
               ) : null}
-              <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800 }}>TESLİMAT</Typography>
+              <Typography variant="caption" sx={{ color: '#A290B7', fontWeight: 800 }}>{d('delivery', 'TESLİMAT')}</Typography>
               <Typography sx={{ color: '#2E3B55', fontWeight: 600, mb: 2.5 }}>
                 {selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.district} / {selectedOrder.shippingAddress?.city}
               </Typography>
@@ -800,8 +814,8 @@ export default function ProfileDashboard() {
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography noWrap fontWeight={800} sx={{ color: '#2E3B55' }}>{item.name}</Typography>
                       <Typography variant="body2" sx={{ color: '#6E5252' }}>
-                        {qty} adet{qty > 1 ? ` · ${formatPrice(unit)} ₺` : ''}
-                        {[item.color, item.size].filter(Boolean).length ? ` · ${[item.color, item.size].filter(Boolean).join(' · ')}` : ''}
+                        {d('qty', '{{count}} adet', { count: qty })}{qty > 1 ? ` · ${formatPrice(unit)} ₺` : ''}
+                        {[item.color, item.size].filter(Boolean).length ? ` · ${[item.colorLabel || item.color, item.sizeLabel || item.size].filter(Boolean).join(' · ')}` : ''}
                       </Typography>
                     </Box>
                     <Typography fontWeight={800} sx={{ color: '#946D6D', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatPrice(lineTotalOf(item))} ₺</Typography>
@@ -817,10 +831,10 @@ export default function ProfileDashboard() {
                   try {
                     const data = await orderService.addNote(selectedOrder._id, text);
                     setSelectedOrder((prev) => (prev ? { ...prev, makerNotes: data.makerNotes || prev.makerNotes } : prev));
-                    showAlert(data.mesaj || 'Not atölyeye iletildi.');
+                    showAlert(data.mesaj || d('noteSent', 'Not atölyeye iletildi.'));
                     return true;
                   } catch (error) {
-                    showAlert(error.message || error.mesaj || 'Not iletilemedi.', 'error');
+                    showAlert(error.message || error.mesaj || d('noteFailed', 'Not iletilemedi.'), 'error');
                     return false;
                   }
                 }}
@@ -830,14 +844,14 @@ export default function ProfileDashboard() {
                   <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.8 }}>
                     <Typography sx={{ color: '#6E5252', fontWeight: row.total ? 800 : 600 }}>{row.label}</Typography>
                     <Typography fontWeight={800} sx={{ color: row.accent ? '#2E7D32' : '#2E3B55' }}>
-                      {row.free ? 'Ücretsiz' : `${formatPrice(row.value)} ₺`}
+                      {row.free ? d('free', 'Ücretsiz') : `${formatPrice(row.value)} ₺`}
                     </Typography>
                   </Box>
                 ))}
               </Box>
             </DialogContent>
             <DialogActions sx={{ p: 2.5, justifyContent: 'flex-end' }}>
-              <Button onClick={() => setIsOrderModalOpen(false)} variant="contained" sx={primaryBtnSx}>Kapat</Button>
+              <Button onClick={() => setIsOrderModalOpen(false)} variant="contained" sx={primaryBtnSx}>{t('actions.close')}</Button>
             </DialogActions>
           </>
         ) : null}

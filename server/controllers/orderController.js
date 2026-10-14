@@ -23,6 +23,28 @@ const { notifyOrderCreated } = require('../services/emailService');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
+const withEnglishItems = async (orders, lang) => {
+    const list = orders.map((order) => (order?.toObject ? order.toObject() : order));
+    if (lang !== 'en') return list;
+    const ids = [...new Set(list.flatMap((order) => (order.orderItems || []).map((item) => String(item.product || ''))).filter(Boolean))];
+    if (!ids.length) return list;
+    const products = await Product.find({ _id: { $in: ids } }).select('en.title en.colorLabels en.sizeLabels').lean();
+    const byId = new Map(products.map((product) => [String(product._id), product.en || {}]));
+    list.forEach((order) => {
+        order.orderItems = (order.orderItems || []).map((item) => {
+            const en = byId.get(String(item.product || ''));
+            if (!en) return item;
+            return {
+                ...item,
+                name: en.title || item.name,
+                colorLabel: (item.color && en.colorLabels?.[item.color]) || item.color,
+                sizeLabel: (item.size && en.sizeLabels?.[item.size]) || item.size
+            };
+        });
+    });
+    return list;
+};
+
 const nextPaymentCode = async () => {
     for (let attempt = 0; attempt < 8; attempt += 1) {
         const candidate = `NB-${crypto.randomInt(1000, 10000)}`;
@@ -629,7 +651,7 @@ exports.addGuestOrderNote = async (req, res) => {
 exports.getMyOrders = async (req, res) => {
     try {
         const orders = await Order.find({ user: req.user._id || req.user.id }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, orders });
+        res.status(200).json({ success: true, orders: await withEnglishItems(orders, req.lang) });
     } catch (error) {
         console.error('Siparişler getirilirken hata:', error);
         res.status(500).json({ success: false, message: 'Siparişleriniz alınamadı.' });
@@ -656,7 +678,8 @@ exports.getOrderById = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Bu siparişi görüntüleme yetkiniz yok.' });
         }
 
-        res.status(200).json({ success: true, order });
+        const [localized] = await withEnglishItems([order], req.lang);
+        res.status(200).json({ success: true, order: localized });
     } catch (error) {
         console.error('Sipariş detayı alınırken hata:', error);
         res.status(500).json({ success: false, message: 'Sipariş detayı alınamadı.' });

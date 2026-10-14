@@ -23,7 +23,7 @@ export const productSchema = (product, { path, price, images = [], description, 
   if (!product) return null;
 
   const locPath = withLocale(path, locale);
-  const name = product.title || product.name || 'El yapımı tasarım';
+  const name = product.title || product.name || (locale === 'en' ? 'Handmade design' : 'El yapımı tasarım');
   const stock = Number(product.stock ?? 0);
   const rating = Number(product.rating || product.averageRating || 0);
   const reviewCount = Number(product.reviewCount || product.numReviews || 0);

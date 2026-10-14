@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Ürün videosu: dosya tıklanıncaya kadar inmez, ekrandan çıkınca durur.
  */
-export default function ProductClip({ src, poster, title = 'Ürün videosu' }) {
+export default function ProductClip({ src, poster, title }) {
+  const { t } = useTranslation('catalog');
+  const label = title || t('clip.title', 'Ürün videosu');
   const wrapRef = useRef(null);
   const videoRef = useRef(null);
   const [armed, setArmed] = useState(false);
@@ -48,7 +51,7 @@ export default function ProductClip({ src, poster, title = 'Ürün videosu' }) {
           component="button"
           type="button"
           onClick={() => setArmed(true)}
-          aria-label={`${title} videosunu oynat`}
+          aria-label={t('clip.play', { title: label, defaultValue: '{{title}} videosunu oynat' })}
           sx={{
             position: 'absolute',
             inset: 0,
@@ -105,7 +108,7 @@ export default function ProductClip({ src, poster, title = 'Ürün videosu' }) {
               letterSpacing: 0.8
             }}
           >
-            VİDEO
+            {t('clip.badge', 'VİDEO')}
           </Typography>
         </Box>
       )}

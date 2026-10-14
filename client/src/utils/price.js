@@ -33,33 +33,40 @@ export const orderChargeRows = (order) => {
       : Math.max(0, subtotal - couponDiscount - promoDiscount) + shipping
   );
 
-  const rows = [{ label: 'Ara toplam', value: subtotal }];
+  const t = (key, defaultValue, options = {}) => i18n.t(`charges.${key}`, { ns: 'checkout', defaultValue, ...options });
+  const percentLabel = (value) => (i18n.language === 'en' ? `${value}%` : `%${value}`);
+
+  const rows = [{ label: t('subtotal', 'Ara toplam'), value: subtotal }];
   if (couponDiscount > 0) {
     const bits = [];
-    if (order.couponPercent) bits.push(`%${order.couponPercent}`);
+    if (order.couponPercent) bits.push(percentLabel(order.couponPercent));
     if (order.couponCode) bits.push(order.couponCode);
     rows.push({
-      label: bits.length ? `Hoş geldin (${bits.join(' · ')})` : 'Hoş geldin indirimi',
+      label: bits.length
+        ? t('welcomeWith', 'Hoş geldin ({{detail}})', { detail: bits.join(' · ') })
+        : t('welcome', 'Hoş geldin indirimi'),
       value: -couponDiscount,
       accent: true
     });
   }
   if (promoDiscount > 0) {
     const bits = [];
-    if (order.promoPercent) bits.push(`%${order.promoPercent}`);
+    if (order.promoPercent) bits.push(percentLabel(order.promoPercent));
     if (order.promoCode) bits.push(order.promoCode);
     rows.push({
-      label: bits.length ? `Kampanya (${bits.join(' · ')})` : 'Kampanya indirimi',
+      label: bits.length
+        ? t('promoWith', 'Kampanya ({{detail}})', { detail: bits.join(' · ') })
+        : t('promo', 'Kampanya indirimi'),
       value: -promoDiscount,
       accent: true
     });
   }
   rows.push({
-    label: 'Kargo',
+    label: t('shipping', 'Kargo'),
     value: shipping,
     free: shipping === 0
   });
-  rows.push({ label: 'Toplam', value: total, total: true });
+  rows.push({ label: t('total', 'Toplam'), value: total, total: true });
   return rows;
 };
 

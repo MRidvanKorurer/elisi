@@ -144,9 +144,9 @@ export default function Footer() {
               <Box component="button" type="button" onClick={() => setLegalDoc('kargo')} sx={legalBtnSx}>{t('footer.shipping')}</Box>
               <Box component="button" type="button" onClick={() => setLegalDoc('iade')} sx={legalBtnSx}>{t('footer.returns')}</Box>
               <Box component="button" type="button" onClick={() => setLegalDoc('gizlilik')} sx={legalBtnSx}>{t('footer.privacy')}</Box>
-              <Box component="button" type="button" onClick={() => setLegalDoc('kvkk')} sx={legalBtnSx}>KVKK</Box>
-              <Box component="button" type="button" onClick={() => setLegalDoc('mesafeli-satis')} sx={legalBtnSx}>Mesafeli satış</Box>
-              <Box component="button" type="button" onClick={() => setLegalDoc('satici-sozlesmesi')} sx={legalBtnSx}>Satıcı sözleşmesi</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('kvkk')} sx={legalBtnSx}>{t('footer.kvkk', 'KVKK')}</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('mesafeli-satis')} sx={legalBtnSx}>{t('footer.distanceSales', 'Mesafeli satış')}</Box>
+              <Box component="button" type="button" onClick={() => setLegalDoc('satici-sozlesmesi')} sx={legalBtnSx}>{t('footer.sellerAgreement', 'Satıcı sözleşmesi')}</Box>
             </Box>
           </Box>
 

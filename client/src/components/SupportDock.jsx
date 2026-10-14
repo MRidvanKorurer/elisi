@@ -21,13 +21,11 @@ import { supportService } from '../api/supportService';
 import { getSitePublic } from '../api/siteService';
 
 const WHATSAPP_NUMBER = '905543793235';
-const WHATSAPP_TEXT = encodeURIComponent('Merhaba Nik Bag, site hakkında bir sorum var.');
-
 const QUICK = [
-  { label: 'Kargo', text: 'Kargo ücreti ve teslimat süresi nedir?' },
-  { label: 'İade', text: 'İade nasıl yapılır?' },
-  { label: 'Ödeme', text: 'Hangi ödeme yöntemleri var?' },
-  { label: 'Siparişim', text: 'Son siparişimin durumu nedir?' }
+  { key: 'shipping', label: 'Kargo', text: 'Kargo ücreti ve teslimat süresi nedir?' },
+  { key: 'returns', label: 'İade', text: 'İade nasıl yapılır?' },
+  { key: 'payment', label: 'Ödeme', text: 'Hangi ödeme yöntemleri var?' },
+  { key: 'order', label: 'Siparişim', text: 'Son siparişimin durumu nedir?' }
 ];
 
 const fabBase = {
@@ -73,10 +71,11 @@ export default function SupportDock() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
-  const [messages, setMessages] = useState([
+  const whatsappText = encodeURIComponent(t('waMessage', 'Merhaba Nik Bag, site hakkında bir sorum var.'));
+  const [messages, setMessages] = useState(() => [
     {
       role: 'assistant',
-      content: 'Merhaba, Nik Bag asistanıyım. Kargo, iade, ödeme ve sipariş hakkında sorabilirsin.'
+      content: t('greeting', 'Merhaba, Nik Bag asistanıyım. Kargo, iade, ödeme ve sipariş hakkında sorabilirsin.')
     }
   ]);
   const scroller = useRef(null);
@@ -86,14 +85,14 @@ export default function SupportDock() {
     height: typeof window === 'undefined' ? 0 : window.innerHeight,
     offsetTop: 0
   }));
-  const [whatsappHref, setWhatsappHref] = useState(`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_TEXT}`);
+  const [whatsappHref, setWhatsappHref] = useState(`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappText}`);
 
   useEffect(() => {
     getSitePublic().then((site) => {
       const digits = String(site?.whatsapp || WHATSAPP_NUMBER).replace(/\D/g, '') || WHATSAPP_NUMBER;
-      setWhatsappHref(`https://wa.me/${digits}?text=${WHATSAPP_TEXT}`);
+      setWhatsappHref(`https://wa.me/${digits}?text=${whatsappText}`);
     }).catch(() => {});
-  }, []);
+  }, [whatsappText]);
 
   useEffect(() => {
     const node = scroller.current;
@@ -145,12 +144,12 @@ export default function SupportDock() {
     setSending(true);
     try {
       const data = await supportService.chat({ message, history });
-      const reply = data?.reply || data?.message || 'Yanıt alınamadı.';
+      const reply = data?.reply || data?.message || t('noReply', 'Yanıt alınamadı.');
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Şu an bağlanamadım. WhatsApp’tan yazabilirsin.' }
+        { role: 'assistant', content: t('offline', 'Şu an bağlanamadım. WhatsApp’tan yazabilirsin.') }
       ]);
     } finally {
       setSending(false);
@@ -217,8 +216,8 @@ export default function SupportDock() {
               <Box sx={{ px: 1.6, py: 1.3, backgroundColor: '#2E3B55', color: '#FDF4D2', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AutoAwesomeOutlinedIcon sx={{ fontSize: 20 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography fontWeight={800} sx={{ fontSize: 14, lineHeight: 1.2 }}>Nik Bag asistan</Typography>
-                  <Typography sx={{ fontSize: 11, opacity: 0.78 }}>Kargo · iade · sipariş</Typography>
+                  <Typography fontWeight={800} sx={{ fontSize: 14, lineHeight: 1.2 }}>{t('title', 'Nik Bag asistan')}</Typography>
+                  <Typography sx={{ fontSize: 11, opacity: 0.78 }}>{t('subtitle', 'Kargo · iade · sipariş')}</Typography>
                 </Box>
                 <IconButton
                   component="a"
@@ -230,7 +229,7 @@ export default function SupportDock() {
                 >
                   <WhatsAppIcon fontSize="small" />
                 </IconButton>
-                <IconButton aria-label="Kapat" onClick={() => setOpen(false)} sx={{ color: '#FDF4D2' }}>
+                <IconButton aria-label={t('close', 'Kapat')} onClick={() => setOpen(false)} sx={{ color: '#FDF4D2' }}>
                   <CloseRoundedIcon fontSize="small" />
                 </IconButton>
               </Box>
@@ -246,7 +245,7 @@ export default function SupportDock() {
                 {sending && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#6E5252', pl: 0.5 }}>
                     <CircularProgress size={14} sx={{ color: '#946D6D' }} />
-                    <Typography variant="caption" fontWeight={700}>Yazıyor…</Typography>
+                    <Typography variant="caption" fontWeight={700}>{t('typing', 'Yazıyor…')}</Typography>
                   </Box>
                 )}
               </Box>
@@ -254,10 +253,10 @@ export default function SupportDock() {
               <Box sx={{ px: 1.3, pt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.7 }}>
                 {QUICK.map((item) => (
                   <Box
-                    key={item.label}
+                    key={item.key}
                     component="button"
                     type="button"
-                    onClick={() => send(item.text)}
+                    onClick={() => send(t(`questions.${item.key}`, item.text))}
                     disabled={sending}
                     sx={{
                       border: '1px solid rgba(148,109,109,0.22)',
@@ -272,7 +271,7 @@ export default function SupportDock() {
                       opacity: sending ? 0.55 : 1
                     }}
                   >
-                    {item.label}
+                    {t(`chips.${item.key}`, item.label)}
                   </Box>
                 ))}
               </Box>
@@ -319,7 +318,7 @@ export default function SupportDock() {
                 onClick={() => navigate('/satici-ol')}
                 sx={{ px: 1.6, pb: 1.2, fontSize: 11, color: '#6E5252', cursor: 'pointer', fontWeight: 700 }}
               >
-                Satıcı olmak mı istiyorsun? Başvuru sayfası →
+                {t('sellerLink', 'Satıcı olmak mı istiyorsun? Başvuru sayfası →')}
               </Typography>
             </Box>
           </motion.div>
@@ -347,7 +346,7 @@ export default function SupportDock() {
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="WhatsApp ile sor"
+            aria-label={t('waAria', 'WhatsApp ile sor')}
             sx={{
               ...fabBase,
               display: open ? { xs: 'none', sm: 'inline-flex' } : 'inline-flex',

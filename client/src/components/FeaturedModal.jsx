@@ -88,14 +88,16 @@ export default function FeaturedModal({ open, onClose }) {
         image: product.image || (product.images && product.images[0]) || imgBagOrange,
         quantity: 1
       });
-      if (!response?.success) throw new Error(response?.message || 'Ürün sepete eklenemedi.');
+      if (!response?.success) throw new Error(response?.message || t('card.addFailed', { ns: 'catalog', defaultValue: 'Ürün sepete eklenemedi.' }));
       window.dispatchEvent(new Event('cartUpdated'));
-      setToast({ open: true, message: 'Ürün sepete eklendi.', severity: 'success' });
+      setToast({ open: true, message: t('card.added', { ns: 'catalog', defaultValue: 'Ürün sepete eklendi.' }), severity: 'success' });
     } catch (error) {
       const unauthorized = error?.status === 401 || /token/i.test(error?.mesaj || '');
       setToast({
         open: true,
-        message: unauthorized ? 'Sepete eklemek için giriş yapmalısınız.' : 'Ürün sepete eklenemedi.',
+        message: unauthorized
+          ? t('card.loginToCart', { ns: 'catalog', defaultValue: 'Sepete eklemek için giriş yapmalısınız.' })
+          : t('card.addFailed', { ns: 'catalog', defaultValue: 'Ürün sepete eklenemedi.' }),
         severity: unauthorized ? 'warning' : 'error'
       });
     } finally {
@@ -185,7 +187,7 @@ export default function FeaturedModal({ open, onClose }) {
                 >
                   <AutoAwesomeIcon sx={{ fontSize: '15px !important' }} />
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: 1.1 }}>
-                    VİTRİN · {products.length}
+                    {t('featured.modalBadge', { ns: 'catalog', defaultValue: 'VİTRİN' })} · {products.length}
                   </Typography>
                 </Box>
                 <Typography
@@ -342,7 +344,7 @@ export default function FeaturedModal({ open, onClose }) {
                         </Box>
                         <Box sx={{ p: { xs: 1.6, md: 1.9 }, display: 'flex', flexDirection: 'column', gap: 0.4, flex: 1 }}>
                           <Typography sx={{ color: '#A290B7', fontWeight: 800, fontSize: '0.68rem', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                            {product.vendorName || product.vendor?.name || 'Onaylı atölye'}
+                            {product.vendorName || product.vendor?.name || t('atelier.verified', { ns: 'catalog', defaultValue: 'Onaylı atölye' })}
                           </Typography>
                           <Typography
                             sx={{

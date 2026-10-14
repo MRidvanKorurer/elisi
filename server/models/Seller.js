@@ -83,6 +83,11 @@ const sellerSchema = new mongoose.Schema(
         weeklyUntil: {
             type: Date,
             default: null
+        },
+        en: {
+            aciklama: { type: String, default: '' },
+            sourceHash: { type: String, default: '' },
+            translatedAt: { type: Date }
         }
     },
     { timestamps: true }
@@ -105,6 +110,10 @@ sellerSchema.pre('save', async function () {
         }
         this.slug = slug;
     }
+});
+
+sellerSchema.post('save', () => {
+    require('../services/contentTranslation').scheduleSweep();
 });
 
 module.exports = mongoose.model('Seller', sellerSchema);

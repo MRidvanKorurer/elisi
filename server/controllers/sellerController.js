@@ -35,7 +35,7 @@ const {
 const { cookieOptions } = require('../utils/runtime');
 const COOKIE_OPTIONS = cookieOptions();
 
-const { CATEGORY_LABELS } = require('../constants/categories');
+const { CATEGORY_LABELS, CATEGORY_LABELS_EN } = require('../constants/categories');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { magazaTuruEtiket, normalizeMagazaTurleri } = require('../utils/sellerCategories');
 const { unansweredQuery, overdueQuery } = require('../utils/questionDeadline');
@@ -96,6 +96,7 @@ const serializeSeller = (seller, user, extra = {}) => ({
     hesapTipi: seller.hesapTipi,
     magazaTuru: normalizeMagazaTurleri(seller.magazaTuru),
     magazaTuruEtiket: magazaTuruEtiket(seller.magazaTuru),
+    en: { magazaTuruEtiket: magazaTuruEtiket(seller.magazaTuru, 'en') },
     aciklama: seller.aciklama,
     telefon: seller.telefon,
     sehir: seller.sehir,
@@ -1346,7 +1347,8 @@ const getPublicSeller = async (req, res) => {
             .map((row) => ({
                 id: row._id,
                 label: CATEGORY_LABELS[row._id] || row._id,
-                count: row.count
+                count: row.count,
+                en: { label: CATEGORY_LABELS_EN[row._id] || '' }
             }));
 
         const coverImages = pickCoverImages(coverDocs);

@@ -1,4 +1,5 @@
 import API from './api';
+import i18n from '../i18n';
 
 const GUEST_KEY = 'guestCart';
 
@@ -124,7 +125,7 @@ export const cartService = {
           size: productData.size || ''
         });
       }
-      return { success: true, message: 'Ürün sepete eklendi.', items: saveLocalCart(cart), isGuest: true };
+      return { success: true, message: i18n.t('card.added', { ns: 'catalog' }), items: saveLocalCart(cart), isGuest: true };
     }
   },
 
@@ -148,7 +149,12 @@ export const cartService = {
           cart[itemIndex].quantity -= 1;
         }
       }
-      return { success: true, message: 'Ürün sepetten çıkarıldı.', items: saveLocalCart(cart), isGuest: true };
+      return {
+        success: true,
+        message: i18n.t('cart.removed', { ns: 'checkout', defaultValue: 'Ürün sepetten çıkarıldı.' }),
+        items: saveLocalCart(cart),
+        isGuest: true
+      };
     }
   },
 
@@ -179,7 +185,12 @@ export const cartService = {
       if (error.response?.status && error.response.status !== 401) {
         throw error.response?.data || error;
       }
-      return { success: true, message: 'Sepet temizlendi.', items: [], isGuest: true };
+      return {
+        success: true,
+        message: i18n.t('cart.cleared', { ns: 'checkout', defaultValue: 'Sepet temizlendi.' }),
+        items: [],
+        isGuest: true
+      };
     }
   }
 };

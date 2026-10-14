@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Typography } from '@mui/material';
 import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
@@ -70,6 +71,7 @@ function Cell({ icon: Icon, title, detail, items }) {
 }
 
 export default function ProductFulfillment({ product }) {
+  const { t } = useTranslation('catalog');
   const data = buildFulfillment(product);
   if (!data?.delivery || !data?.shipping || !data?.returns) return null;
 
@@ -89,8 +91,10 @@ export default function ProductFulfillment({ product }) {
         <Cell icon={ICONS.shipping} title={data.shipping.title} detail={data.shipping.detail} />
         <Cell
           icon={ICONS.measures}
-          title={measures.length ? 'Ölçü ve kullanım' : 'El işçiliği, sınırlı üretim'}
-          detail={measures.length ? '' : 'Her parça atölyede, sınırlı adetle hazırlanır.'}
+          title={measures.length
+            ? t('fulfillment.measures', 'Ölçü ve kullanım')
+            : t('fulfillment.handmade', 'El işçiliği, sınırlı üretim')}
+          detail={measures.length ? '' : t('fulfillment.handmadeText', 'Her parça atölyede, sınırlı adetle hazırlanır.')}
           items={measures.slice(0, 4)}
         />
         <Cell icon={ICONS.returns} title={data.returns.title} detail={data.returns.detail} />

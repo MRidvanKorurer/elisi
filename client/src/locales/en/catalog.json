@@ -7,7 +7,15 @@
     "browseCategory": "Browse a category",
     "categories": "Categories",
     "products": "Products",
-    "soldOut": "Sold out"
+    "soldOut": "Sold out",
+    "untitled": "Product",
+    "seeAll": "See all results",
+    "noResults": "No results",
+    "noResultsText": "No products match “{{term}}”. Try a different word.",
+    "searching": "Searching…",
+    "categoryCount_one": "{{count}} product",
+    "categoryCount_other": "{{count}} products",
+    "browseCollection": "Browse the collection"
   },
   "card": {
     "untitled": "Handmade design",
@@ -33,7 +41,8 @@
     "emptyTitle": "Nothing featured right now",
     "emptyText": "The vitrine is empty. Browse the full collection instead.",
     "limit": "They leave the shelf when the run ends.",
-    "seeAll": "See the full collection"
+    "seeAll": "See the full collection",
+    "modalBadge": "FEATURED"
   },
   "list": {
     "title": "Handmade design collection",
@@ -71,7 +80,28 @@
     "filtering": "Refreshing the collection",
     "filteringHint": "Gathering pieces that match your filters.",
     "colorPlaceholder": "Type a color",
-    "searchPlaceholder": "Piece, color, or material"
+    "searchPlaceholder": "Piece, color, or material",
+    "colorHeading": "COLOR",
+    "colorOptions_one": "{{count}} option",
+    "colorOptions_other": "{{count}} options",
+    "colorNone": "No color matches that name.",
+    "colorMore_one": "+{{count}} more color. Type above to find it.",
+    "colorMore_other": "+{{count}} more colors. Type above to find them.",
+    "filterEyebrow": "ATELIER FILTERS",
+    "pieceCount_one": "{{count}} piece",
+    "pieceCount_other": "{{count}} pieces",
+    "statusHeading": "AVAILABILITY",
+    "categoryHeading": "CATEGORY",
+    "categoryNone": "No categories found.",
+    "priceHeading": "PRICE",
+    "clearCount_one": "Clear {{count}} filter",
+    "clearCount_other": "Clear {{count}} filters",
+    "showing": "Showing {{count}} of {{total}} products",
+    "filterButton": "Filter",
+    "emptyTitle": "No results",
+    "emptyText": "No products match your filters. Try loosening them.",
+    "clearFilters": "Clear filters",
+    "showResults": "Show results"
   },
   "product": {
     "notFoundTitle": "Product not found",
@@ -110,7 +140,22 @@
     "customNoteTitle": "Made to order",
     "customNoteText": "This piece is prepared with your order ({{time}}). Leave measure, color, and delivery notes at checkout.",
     "measureNoteTitle": "Fit & use",
-    "measureNoteText": "See size options below; add an extra note for the atelier at checkout."
+    "measureNoteText": "See size options below; add an extra note for the atelier at checkout.",
+    "untitled": "Product",
+    "addedNamed": "{{title}} was added to your bag.",
+    "discount": "{{rate}}% off",
+    "ratingSummary_one": "{{rating}} · {{count}} review",
+    "ratingSummary_other": "{{rating}} · {{count}} reviews",
+    "color": "Color",
+    "size": "Size",
+    "houseName": "Nik Bag Atelier",
+    "houseType": "Handmade",
+    "houseBio": "Our in-house atelier, where traditional handcraft meets clean, modern lines.",
+    "houseCity": "Turkey",
+    "specs": "Product details",
+    "care": "Care",
+    "similarTitle": "You may also like",
+    "similarLead": "More handmade pieces from the same category."
   },
   "atelier": {
     "notFoundTitle": "Atelier not found",
@@ -139,11 +184,96 @@
       "rating": "Rating",
       "priceAsc": "Price: low to high",
       "priceDesc": "Price: high to low"
-    }
+    },
+    "sinceYear": "Since {{year}}",
+    "backToProducts": "Back to products",
+    "seoTitle": "{{name}} | Atelier",
+    "seoDescription": "Handmade pieces from {{name}}.",
+    "coverAlt": "{{name}} vitrine",
+    "inVitrine_one": "{{count}} piece in the vitrine",
+    "inVitrine_other": "{{count}} pieces in the vitrine",
+    "website": "Website",
+    "seeVitrine": "See the vitrine",
+    "vitrineTitle": "Atelier vitrine",
+    "showing": "Showing {{count}} of {{total}} pieces",
+    "noMatch": "Nothing matches this selection",
+    "noMatchText": "Try another category or sort order.",
+    "clearFilters": "Clear filters"
   },
   "notFound": {
     "title": "Page not found",
     "heading": "We can’t find that page",
     "text": "The link may have changed, or the product was removed. Continue from the collection."
+  },
+  "fulfillment": {
+    "measures": "Size & use",
+    "handmade": "Handmade in limited runs",
+    "handmadeText": "Every piece is made at the atelier in limited numbers."
+  },
+  "gallery": {
+    "prev": "Previous image",
+    "next": "Next image",
+    "thumb": "{{title}} image {{index}}"
+  },
+  "slider": {
+    "products": "Products",
+    "prev": "Previous products",
+    "next": "Next products"
+  },
+  "clip": {
+    "title": "Product video",
+    "play": "Play the {{title}} video",
+    "badge": "VIDEO"
+  },
+  "questions": {
+    "guest": "Guest",
+    "askFailed": "Could not send your question.",
+    "answerFailed": "Could not save the answer.",
+    "deleteFailed": "Could not delete the question.",
+    "title": "Questions & answers",
+    "summary_one": "{{count}} question · {{answered}} answered",
+    "summary_other": "{{count}} questions · {{answered}} answered",
+    "empty": "Ask the seller about this piece",
+    "ask": "Ask a question",
+    "namePlaceholder": "Your name",
+    "placeholder": "Size, color, delivery… ask anything",
+    "hint": "Your question goes to the seller. If it isn't answered within 3 days, the seller gets a reminder.",
+    "cancel": "Cancel",
+    "sending": "Sending",
+    "submit": "Send question",
+    "loading": "Loading questions…",
+    "none": "No questions yet. Be the first to ask.",
+    "you": "(you)",
+    "deleting": "Deleting…",
+    "delete": "Delete",
+    "sellerAnswer": "SELLER'S ANSWER",
+    "editAnswer": "Edit answer",
+    "awaiting": "The seller hasn't answered yet",
+    "answerPlaceholder": "Write a reply to the customer",
+    "saving": "Saving",
+    "updateAnswer": "Update answer",
+    "answer": "Reply"
+  },
+  "reviews": {
+    "eligibilityFailed": "Could not check whether you can review this piece.",
+    "submitFailed": "Could not send your review.",
+    "deleteFailed": "Could not delete the review.",
+    "title": "Reviews",
+    "summary_one": "{{rating}} / 5 · {{count}} review",
+    "summary_other": "{{rating}} / 5 · {{count}} reviews",
+    "none": "No reviews yet",
+    "write": "Write a review",
+    "login": "Log in",
+    "you": "You",
+    "placeholder": "Tell others about your experience…",
+    "cancel": "Cancel",
+    "sending": "Sending",
+    "submit": "Send",
+    "loading": "Loading reviews…",
+    "empty": "No one has reviewed this piece yet.",
+    "member": "Member",
+    "delete": "Delete review",
+    "noText": "This review has no text.",
+    "photo": "Review photo"
   }
 }

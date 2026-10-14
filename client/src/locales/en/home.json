@@ -114,7 +114,11 @@
     "title": "Bags in motion",
     "subtitle": "Knit detail, wooden handles, studio light. Three frames from the collection.",
     "knit": "Knit detail",
-    "wood": "Wooden handle"
+    "wood": "Wooden handle",
+    "badgeVideo": "Live detail",
+    "badgeImage": "Atelier",
+    "examine": "View",
+    "defaultClipTitle": "Atelier detail"
   },
   "film": {
     "eyebrow": "ATELIER FILM",

@@ -33,6 +33,10 @@
       "has": [{ "type": "query", "key": "category", "value": "(?<cat>[a-z0-9-]+)" }],
       "destination": "/api/seo?type=category&id=:cat&locale=en&legacy=1"
     },
+    { "source": "/en", "destination": "/api/seo?type=page&id=home&locale=en" },
+    { "source": "/en/urunler", "destination": "/api/seo?type=page&id=products&locale=en" },
+    { "source": "/en/atolyeler", "destination": "/api/seo?type=page&id=ateliers&locale=en" },
+    { "source": "/en/satici-ol", "destination": "/api/seo?type=page&id=seller&locale=en" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     {
       "source": "/((?!sitemap\\.xml|robots\\.txt|.*\\..*).*)",

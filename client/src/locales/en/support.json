@@ -8,5 +8,21 @@
     "returns": "Returns",
     "payment": "Payment",
     "order": "My order"
+  },
+  "waMessage": "Hi Nik Bag, I have a question about the site.",
+  "greeting": "Hi, I'm the Nik Bag assistant. Ask me about shipping, returns, payment or your order.",
+  "noReply": "No reply received.",
+  "offline": "I can't connect right now. You can message us on WhatsApp.",
+  "title": "Nik Bag assistant",
+  "subtitle": "Shipping · returns · orders",
+  "close": "Close",
+  "typing": "Typing…",
+  "sellerLink": "Want to sell on Nik Bag? Apply here →",
+  "waAria": "Ask on WhatsApp",
+  "questions": {
+    "shipping": "How much is shipping and how long does delivery take?",
+    "returns": "How do returns work?",
+    "payment": "Which payment methods do you accept?",
+    "order": "What's the status of my latest order?"
   }
 }

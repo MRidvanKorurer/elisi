@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -22,6 +23,7 @@ const fieldSx = {
 };
 
 export default function PhoneRequiredGate({ user, onSaved }) {
+  const { t } = useTranslation('auth');
   const [telefon, setTelefon] = useState(user?.telefon || user?.phone || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export default function PhoneRequiredGate({ user, onSaved }) {
   const handleSave = async (event) => {
     event.preventDefault();
     if (!isValidPhone(telefon)) {
-      setError('Geçerli bir cep telefonu girin (05xx xxx xx xx).');
+      setError(t('phoneGate.invalid', 'Geçerli bir cep telefonu girin (05xx xxx xx xx).'));
       return;
     }
     setLoading(true);
@@ -46,7 +48,7 @@ export default function PhoneRequiredGate({ user, onSaved }) {
       persistSession(nextUser);
       onSaved?.(nextUser);
     } catch (err) {
-      setError(err.response?.data?.mesaj || err.response?.data?.message || 'Telefon kaydedilemedi.');
+      setError(err.response?.data?.mesaj || err.response?.data?.message || t('phoneGate.failed', 'Telefon kaydedilemedi.'));
     } finally {
       setLoading(false);
     }
@@ -55,11 +57,11 @@ export default function PhoneRequiredGate({ user, onSaved }) {
   return (
     <Dialog open fullWidth maxWidth="xs" disableEscapeKeyDown>
       <DialogTitle sx={{ fontWeight: 800, color: '#2E3B55', pb: 0.5 }}>
-        Telefon numarası zorunlu
+        {t('phoneGate.title', 'Telefon numarası zorunlu')}
       </DialogTitle>
       <DialogContent>
         <Typography sx={{ color: '#6E5252', fontWeight: 600, mb: 2, mt: 1 }}>
-          Google veya e-posta ile kayıtta telefon gereklidir. Devam etmek için numaranı yaz.
+          {t('phoneGate.lead', 'Google veya e-posta ile kayıtta telefon gereklidir. Devam etmek için numaranı yaz.')}
         </Typography>
         {error ? <Alert severity="error" sx={{ mb: 1.5, borderRadius: '12px' }}>{error}</Alert> : null}
         <form onSubmit={handleSave}>
@@ -67,7 +69,7 @@ export default function PhoneRequiredGate({ user, onSaved }) {
             autoFocus
             fullWidth
             required
-            label="Telefon"
+            label={t('phoneGate.label', 'Telefon')}
             placeholder="05xx xxx xx xx"
             value={telefon}
             onChange={(e) => setTelefon(e.target.value)}
@@ -80,7 +82,7 @@ export default function PhoneRequiredGate({ user, onSaved }) {
             disabled={loading}
             sx={{ mt: 2, py: 1.3, borderRadius: '14px', fontWeight: 800, bgcolor: '#2E3B55' }}
           >
-            {loading ? <CircularProgress size={18} color="inherit" /> : 'Kaydet ve devam et'}
+            {loading ? <CircularProgress size={18} color="inherit" /> : t('phoneGate.submit', 'Kaydet ve devam et')}
           </Button>
         </form>
       </DialogContent>

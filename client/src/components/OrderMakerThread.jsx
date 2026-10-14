@@ -1,12 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Button, TextField, Typography } from '@mui/material';
 import { T } from '../utils/panel';
 import { briefLines } from '../utils/orderBrief';
-
-const whenShort = (value) =>
-  value
-    ? new Date(value).toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : '';
+import { dateLocale } from '../i18n/locale';
 
 export default function OrderMakerThread({
   items = [],
@@ -16,10 +13,16 @@ export default function OrderMakerThread({
   viewer = 'buyer',
   canReply = true
 }) {
+  const { t, i18n } = useTranslation('account');
   const [text, setText] = useState('');
   const briefs = items
     .map((item) => ({ name: item.name, lines: briefLines(item.customBrief) }))
     .filter((item) => item.lines.length);
+
+  const whenShort = (value) =>
+    value
+      ? new Date(value).toLocaleString(dateLocale(i18n.language), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : '';
 
   const send = async () => {
     const next = text.trim();
@@ -30,9 +33,9 @@ export default function OrderMakerThread({
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Özel üretim</Typography>
+      <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>{t('thread.title', 'Özel üretim')}</Typography>
       <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>
-        Ölçü, renk ve teslim notu atölyede kalır. Kargoya çıkmadan buradan netleştirebilirsiniz.
+        {t('thread.lead', 'Ölçü, renk ve teslim notu atölyede kalır. Kargoya çıkmadan buradan netleştirebilirsiniz.')}
       </Typography>
 
       {briefs.length ? briefs.map((item) => (
@@ -46,7 +49,7 @@ export default function OrderMakerThread({
           ))}
         </Box>
       )) : (
-        <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2 }}>Siparişte ölçü veya renk notu yok.</Typography>
+        <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2 }}>{t('thread.empty', 'Siparişte ölçü veya renk notu yok.')}</Typography>
       )}
 
       <Box sx={{ display: 'grid', gap: 1, mb: 1.4 }}>
@@ -66,7 +69,9 @@ export default function OrderMakerThread({
               }}
             >
               <Typography sx={{ fontWeight: 800, color: T.navy, fontSize: 12 }}>
-                {note.authorRole === 'seller' ? (note.authorName || 'Atölye') : (note.authorName || 'Müşteri')}
+                {note.authorRole === 'seller'
+                  ? (note.authorName || t('thread.atelier', 'Atölye'))
+                  : (note.authorName || t('thread.customer', 'Müşteri'))}
                 <Typography component="span" sx={{ color: T.muted, fontWeight: 700, fontSize: 12 }}> · {whenShort(note.createdAt)}</Typography>
               </Typography>
               <Typography sx={{ color: T.navy, fontWeight: 650, whiteSpace: 'pre-wrap', mt: 0.3 }}>{note.text}</Typography>
@@ -81,7 +86,9 @@ export default function OrderMakerThread({
             fullWidth
             multiline
             minRows={2}
-            placeholder={viewer === 'seller' ? 'Ölçü veya rengi netleştirin' : 'Atölyeye sorunuzu yazın'}
+            placeholder={viewer === 'seller'
+              ? t('thread.sellerPlaceholder', 'Ölçü veya rengi netleştirin')
+              : t('thread.buyerPlaceholder', 'Atölyeye sorunuzu yazın')}
             value={text}
             onChange={(event) => setText(event.target.value)}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '14px', bgcolor: '#fff' } }}
@@ -91,7 +98,9 @@ export default function OrderMakerThread({
             disabled={savingGuard(sending, text, viewer)}
             sx={{ justifySelf: 'start', fontWeight: 800, bgcolor: T.navy, color: '#fff', borderRadius: '12px', px: 2, '&:hover': { bgcolor: T.navyDeep } }}
           >
-            {sending ? 'Gönderiliyor...' : viewer === 'seller' ? 'Yanıtla' : 'Atölyeye yaz'}
+            {sending
+              ? t('thread.sending', 'Gönderiliyor...')
+              : viewer === 'seller' ? t('thread.reply', 'Yanıtla') : t('thread.send', 'Atölyeye yaz')}
           </Button>
         </Box>
       ) : null}

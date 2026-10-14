@@ -103,12 +103,12 @@ export default function OrderResultPage({ success }) {
           <Typography sx={{ color: '#6E5252', mt: 1.5, lineHeight: 1.7 }}>{copy.text}</Typography>
           {(lastOrder?.paymentCode || thread?.paymentCode) && (
             <Box sx={{ mt: 2.5, p: 1.6, borderRadius: '16px', backgroundColor: '#FDF4D2' }}>
-              <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.08em' }}>ÖDEME KODU</Typography>
+              <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.08em' }}>{t('result.paymentCode', 'ÖDEME KODU')}</Typography>
               <Typography sx={{ color: '#2E3B55', fontWeight: 900, fontSize: '1.6rem', letterSpacing: 1 }}>
                 {thread?.paymentCode || lastOrder?.paymentCode}
               </Typography>
               <Typography sx={{ color: '#6E5252', fontWeight: 700, mt: 0.6, lineHeight: 1.55 }}>
-                Havale açıklamasına yalnızca bu kodu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur.
+                {t('result.paymentCodeHint', 'Havale açıklamasına yalnızca bu kodu yazın. 72 saat içinde ödeme gelmezse sipariş iptal olur.')}
               </Typography>
             </Box>
           )}
@@ -116,17 +116,17 @@ export default function OrderResultPage({ success }) {
             <Box sx={{ mt: 1.6, p: 1.5, borderRadius: '14px', border: '1px solid rgba(148,109,109,0.2)', textAlign: 'left' }}>
               <Typography sx={{ fontWeight: 900, color: '#2E3B55' }}>
                 {thread?.orderStatus === 'cancelled' || thread?.paymentStatus === 'failed'
-                  ? 'Ödeme durumu: iptal edildi'
+                  ? t('result.statusCancelled', 'Ödeme durumu: iptal edildi')
                   : thread?.paymentStatus === 'completed'
-                    ? 'Ödeme durumu: ödendi'
+                    ? t('result.statusPaid', 'Ödeme durumu: ödendi')
                     : thread?.paymentStatus === 'short'
-                      ? 'Ödeme durumu: eksik ödeme'
+                      ? t('result.statusShort', 'Ödeme durumu: eksik ödeme')
                       : thread?.paymentStatus === 'over'
-                        ? 'Ödeme durumu: fazla ödeme'
-                        : 'Ödeme durumu: bekleniyor'}
+                        ? t('result.statusOver', 'Ödeme durumu: fazla ödeme')
+                        : t('result.statusPending', 'Ödeme durumu: bekleniyor')}
               </Typography>
               <Typography sx={{ color: '#6E5252', mt: 0.5, fontWeight: 600 }}>
-                Giriş yaptıysanız Hesabım → Ödeme durumu bölümünden de kontrol edebilirsiniz.
+                {t('result.statusHint', 'Giriş yaptıysanız Hesabım → Ödeme durumu bölümünden de kontrol edebilirsiniz.')}
               </Typography>
             </Box>
           )}
@@ -137,9 +137,9 @@ export default function OrderResultPage({ success }) {
           )}
           {success && orderId && (
             <Box sx={{ mt: 2.5, textAlign: 'left' }}>
-              <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6 }}>Atölyeye soru</Typography>
+              <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 0.6 }}>{t('result.askTitle', 'Atölyeye soru')}</Typography>
               <Typography sx={{ color: '#6E5252', fontSize: '0.85rem', mb: 1.2 }}>
-                Giriş yapmadan sorabilirsiniz. Siparişte yazdığınız e-posta yeterli.
+                {t('result.askLead', 'Giriş yapmadan sorabilirsiniz. Siparişte yazdığınız e-posta yeterli.')}
               </Typography>
               {!thread && (
                 <Box sx={{ display: 'grid', gap: 1, mb: 1.2 }}>
@@ -148,7 +148,7 @@ export default function OrderResultPage({ success }) {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="Sipariş e-postanız"
+                    placeholder={t('result.emailPlaceholder', 'Sipariş e-postanız')}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#fff' } }}
                   />
                   <Button
@@ -159,7 +159,7 @@ export default function OrderResultPage({ success }) {
                         const data = await orderService.guestThread(orderId, email.trim());
                         setThread(data.thread);
                       } catch (error) {
-                        setThreadError(error.message || 'E-posta eşleşmedi.');
+                        setThreadError(error.message || t('result.emailMismatch', 'E-posta eşleşmedi.'));
                       } finally {
                         setSending(false);
                       }
@@ -167,7 +167,7 @@ export default function OrderResultPage({ success }) {
                     disabled={sending || !email.trim()}
                     sx={{ justifySelf: 'start', fontWeight: 800, color: '#fff', backgroundColor: '#2E3B55', borderRadius: '12px', textTransform: 'none', '&:hover': { backgroundColor: '#946D6D' } }}
                   >
-                    {sending ? 'Açılıyor' : 'Soruları aç'}
+                    {sending ? t('result.opening', 'Açılıyor') : t('result.openThread', 'Soruları aç')}
                   </Button>
                 </Box>
               )}
@@ -187,7 +187,7 @@ export default function OrderResultPage({ success }) {
                       setThread(data.thread || thread);
                       return true;
                     } catch (error) {
-                      setThreadError(error.message || 'Soru iletilemedi.');
+                      setThreadError(error.message || t('result.askFailed', 'Soru iletilemedi.'));
                       return false;
                     } finally {
                       setSending(false);

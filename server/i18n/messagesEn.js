@@ -1,0 +1,237 @@
+/**
+ * API yanıtlarındaki kullanıcıya dönük Türkçe mesajların İngilizce karşılıkları.
+ * ?lang=en isteklerinde `message` / `mesaj` alanına uygulanır; bulunamayan mesaj olduğu gibi kalır.
+ */
+
+const EXACT = {
+  // Oturum
+  'Başarıyla çıkış yapıldı.': 'You have been signed out.',
+  'Bir indirim kodu yaz.': 'Enter a discount code.',
+  'Bu email adresi zaten kullanımda.': 'This email address is already in use.',
+  'Bu hesap Google ile oluşturulmuş. Lütfen Google ile giriş yapın.': 'This account was created with Google. Please sign in with Google.',
+  'Bu kod bu hesaba ait değil veya geçersiz.': 'This code does not belong to this account or is invalid.',
+  'Geçersiz email veya şifre.': 'Invalid email or password.',
+  'Geçersiz veya süresi dolmuş oturum.': 'Your session is invalid or has expired.',
+  'Giriş başarılı': 'Signed in successfully',
+  'Giriş şu an tamamlanamadı. Biraz sonra tekrar deneyin.': 'We could not sign you in right now. Please try again shortly.',
+  'Google girişi yapılandırılmamış.': 'Google sign-in is not configured.',
+  'Google ile giriş başarısız. Lütfen tekrar deneyin.': 'Google sign-in failed. Please try again.',
+  'Kayıt şu an tamamlanamadı. Biraz sonra tekrar deneyin.': 'We could not create your account right now. Please try again shortly.',
+  'Oturum bulunamadı.': 'Session not found.',
+  'Sunucu hatası': 'Server error',
+  'Sunucu hatası.': 'Server error.',
+  'Çıkış yapılırken hata oluştu.': 'Something went wrong while signing out.',
+  'Şifre en az 8 karakter olmalı.': 'Your password must be at least 8 characters.',
+  'Hoş geldin indirimin yalnızca ilk siparişte geçerlidir.': 'Your welcome discount is valid on your first order only.',
+  'Kullanıcı bulunamadı.': 'User not found.',
+  'Yetkisiz erişim, geçersiz token.': 'Unauthorized: invalid session.',
+  'Yetkisiz erişim, kullanıcı bulunamadı.': 'Unauthorized: user not found.',
+  'Yetkisiz erişim, token bulunamadı.': 'Please sign in to continue.',
+  'Kayıt için geçerli bir telefon numarası girin (05xx xxx xx xx).': 'Enter a valid phone number to sign up (05xx xxx xx xx).',
+  'Google hesabı doğrulanamadı.': 'We could not verify your Google account.',
+  'Google istemci doğrulaması başarısız.': 'Google client verification failed.',
+  'Google profili alınamadı.': 'Could not load your Google profile.',
+  'Yetersiz stok. Lütfen adedi azaltın.': 'Not enough stock. Please lower the quantity.',
+
+  // Sepet
+  'Adet güncellendi.': 'Quantity updated.',
+  'Adet güncellenemedi.': 'Could not update the quantity.',
+  'Geçersiz adet.': 'Invalid quantity.',
+  'Sepet bulunamadı.': 'Cart not found.',
+  'Sepet güncellendi.': 'Cart updated.',
+  'Sepet temizlendi.': 'Cart cleared.',
+  'Sepet temizlenirken hata oluştu.': 'Could not clear the cart.',
+  'Sepet yüklenirken hata oluştu.': 'Could not load the cart.',
+  'Yetersiz stok.': 'Not enough stock.',
+  'Ürün sepete eklendi.': 'Added to cart.',
+  'Ürün sepete eklenemedi.': 'Could not add to cart.',
+  'Ürün sepette bulunamadı.': 'Item not found in the cart.',
+  'Ürün silinirken hata oluştu.': 'Could not remove the item.',
+
+  // Sipariş ve ödeme
+  'Bir ürün artık satışta değil.': 'One of the items is no longer available.',
+  'Bu indirim kodu bu hesaba ait değil.': 'This discount code does not belong to this account.',
+  'Bu siparişe not ekleyemezsiniz.': 'You cannot add a note to this order.',
+  'Geçerli bir e-posta girin.': 'Enter a valid email address.',
+  'Geçerli bir e-posta yazın.': 'Enter a valid email address.',
+  'Geçerli bir e-posta adresi girin.': 'Enter a valid email address.',
+  'Havale hesabı henüz tanımlanmamış.': 'The bank transfer account has not been set up yet.',
+  'Kart ödemesi henüz yapılandırılmamış.': 'Card payments are not set up yet.',
+  'Kart ödemesi için 11 haneli T.C. kimlik numarası gerekli.': 'Card payments require an 11-digit Turkish ID number.',
+  'Kart ödemesi kapalı. Havale/EFT veya WhatsApp ile devam edin.': 'Card payments are unavailable. Please continue with bank transfer or WhatsApp.',
+  'Kayıtlı kart ile sipariş alındı.': 'Your order was placed with your saved card.',
+  'Kayıtlı kart için giriş yapmalısınız.': 'Please sign in to use a saved card.',
+  'Not atölyeye iletildi.': 'Your note was sent to the atelier.',
+  'Sepetiniz boş.': 'Your cart is empty.',
+  'Sepette geçersiz ürün var.': 'Your cart contains an invalid item.',
+  'Seçilen kart bulunamadı.': 'The selected card was not found.',
+  'Sipariş başarıyla oluşturuldu.': 'Your order has been placed.',
+  'Sipariş notları alınamadı.': 'Could not load order notes.',
+  'Siparişiniz şu an alınamadı. Bilgilerinizi kontrol edip tekrar deneyin.': 'We could not place your order right now. Please check your details and try again.',
+  'Siparişleriniz alınamadı.': 'Could not load your orders.',
+  'Siparişteki e-posta ile eşleşmedi. Giriş gerekmez, sipariş e-postanızı yazın.': 'This does not match the email on the order. No sign-in needed; just enter the email you ordered with.',
+  'Sorunuz atölyeye iletildi.': 'Your question was sent to the atelier.',
+  'Sorunuzu biraz daha açın. En az 8 karakter.': 'Please add a bit more detail (at least 8 characters).',
+  'Teslimat adresi eksik.': 'The delivery address is incomplete.',
+  'Ödeme sayfası oluşturuldu.': 'Payment page created.',
+  'Ödeme sayfası şu an açılamıyor. Lütfen havale/EFT deneyin veya daha sonra tekrar deneyin.': 'The payment page cannot be opened right now. Please try bank transfer or try again later.',
+  'İletişim bilgileri eksik.': 'Contact details are incomplete.',
+  'İndirim kodu için giriş yapmalısın.': 'Please sign in to use a discount code.',
+  'Not eklenemedi.': 'Could not add the note.',
+  'İptal edilen siparişe not eklenemez.': 'You cannot add a note to a cancelled order.',
+  'Bu siparişi görüntüleme yetkiniz yok.': 'You do not have permission to view this order.',
+  'Sipariş detayı alınamadı.': 'Could not load the order details.',
+  'Sipariş bulunamadı.': 'Order not found.',
+
+  // Ürün ve katalog
+  'En çok satan ürünler getirilirken hata oluştu.': 'Could not load the best sellers.',
+  'Filtre seçenekleri alınamadı.': 'Could not load the filter options.',
+  'Filtreleme hatası.': 'Filtering failed.',
+  'Geçersiz ürün ID formatı.': 'Product not found.',
+  'Kategori vitrini şu an yüklenemedi. Lütfen tekrar deneyin.': 'Could not load the category showcase. Please try again.',
+  'Ürün detayı getirilirken hata oluştu.': 'Could not load the product details.',
+  'Ürünler şu an yüklenemedi. Lütfen tekrar deneyin.': 'Could not load products right now. Please try again.',
+  'Ürün bulunamadı.': 'Product not found.',
+  'Ürünler alınamadı.': 'Could not load products.',
+  'Kategoriler alınamadı.': 'Could not load categories.',
+  'Kategoriler çekilirken hata oluştu.': 'Could not load categories.',
+  'Atölye bulunamadı.': 'Atelier not found.',
+  'Atölye bilgisi alınamadı.': 'Could not load the atelier.',
+  'Atölyeler alınamadı.': 'Could not load the ateliers.',
+  'Haftanın atölyeleri alınamadı.': 'Could not load the ateliers of the week.',
+
+  // Kampanya kodu
+  'Kod doğrulanamadı.': 'Could not verify the code.',
+  'Bir kampanya kodu yaz.': 'Enter a promo code.',
+  'Bu kampanya kodu geçersiz veya süresi doldu.': 'This promo code is invalid or has expired.',
+  'Bu kişisel hoş geldin kodudur. Yukarıdaki alana yaz.': 'This is a personal welcome code. Enter it in the field above.',
+  'NIK10 kodları kişisel hoş geldin indirimine ayrılır.': 'NIK10 codes are reserved for personal welcome discounts.',
+
+  // Soru-cevap
+  'Bu soruyu silme yetkiniz yok.': 'You do not have permission to delete this question.',
+  'Bu soruyu yalnızca ürünün satıcısı yanıtlayabilir.': 'Only the seller of this product can answer this question.',
+  'Bu üründe yanıtsız 3 sorunuz var. Satıcı yanıtladıktan sonra yeni soru sorabilirsiniz.': 'You have 3 unanswered questions on this product. You can ask a new one once the seller replies.',
+  'Kendi ürününüze soru soramazsınız.': 'You cannot ask a question about your own product.',
+  'Soru bulunamadı.': 'Question not found.',
+  'Soru gönderilemedi.': 'Could not send your question.',
+  'Soru için adınızı yazın. Giriş gerekmez.': 'Enter your name to ask a question. No sign-in needed.',
+  'Soru silindi.': 'Question deleted.',
+  'Soru silinemedi.': 'Could not delete the question.',
+  'Sorular alınamadı.': 'Could not load questions.',
+  'Sorular getirilemedi.': 'Could not load questions.',
+  'Sorunuz satıcıya iletildi. 3 gün içinde yanıtlanır.': 'Your question was sent to the seller. You will get a reply within 3 days.',
+  'Yanıt kaydedildi.': 'Reply saved.',
+  'Yanıt kaydedilemedi.': 'Could not save the reply.',
+
+  // Yorumlar
+  'Bu ürüne zaten yorum yaptınız.': 'You have already reviewed this product.',
+  'Puan 1 ile 5 arasında olmalıdır.': 'The rating must be between 1 and 5.',
+  'Sadece kendi yorumunuzu silebilirsiniz.': 'You can only delete your own review.',
+  'Yalnızca bu ürünü satın almış kayıtlı kullanıcılar yorum yapabilir.': 'Only registered customers who bought this product can review it.',
+  'Yorum bulunamadı.': 'Review not found.',
+  'Yorum en az 10 karakter olmalıdır.': 'Your review must be at least 10 characters.',
+  'Yorum en fazla 800 karakter olabilir.': 'Your review can be at most 800 characters.',
+  'Yorum kaydedilemedi.': 'Could not save your review.',
+  'Yorum silindi.': 'Review deleted.',
+  'Yorum silinemedi.': 'Could not delete the review.',
+  'Yorum yetkisi kontrol edilemedi.': 'Could not check whether you can review this product.',
+  'Yorumlar getirilemedi.': 'Could not load reviews.',
+  'Yorumunuz kaydedildi.': 'Your review has been saved.',
+
+  // Destek
+  'Bir mesaj yaz.': 'Write a message.',
+  'Destek asistanı şu an yanıt veremiyor.': 'The support assistant cannot reply right now.',
+  'Çok sık yazıldı. Bir dakika sonra tekrar dene.': 'Too many messages. Please try again in a minute.',
+
+  // Hesap
+  'Adres eklendi.': 'Address added.',
+  'Adres eklenemedi.': 'Could not add the address.',
+  'Adres silindi.': 'Address deleted.',
+  'Adres silinemedi.': 'Could not delete the address.',
+  'Bilgileriniz güncellendi.': 'Your details have been updated.',
+  'Bu ürün zaten favorilerinizde.': 'This product is already in your favorites.',
+  'Favoriden silinemedi.': 'Could not remove from favorites.',
+  'Favoriler alınamadı.': 'Could not load your favorites.',
+  'Favoriye eklenemedi.': 'Could not add to favorites.',
+  'Fotoğraf yüklenemedi.': 'Could not upload the photo.',
+  'Geçerli bir telefon numarası girin (05xx xxx xx xx).': 'Enter a valid phone number (05xx xxx xx xx).',
+  'Geçerli bir telefon numarası girin.': 'Enter a valid phone number.',
+  'Güncelleme başarısız.': 'Update failed.',
+  'Kart silindi.': 'Card removed.',
+  'Kart silinemedi.': 'Could not remove the card.',
+  'Kayıtlı kart kapalı. Ödeme İyzico sayfasında alınır; kart numarası bu sunucuda saklanmaz.': 'Saved cards are disabled. Payment is taken on the iyzico page; card numbers are never stored on our servers.',
+  'Lütfen tüm adres alanlarını doldurun.': 'Please fill in all address fields.',
+  'Mevcut ve yeni şifre gereklidir.': 'Your current and new passwords are required.',
+  'Mevcut şifreniz hatalı.': 'Your current password is incorrect.',
+  'Profil fotoğrafı güncellendi.': 'Profile photo updated.',
+  'Profil fotoğrafı seçin.': 'Choose a profile photo.',
+  'Siparişler getirilemedi.': 'Could not load orders.',
+  'Yeni şifre en az 6 karakter olmalıdır.': 'Your new password must be at least 6 characters.',
+  'Ürün ID gerekli.': 'Product ID is required.',
+  'Ürün favorilerden çıkarıldı.': 'Removed from favorites.',
+  'Ürün favorilere eklendi.': 'Added to favorites.',
+  'Şifre değiştirilemedi.': 'Could not change your password.',
+  'Şifreniz başarıyla değiştirildi.': 'Your password has been changed.',
+
+  // Bülten
+  'Kayıt alınamadı.': 'Could not save your signup.',
+  'Kayıt alındı.': 'You are signed up.',
+
+  // Satıcı başvurusu
+  'Ad soyad, e-posta ve şifre zorunludur.': 'Full name, email and password are required.',
+  'Bu e-posta ile bir hesap zaten var. Giriş yapıp satıcı başvurusunu tamamlayın.': 'An account with this email already exists. Sign in to complete your seller application.',
+  'Bu hesap zaten bir satıcı mağazasına bağlı.': 'This account is already linked to a seller shop.',
+  'Bu mağaza adı kullanılıyor.': 'This shop name is taken.',
+  'Bu mağaza adı kullanılıyor. Farklı bir ad deneyin.': 'This shop name is taken. Please try another.',
+  'Bu mağaza adı veya hesap zaten kayıtlı.': 'This shop name or account is already registered.',
+  'Geçerli bir TR IBAN girin (TR + 24 hane).': 'Enter a valid Turkish IBAN (TR + 24 digits).',
+  'Lütfen en az bir üretim alanı seçin.': 'Please choose at least one craft category.',
+  'Mağaza adı en az 3 karakter olmalıdır.': 'The shop name must be at least 3 characters.',
+  'Mağaza adı en fazla 60 karakter olabilir.': 'The shop name can be at most 60 characters.',
+  'Satıcı başvurunuz alındı. İnceleme sonrası mağazanız yayına alınır.': 'Your seller application has been received. Your shop will go live after review.',
+  'Satıcı kaydı oluşturulamadı.': 'Could not create your seller account.',
+  'Satıcı sözleşmesini onaylamanız gerekir.': 'You need to accept the seller agreement.',
+  'Vergi numarası 10 haneli olmalıdır.': 'The tax number must be 10 digits.',
+  'Şehir, ilçe ve adres zorunludur.': 'City, district and address are required.',
+  'Şifre en az 6 karakter olmalıdır.': 'Your password must be at least 6 characters.',
+  'Şifre en az bir harf ve bir rakam içermelidir.': 'Your password must contain at least one letter and one number.',
+  'Alıcı ad soyad en az 3 karakter olmalıdır.': 'The account holder name must be at least 3 characters.',
+  'Alıcı ad soyad en fazla 80 karakter olabilir.': 'The account holder name can be at most 80 characters.',
+  'Alıcı ad soyad ve geçerli bir TR IBAN yazın (TR + 24 hane).': 'Enter the account holder name and a valid Turkish IBAN (TR + 24 digits).',
+  'TR ile başlayan 26 karakterlik geçerli bir IBAN yazın.': 'Enter a valid 26-character IBAN starting with TR.',
+
+  // Genel
+  'Kategori bulunamadı.': 'Category not found.',
+  'Kayıt bulunamadı.': 'Not found.',
+  'Satıcı bulunamadı.': 'Atelier not found.',
+  'Lookbook alınamadı.': 'Could not load the lookbook.',
+  'SVG dosyaları kabul edilmiyor.': 'SVG files are not accepted.',
+  'Yalnızca görsel dosyaları yükleyebilirsiniz.': 'You can only upload image files.',
+  'Dosya okunamadı.': 'The file could not be read.',
+  'Bu işlem için süper admin yetkisi gerekir.': 'This action requires super admin permission.',
+  'Bu hesaba bağlı satıcı kaydı bulunamadı.': 'No seller account is linked to this account.',
+  'Mağazanız onaylandıktan sonra bu işlemi yapabilirsiniz.': 'You can do this once your shop has been approved.',
+  'Satıcı doğrulanamadı.': 'Could not verify the seller.'
+};
+
+const PATTERNS = [
+  [/^Kayıt başarılı! İlk siparişine özel %(\d+) indirim kodun hazır\.$/, (m) => `You're signed up! Your ${m[1]}% first-order discount code is ready.`],
+  [/^Kod uygulandı\. İlk siparişine %(\d+) indirim\.$/, (m) => `Code applied: ${m[1]}% off your first order.`],
+  [/^(.+) için yetersiz stok\.$/, (m) => `Not enough stock for ${m[1]}.`],
+  [/^(.+) için yeterli stok kalmadı\.$/, (m) => `${m[1]} is no longer in stock in that quantity.`],
+  [/^Soru en az (\d+) karakter olmalıdır\.$/, (m) => `Your question must be at least ${m[1]} characters.`],
+  [/^Soru en fazla (\d+) karakter olabilir\.$/, (m) => `Your question can be at most ${m[1]} characters.`],
+  [/^Bu kod yalnızca (.+) ürünlerinde geçerlidir\. Sepette o atölyeden ürün yok\.$/, (m) => `This code is only valid on products from ${m[1]}. Your cart has no items from that atelier.`]
+];
+
+const translateMessage = (value) => {
+  if (typeof value !== 'string' || !value) return value;
+  if (EXACT[value]) return EXACT[value];
+  for (const [re, build] of PATTERNS) {
+    const match = value.match(re);
+    if (match) return build(match);
+  }
+  return value;
+};
+
+module.exports = { translateMessage };

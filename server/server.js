@@ -26,6 +26,7 @@ const { configured: mediaConfigured } = require('./utils/mediaStore');
 const { verifySmtp } = require('./services/emailService');
 const { startPaymentHoldJob, runPaymentHolds, kickPaymentHolds } = require('./services/paymentHold');
 const { hideInternals, publicMessage } = require('./utils/publicError');
+const { requestLang, localizeBody } = require('./utils/localize');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
@@ -34,7 +35,13 @@ app.set('trust proxy', 1);
 
 app.use((req, res, next) => {
   const send = res.json.bind(res);
-  res.json = (body) => send(hideInternals(body, res.statusCode));
+  req.lang = requestLang(req);
+  // Panel uçları düzenleme için `en` alanlarını olduğu gibi alır
+  const keepTranslations = req.lang !== 'en' && req.path.startsWith('/api/admin');
+  res.json = (body) => {
+    const localized = keepTranslations ? body : localizeBody(body, req.lang);
+    return send(hideInternals(localized, res.statusCode));
+  };
   next();
 });
 
@@ -151,6 +158,7 @@ app.listen(PORT, () => {
   }
   verifySmtp().catch((error) => console.error('SMTP kontrolü:', error.message));
   startPaymentHoldJob();
+  require('./services/contentTranslation').startTranslationJobs();
 });
 
 process.on('unhandledRejection', (reason) => {

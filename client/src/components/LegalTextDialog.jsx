@@ -113,7 +113,7 @@ export default function LegalTextDialog({
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
         <Button onClick={onClose} sx={{ fontWeight: 800, color: '#6E5252', textTransform: 'none' }}>
-          Kapat
+          {t('dialog.close', 'Kapat')}
         </Button>
         <Button
           onClick={() => {
@@ -130,7 +130,7 @@ export default function LegalTextDialog({
             '&:hover': { bgcolor: '#946D6D' }
           }}
         >
-          Okudum, onaylıyorum
+          {t('dialog.accept', 'Okudum, onaylıyorum')}
         </Button>
       </DialogActions>
     </Dialog>

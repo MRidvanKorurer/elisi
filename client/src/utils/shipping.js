@@ -1,15 +1,62 @@
+import i18n from '../i18n';
+
 export const FREE_SHIPPING_LIMIT = 1000;
 export const SHIPPING_FEE = 100;
 export const RETURN_DAYS = 14;
 
+const isEn = () => i18n.language === 'en';
+
 const formatPrice = (value) =>
-  Number(value || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  Number(value || 0).toLocaleString(isEn() ? 'en-US' : 'tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+const TEXT = {
+  tr: {
+    freeShipping: (limit) => `${limit} ₺ ve üzeri kargo bedava`,
+    shippingDetail: (limit, fee) => `${limit} ₺ altındaki siparişlerde kargo ${fee} ₺.`,
+    size: 'Ölçü',
+    strap: 'Sap',
+    weight: 'Ağırlık',
+    fits: 'Sığanlar',
+    use: 'Kullanım',
+    sizeOrMeasure: 'Beden / ölçü',
+    readyTitle: 'Hemen kargoda',
+    readyDetail: 'Sipariş onayından sonra 24 saat içinde kargoya verilir.',
+    readyTime: '1 iş günü',
+    customTitle: 'Sipariş üzerine üretim',
+    customDetail: (time) => `Atölye bu parçayı senin siparişinle hazırlar. Üretim süresi: ${time}.`,
+    customTime: '1-3 iş günü',
+    returnsTitle: (days) => `${days} gün içinde iade`,
+    returnsReady: (days) => `Kullanılmamış ürünleri ${days} gün içinde ücretsiz iade edebilirsin.`,
+    returnsCustom: 'Kişiye özel üretimde iade, kullanılmamış ve kişiselleştirilmemiş ürünlerde geçerlidir.'
+  },
+  en: {
+    freeShipping: (limit) => `Free shipping on orders of ₺${limit} or more`,
+    shippingDetail: (limit, fee) => `Shipping is ₺${fee} on orders under ₺${limit}.`,
+    size: 'Size',
+    strap: 'Strap',
+    weight: 'Weight',
+    fits: 'Fits',
+    use: 'Use',
+    sizeOrMeasure: 'Size / measurements',
+    readyTitle: 'Ships right away',
+    readyDetail: 'Handed to the courier within 24 hours of order confirmation.',
+    readyTime: '1 business day',
+    customTitle: 'Made to order',
+    customDetail: (time) => `The atelier makes this piece for your order. Production time: ${time}.`,
+    customTime: '1-3 business days',
+    returnsTitle: (days) => `${days}-day returns`,
+    returnsReady: (days) => `Return unused items free of charge within ${days} days.`,
+    returnsCustom: 'Made-to-order pieces can be returned if unused and not personalized.'
+  }
+};
+
+const text = () => (isEn() ? TEXT.en : TEXT.tr);
 
 const siteShipping = () => ({
   freeFrom: FREE_SHIPPING_LIMIT,
   fee: SHIPPING_FEE,
-  title: `${formatPrice(FREE_SHIPPING_LIMIT)} ₺ ve üzeri kargo bedava`,
-  detail: `${formatPrice(FREE_SHIPPING_LIMIT)} ₺ altındaki siparişlerde kargo ${formatPrice(SHIPPING_FEE)} ₺.`
+  title: text().freeShipping(formatPrice(FREE_SHIPPING_LIMIT)),
+  detail: text().shippingDetail(formatPrice(FREE_SHIPPING_LIMIT), formatPrice(SHIPPING_FEE))
 });
 
 const parseDimensions = (sizes = []) => {
@@ -22,7 +69,7 @@ const parseDimensions = (sizes = []) => {
     );
     if (match) {
       const parts = [match[1], match[2], match[3]].filter(Boolean).map((part) => part.replace('.', ','));
-      found.push({ label: 'Ölçü', value: `${parts.join(' × ')} cm` });
+      found.push({ label: text().size, value: `${parts.join(' × ')} cm` });
     }
   });
 
@@ -38,6 +85,7 @@ export const buildFulfillment = (product = {}) => {
     };
   }
 
+  const copy = text();
   const ready = product.immediateDelivery !== false;
   const sizes = Array.isArray(product.sizes) ? product.sizes.filter(Boolean) : [];
   const dims = product.dimensions || {};
@@ -45,40 +93,30 @@ export const buildFulfillment = (product = {}) => {
 
   if (dims.widthCm || dims.heightCm || dims.depthCm) {
     const parts = [dims.widthCm, dims.heightCm, dims.depthCm].filter((n) => n != null && n !== '');
-    measures.push({ label: 'Ölçü', value: `${parts.join(' × ')} cm` });
+    measures.push({ label: copy.size, value: `${parts.join(' × ')} cm` });
   } else {
     measures.push(...parseDimensions(sizes));
   }
 
-  if (dims.strapCm) measures.push({ label: 'Sap', value: `${dims.strapCm} cm` });
-  if (dims.weightG) measures.push({ label: 'Ağırlık', value: `${dims.weightG} g` });
-  if (dims.fits) measures.push({ label: 'Sığanlar', value: dims.fits });
-  if (product.measureNote) measures.push({ label: 'Kullanım', value: product.measureNote });
+  if (dims.strapCm) measures.push({ label: copy.strap, value: `${dims.strapCm} cm` });
+  if (dims.weightG) measures.push({ label: copy.weight, value: `${dims.weightG} g` });
+  if (dims.fits) measures.push({ label: copy.fits, value: dims.fits });
+  if (product.measureNote) measures.push({ label: copy.use, value: product.measureNote });
   if (!measures.length && sizes.length) {
-    measures.push({ label: 'Beden / ölçü', value: sizes.join(', ') });
+    measures.push({ label: copy.sizeOrMeasure, value: sizes.join(', ') });
   }
+
+  const productionTime = product.customProductionTime || copy.customTime;
 
   return {
     delivery: ready
-      ? {
-          kind: 'ready',
-          title: 'Hemen kargoda',
-          detail: 'Sipariş onayından sonra 24 saat içinde kargoya verilir.',
-          time: '1 iş günü'
-        }
-      : {
-          kind: 'custom',
-          title: 'Sipariş üzerine üretim',
-          detail: `Atölye bu parçayı senin siparişinle hazırlar. Üretim süresi: ${product.customProductionTime || '1-3 iş günü'}.`,
-          time: product.customProductionTime || '1-3 iş günü'
-        },
+      ? { kind: 'ready', title: copy.readyTitle, detail: copy.readyDetail, time: copy.readyTime }
+      : { kind: 'custom', title: copy.customTitle, detail: copy.customDetail(productionTime), time: productionTime },
     shipping: siteShipping(),
     returns: {
       days: RETURN_DAYS,
-      title: `${RETURN_DAYS} gün içinde iade`,
-      detail: ready
-        ? 'Kullanılmamış ürünleri 14 gün içinde ücretsiz iade edebilirsin.'
-        : 'Kişiye özel üretimde iade, kullanılmamış ve kişiselleştirilmemiş ürünlerde geçerlidir.'
+      title: copy.returnsTitle(RETURN_DAYS),
+      detail: ready ? copy.returnsReady(RETURN_DAYS) : copy.returnsCustom
     },
     measures
   };

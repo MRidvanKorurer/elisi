@@ -76,6 +76,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const { id } = useParams();
   const navigate = useLocaleNavigate();
   const locale = i18n.language === 'en' ? 'en' : 'tr';
+  const p = (key, defaultValue, options = {}) => t(`product.${key}`, { ns: 'catalog', defaultValue, ...options });
 
   const [product, setProduct] = useState(null);
   const [faqItems, setFaqItems] = useState([]);
@@ -115,7 +116,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         const productData = response?.product || response?.data || response;
 
         if (!productData || (!productData._id && !productData.id)) {
-          throw new Error('Ürün bulunamadı');
+          throw new Error(p('notFound', 'Ürün bulunamadı.'));
         }
 
         loadedRef.current = [String(productData._id || productData.id), productData.slug].filter(Boolean);
@@ -141,13 +142,13 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             fetched.filter((item) => String(item._id || item.id) !== currentId).slice(0, 12)
           );
         } catch (simErr) {
-          console.warn('Benzer ürünler çekilemedi:', simErr);
+          console.warn('Similar products failed:', simErr);
           setSimilarProducts([]);
         }
       } catch (err) {
-        console.error('Ürün detayı çekilirken hata:', err?.message || err?.response?.data?.message);
+        console.error('Product detail failed:', err?.message || err?.response?.data?.message);
         setProduct(null);
-        setError(err?.response?.data?.message || err.message || 'Ürün bulunamadı veya bir hata oluştu.');
+        setError(err?.response?.data?.message || err.message || p('notFound', 'Ürün bulunamadı veya bir hata oluştu.'));
       } finally {
         setLoading(false);
       }
@@ -199,7 +200,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const discountedPrice = salePriceOf(product);
   const stock = Number(product?.stock ?? 0);
   const outOfStock = stock <= 0;
-  const title = product?.title || product?.name || 'Ürün';
+  const title = product?.title || product?.name || p('untitled', 'Ürün');
   const mainImg = allImages[0] || FALLBACK_IMAGE;
   const displayImage = asImageSrc(activeImage) || mainImg;
   const videoSrc = resolveProductVideo(product?.video);
@@ -220,21 +221,23 @@ export default function ProductDetailPage({ onAddToCart, user }) {
       quantity,
       color: selectedColor,
       size: selectedSize,
+      colorLabel: product.colorLabels?.[selectedColor] || '',
+      sizeLabel: product.sizeLabels?.[selectedSize] || '',
     };
 
     try {
       const response = await cartService.addToCart(payload);
       if (!response?.success) {
-        throw new Error(response?.message || 'Ürün sepete eklenemedi.');
+        throw new Error(response?.message || p('addFailed', 'Ürün sepete eklenemedi.'));
       }
 
       window.dispatchEvent(new Event('cartUpdated'));
       if (onAddToCart) {
         onAddToCart({ ...product, quantity, finalPrice: discountedPrice, color: selectedColor, size: selectedSize });
       }
-      showToast(`${title} sepete eklendi.`);
+      showToast(p('addedNamed', '{{title}} sepete eklendi.', { title }));
     } catch (err) {
-      showToast(err?.response?.data?.message || err.message || 'Ürün sepete eklenirken bir sorun oluştu.', 'error');
+      showToast(err?.response?.data?.message || err.message || p('addError', 'Ürün sepete eklenirken bir sorun oluştu.'), 'error');
     } finally {
       setAddingToCart(false);
     }
@@ -250,7 +253,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         await userService.removeFavorite(productId);
         setProductFavorite(productId, false);
         setProduct((prev) => (prev ? { ...prev, favoriteCount: Math.max(0, Number(prev.favoriteCount || 0) - 1) } : prev));
-        showToast('Ürün favorilerden çıkarıldı.', 'info');
+        showToast(p('removedFav', 'Ürün favorilerden çıkarıldı.'), 'info');
       } else {
         let added = true;
         try {
@@ -263,14 +266,14 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         if (added) {
           setProduct((prev) => (prev ? { ...prev, favoriteCount: Number(prev.favoriteCount || 0) + 1 } : prev));
         }
-        showToast('Ürün favorilere eklendi.');
+        showToast(p('addedFav', 'Ürün favorilere eklendi.'));
       }
     } catch (err) {
       const status = err?.response?.status;
       if (status === 401 || err?.mesaj) {
-        showToast('Favorilere eklemek için giriş yapmalısınız.', 'warning');
+        showToast(p('loginFav', 'Favorilere eklemek için giriş yapmalısınız.'), 'warning');
       } else {
-        showToast(err?.response?.data?.message || 'Favori işlemi başarısız.', 'error');
+        showToast(err?.response?.data?.message || p('favFailed', 'Favori işlemi başarısız.'), 'error');
       }
     } finally {
       setFavLoading(false);
@@ -285,9 +288,9 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         return;
       }
       await navigator.clipboard.writeText(url);
-      showToast('Ürün bağlantısı kopyalandı.', 'info');
+      showToast(p('copied', 'Ürün bağlantısı kopyalandı.'), 'info');
     } catch {
-      showToast('Paylaşım iptal edildi.', 'info');
+      showToast(p('shareCancelled', 'Paylaşım iptal edildi.'), 'info');
     }
   };
 
@@ -328,7 +331,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
   const productPath = `/urun/${product.slug || product._id || product.id}`;
   const categoryPath = `/kategori/${encodeURIComponent(product.category || '')}`;
-  const seoDescription = productDescription(product);
+  const seoDescription = productDescription(product, locale, product.category ? categoryLabel(product.category, t) : '');
 
   return (
     <Box sx={{ pt: { xs: 11, md: 14 }, pb: { xs: 14, md: 10 }, minHeight: '100vh' }}>
@@ -338,7 +341,6 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         path={productPath}
         image={mainImg}
         type="product"
-        trOnly
         keywords={[title, product.category, t('product.keywordHandmade', { ns: 'catalog' }), 'Nik Bag'].filter(Boolean)}
         jsonLd={[
           productSchema(product, {
@@ -346,14 +348,14 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             price: discountedPrice,
             images: allImages,
             description: seoDescription,
-            locale: 'tr'
+            locale
           }),
           breadcrumbSchema([
             { name: t('product.home', { ns: 'catalog' }), path: '/' },
             { name: t('list.products', { ns: 'catalog' }), path: '/urunler' },
             ...(product.category ? [{ name: categoryLabel(product.category, t), path: categoryPath }] : []),
             { name: title, path: productPath }
-          ], 'tr'),
+          ], locale),
           ...(faqItems.length ? [faqSchema(faqItems)] : [])
         ]}
       />
@@ -400,7 +402,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
               >
                 <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '70%' }}>
                   {product.isNewProduct && <Chip label={t('product.new', { ns: 'catalog' })} sx={badgeSx('#2E3B55')} />}
-                  {discountRate > 0 && <Chip label={`%${discountRate} indirim`} sx={badgeSx('#946D6D')} />}
+                  {discountRate > 0 && <Chip label={p('discount', '%{{rate}} indirim', { rate: discountRate })} sx={badgeSx('#946D6D')} />}
                   {outOfStock && <Chip label={t('product.soldOut', { ns: 'catalog' })} sx={badgeSx('#6E5252')} />}
                 </Box>
                 <ProductClip key={videoSrc} src={videoSrc} poster={mainImg} title={title} />
@@ -419,7 +421,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                 badges={(
                   <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '70%' }}>
                     {product.isNewProduct && <Chip label={t('product.new', { ns: 'catalog' })} sx={badgeSx('#2E3B55')} />}
-                    {discountRate > 0 && <Chip label={`%${discountRate} indirim`} sx={badgeSx('#946D6D')} />}
+                    {discountRate > 0 && <Chip label={p('discount', '%{{rate}} indirim', { rate: discountRate })} sx={badgeSx('#946D6D')} />}
                     {outOfStock && <Chip label={t('product.soldOut', { ns: 'catalog' })} sx={badgeSx('#6E5252')} />}
                   </Box>
                 )}
@@ -465,7 +467,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
               <Rating value={Number(product.numReviews ? product.rating : 0)} precision={0.1} readOnly sx={{ color: '#DDA15E' }} />
               <Typography variant="body2" sx={{ color: '#6E5252', fontWeight: 700 }}>
                 {product.numReviews
-                  ? `${Number(product.rating).toFixed(1)} · ${product.numReviews} değerlendirme`
+                  ? p('ratingSummary', '{{rating}} · {{count}} değerlendirme', { rating: Number(product.rating).toFixed(1), count: product.numReviews })
                   : t('product.noReviews', { ns: 'catalog' })}
               </Typography>
             </Box>
@@ -499,7 +501,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                         <Icon sx={{ fontSize: 15 }} />
                       </Box>
                       <Typography component="span" sx={{ color: '#2E3B55', fontWeight: 800, fontSize: '0.86rem' }}>
-                        {value.toLocaleString('tr-TR')}
+                        {value.toLocaleString(locale === 'en' ? 'en-US' : 'tr-TR')}
                       </Typography>
                       <Typography component="span" sx={{ color: '#6E5252', fontWeight: 600, fontSize: '0.8rem' }}>
                         {label}
@@ -527,12 +529,12 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
             {colors.length > 0 && (
               <Box sx={{ mb: 2.5 }}>
-                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1, fontSize: '0.92rem' }}>Renk</Typography>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1, fontSize: '0.92rem' }}>{p('color', 'Renk')}</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {colors.map((color) => (
                     <Chip
                       key={color}
-                      label={color}
+                      label={product.colorLabels?.[color] || color}
                       onClick={() => setSelectedColor(color)}
                       sx={choiceChipSx(selectedColor === color)}
                     />
@@ -543,12 +545,12 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
             {sizes.length > 0 && (
               <Box sx={{ mb: 2.5 }}>
-                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1, fontSize: '0.92rem' }}>Beden / ölçü</Typography>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 1, fontSize: '0.92rem' }}>{p('size', 'Beden / ölçü')}</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {sizes.map((size) => (
                     <Chip
                       key={size}
-                      label={size}
+                      label={product.sizeLabels?.[size] || size}
                       onClick={() => setSelectedSize(size)}
                       sx={choiceChipSx(selectedSize === size)}
                     />
@@ -606,11 +608,11 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
             <AtelierCard
               atelier={product.atelier || {
-                magazaAdi: 'Nik Bag Atölyesi',
+                magazaAdi: p('houseName', 'Nik Bag Atölyesi'),
                 slug: null,
-                magazaTuruEtiket: 'El yapımı',
-                aciklama: 'Geleneksel el işçiliğiyle modern çizgilerin buluştuğu ev atölyesi.',
-                sehir: 'Türkiye',
+                magazaTuruEtiket: p('houseType', 'El yapımı'),
+                aciklama: p('houseBio', 'Geleneksel el işçiliğiyle modern çizgilerin buluştuğu ev atölyesi.'),
+                sehir: p('houseCity', 'Türkiye'),
                 instagram: 'nikbag',
                 isHouse: true
               }}
@@ -621,7 +623,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
 
             <Accordion elevation={0} defaultExpanded sx={accordionSx}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Ürün özellikleri</Typography>
+                <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{p('specs', 'Ürün özellikleri')}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <SpecRow label={t('product.sku', { ns: 'catalog' })} value={product.productCode || product._id} />
@@ -639,7 +641,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             {product.careInstructions ? (
               <Accordion elevation={0} sx={accordionSx}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>Bakım önerisi</Typography>
+                  <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{p('care', 'Bakım önerisi')}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography sx={{ color: '#6E5252', lineHeight: 1.7 }}>{product.careInstructions}</Typography>
@@ -667,9 +669,9 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         {similarProducts.length > 0 && (
           <Box sx={{ mt: { xs: 7, md: 10 }, pt: { xs: 4, md: 6 }, borderTop: '1px solid rgba(148,109,109,0.12)' }}>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: { xs: '1.5rem', md: '1.85rem' }, letterSpacing: '-0.03em' }}>
-              Bunlar da ilginizi çekebilir
+              {p('similarTitle', 'Bunlar da ilginizi çekebilir')}
             </Typography>
-            <Typography sx={{ color: '#6E5252', mb: 3.5, mt: 0.5 }}>Aynı kategorideki diğer el işi tasarımlar.</Typography>
+            <Typography sx={{ color: '#6E5252', mb: 3.5, mt: 0.5 }}>{p('similarLead', 'Aynı kategorideki diğer el işi tasarımlar.')}</Typography>
             <ProductSlider products={similarProducts} ariaLabel={t('product.similar', { ns: 'catalog' })} />
           </Box>
         )}
