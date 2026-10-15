@@ -15,7 +15,15 @@ const sign = (params) => {
   return crypto.createHash('sha1').update(payload + apiSecret()).digest('hex');
 };
 
+const modelExtension = (file) => {
+  const name = String(file?.originalname || '').toLowerCase();
+  if (name.endsWith('.glb')) return '.glb';
+  if (name.endsWith('.gltf')) return '.gltf';
+  return '';
+};
+
 const resourceTypeOf = (file) => {
+  if (modelExtension(file)) return 'raw';
   if (/^video\//.test(file?.mimetype || '')) return 'video';
   if (file?.mimetype === 'application/pdf') return 'raw';
   return 'image';
@@ -37,7 +45,7 @@ const putMedia = async (file, folder) => {
 
   const safeFolder = String(folder || 'media').replace(/[^a-z0-9_-]/gi, '') || 'media';
   const resourceType = resourceTypeOf(file);
-  const publicId = `nikbag/${safeFolder}/${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+  const publicId = `nikbag/${safeFolder}/${Date.now()}-${crypto.randomBytes(8).toString('hex')}${modelExtension(file)}`;
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = sign({ public_id: publicId, timestamp });
   const form = new FormData();

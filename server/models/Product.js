@@ -122,6 +122,11 @@ const productSchema = new mongoose.Schema(
             default: '',
             trim: true
         },
+        model3dUrl: {
+            type: String,
+            default: '',
+            trim: true
+        },
         isLookbook: {
             type: Boolean,
             default: false,

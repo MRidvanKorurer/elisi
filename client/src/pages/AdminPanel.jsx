@@ -42,7 +42,7 @@ import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
-import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, primaryButton } from '../components/PanelShell';
+import PanelShell, { PanelCard, SectionTitle, StatusChip, fieldSx, panelButton, primaryButton } from '../components/PanelShell';
 import { PageSpinner } from '../components/LoadingButton';
 import AdminPlatformReport from '../components/AdminPlatformReport';
 import ImageUploader from '../components/ImageUploader';
@@ -87,7 +87,8 @@ const emptyForm = {
   isActive: true,
   measureNote: '',
   customProductionTime: '1-3 İş Günü',
-  video: ''
+  video: '',
+  model3dUrl: ''
 };
 
 const headCell = {
@@ -137,6 +138,7 @@ export default function AdminPanel({ user, handleLogout }) {
   const [form, setForm] = useState(emptyForm);
   const [mainImage, setMainImage] = useState(null);
   const [gallery, setGallery] = useState([]);
+  const [modelFile, setModelFile] = useState(null);
   const [keptImages, setKeptImages] = useState([]);
   const [savingProduct, setSavingProduct] = useState(false);
   const [openOrder, setOpenOrder] = useState(null);
@@ -503,9 +505,11 @@ export default function AdminPanel({ user, handleLogout }) {
       isActive: Boolean(product.isActive),
       measureNote: product.measureNote || '',
       customProductionTime: product.customProductionTime || '1-3 İş Günü',
-      video: product.video || ''
+      video: product.video || '',
+      model3dUrl: product.model3dUrl || ''
     });
     setMainImage(null);
+    setModelFile(null);
     setGallery([]);
     setKeptImages(product.additionalImages || []);
   };
@@ -513,6 +517,7 @@ export default function AdminPanel({ user, handleLogout }) {
   const closeProduct = () => {
     setEditing(null);
     setMainImage(null);
+    setModelFile(null);
     setGallery([]);
   };
 
@@ -532,6 +537,8 @@ export default function AdminPanel({ user, handleLogout }) {
       body.append('measureNote', form.measureNote);
       body.append('customProductionTime', form.customProductionTime);
       body.append('video', form.video);
+      body.append('model3dUrl', form.model3dUrl || '');
+      if (modelFile) body.append('model3d', modelFile);
       body.append('isActive', String(form.isActive));
 
       const removed = (editing.additionalImages || []).filter((url) => !keptImages.includes(url));
@@ -1539,6 +1546,19 @@ export default function AdminPanel({ user, handleLogout }) {
               <TextField label="Üretim süresi" value={form.customProductionTime} onChange={(e) => setForm((p) => ({ ...p, customProductionTime: e.target.value }))} sx={fieldSx} />
               <TextField label="Ölçü / kullanım notu" value={form.measureNote} onChange={(e) => setForm((p) => ({ ...p, measureNote: e.target.value }))} placeholder="Örn. 28×18 cm, telefon ve cüzdan sığar" sx={fieldSx} />
               <TextField label="Ürün videosu (isteğe bağlı)" value={form.video} onChange={(e) => setForm((p) => ({ ...p, video: e.target.value }))} placeholder="mp4 bağlantısı — tıklanınca yüklenir" sx={fieldSx} />
+              <TextField label="3D model bağlantısı (.glb / .gltf)" value={form.model3dUrl || ''} onChange={(e) => setForm((p) => ({ ...p, model3dUrl: e.target.value }))} placeholder="https://.../model.glb" helperText="Bağlantıyı silerseniz model kalkar. Dosya yüklerseniz bağlantının yerine geçer." sx={fieldSx} />
+              <Button component="label" sx={panelButton}>
+                {modelFile ? modelFile.name : '3D model yükle (.glb / .gltf)'}
+                <input
+                  hidden
+                  type="file"
+                  accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+                  onChange={(event) => {
+                    setModelFile(event.target.files?.[0] || null);
+                    event.target.value = '';
+                  }}
+                />
+              </Button>
             </Box>
 
             <Box sx={{ display: 'grid', gap: 2, alignContent: 'start' }}>

@@ -178,6 +178,10 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   }, [productKey]);
 
   useEffect(() => {
+    setMediaView('photo');
+  }, [product?._id, product?.id]);
+
+  useEffect(() => {
     const productId = product?._id || product?.id;
     if (!productId) return undefined;
 
@@ -204,6 +208,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const mainImg = allImages[0] || FALLBACK_IMAGE;
   const displayImage = asImageSrc(activeImage) || mainImg;
   const videoSrc = resolveProductVideo(product?.video);
+  const modelSrc = typeof product?.model3dUrl === 'string' ? product.model3dUrl.trim() : '';
 
   const showToast = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
@@ -387,7 +392,29 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           }}
         >
           <Box sx={{ minWidth: 0, position: { lg: 'sticky' }, top: { lg: 108 }, overflow: 'visible', zIndex: 2 }}>
-            {mediaView === 'video' && videoSrc ? (
+            {mediaView === 'model' && modelSrc ? (
+              <Box
+                sx={{
+                  width: '100%',
+                  height: 400,
+                  borderRadius: { xs: '22px', md: '28px' },
+                  overflow: 'hidden',
+                  backgroundColor: '#fff',
+                  border: '1px solid rgba(148,109,109,0.12)',
+                  boxShadow: '0 22px 50px -24px rgba(46,59,85,0.35)'
+                }}
+              >
+                <model-viewer
+                  src={modelSrc}
+                  alt={p('modelAlt', '{{name}} 3D modeli', { name: title })}
+                  poster={mainImg}
+                  auto-rotate
+                  camera-controls
+                  shadow-intensity="1"
+                  style={{ width: '100%', height: '400px', backgroundColor: '#fff' }}
+                />
+              </Box>
+            ) : mediaView === 'video' && videoSrc ? (
               <Box
                 sx={{
                   width: '100%',
@@ -427,26 +454,34 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                 )}
               />
             )}
-            {videoSrc ? (
-              <Box
-                component="button"
-                type="button"
-                onClick={() => setMediaView((view) => (view === 'video' ? 'photo' : 'video'))}
-                sx={{
-                  mt: 1.2,
-                  p: 0,
-                  border: 0,
-                  bgcolor: 'transparent',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  color: '#946D6D',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  letterSpacing: 0.2,
-                  textDecoration: mediaView === 'video' ? 'underline' : 'none'
-                }}
-              >
-                {mediaView === 'video' ? t('product.backToPhotos', { ns: 'catalog' }) : t('product.watchVideo', { ns: 'catalog' })}
+            {(videoSrc || modelSrc) ? (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.6, mt: 1.2 }}>
+                {[
+                  { id: 'photo', label: t('product.photos', { ns: 'catalog', defaultValue: 'Fotoğraflar' }) },
+                  videoSrc ? { id: 'video', label: t('product.watchVideo', { ns: 'catalog' }) } : null,
+                  modelSrc ? { id: 'model', label: t('product.view3d', { ns: 'catalog', defaultValue: '3D model' }) } : null
+                ].filter(Boolean).map((tab) => (
+                  <Box
+                    key={tab.id}
+                    component="button"
+                    type="button"
+                    onClick={() => setMediaView(tab.id)}
+                    sx={{
+                      p: 0,
+                      border: 0,
+                      bgcolor: 'transparent',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      color: '#946D6D',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      letterSpacing: 0.2,
+                      textDecoration: mediaView === tab.id ? 'underline' : 'none'
+                    }}
+                  >
+                    {tab.label}
+                  </Box>
+                ))}
               </Box>
             ) : null}
           </Box>

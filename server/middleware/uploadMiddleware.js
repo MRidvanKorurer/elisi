@@ -2,6 +2,16 @@ const multer = require('multer');
 const { storeUploaded } = require('../utils/mediaStore');
 const { removeUpload } = require('../utils/uploadStore');
 
+const isModelFile = (file) => /\.(glb|gltf)$/i.test(String(file?.originalname || ''));
+
+const allowProductMedia = (_req, file, cb) => {
+  if (file.fieldname === 'model3d') {
+    if (isModelFile(file)) return cb(null, true);
+    return cb(new Error('3D model yalnızca .glb veya .gltf olabilir.'));
+  }
+  return allowImage(_req, file, cb);
+};
+
 const allowImage = (_req, file, cb) => {
   const name = String(file.originalname || '').toLowerCase();
   if (file.mimetype === 'image/svg+xml' || name.endsWith('.svg')) {
@@ -23,11 +33,12 @@ const afterUpload = (uploader, folder) => (req, res, next) => {
 const productImages = afterUpload(
   multer({
     storage: memory,
-    limits: { fileSize: 8 * 1024 * 1024, files: 7 },
-    fileFilter: allowImage
+    limits: { fileSize: 20 * 1024 * 1024, files: 8 },
+    fileFilter: allowProductMedia
   }).fields([
     { name: 'image', maxCount: 1 },
-    { name: 'gallery', maxCount: 6 }
+    { name: 'gallery', maxCount: 6 },
+    { name: 'model3d', maxCount: 1 }
   ]),
   'products'
 );

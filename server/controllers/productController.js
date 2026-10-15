@@ -14,6 +14,7 @@ const { localizeBody } = require('../utils/localize');
 const { lookupColor } = require('../i18n/contentGlossary');
 const { translateTexts } = require('../services/translationService');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
+const { sanitizeModelUrl } = require('../utils/productModel');
 const { notifyFavoritesIfDiscounted } = require('../services/whatsappService');
 
 const getCatalogCategoryIds = async () => {
@@ -458,6 +459,19 @@ const toList = (value) => {
 
 const asBool = (value) => value === true || value === 'true' || value === '1';
 
+const assignModel = (product, body = {}, file) => {
+    if (file) {
+        const next = publicPath(file);
+        if (product.model3dUrl && product.model3dUrl !== next) removeUpload(product.model3dUrl);
+        product.model3dUrl = next;
+        return;
+    }
+    if (body.model3dUrl === undefined) return;
+    const next = sanitizeModelUrl(body.model3dUrl);
+    if (product.model3dUrl && product.model3dUrl !== next) removeUpload(product.model3dUrl);
+    product.model3dUrl = next;
+};
+
 const readDimensions = (body = {}) => {
     const num = (key) => {
         if (body[key] === undefined || body[key] === '') return null;
@@ -494,9 +508,10 @@ const createMyProduct = async (req, res) => {
 
         const mainFile = req.files?.image?.[0];
         const galleryFiles = req.files?.gallery || [];
+        const modelFile = req.files?.model3d?.[0];
 
         if (!title || !description || !category || price == null || stock == null || !mainFile) {
-            galleryFiles.concat(mainFile ? [mainFile] : []).forEach((file) => removeUpload(publicPath(file)));
+            galleryFiles.concat(mainFile ? [mainFile] : [], modelFile ? [modelFile] : []).forEach((file) => removeUpload(publicPath(file)));
             return res.status(400).json({ mesaj: 'Başlık, açıklama, kategori, fiyat, stok ve ana görsel zorunludur.' });
         }
 
@@ -522,6 +537,7 @@ const createMyProduct = async (req, res) => {
             measureNote: String(measureNote).trim(),
             dimensions: readDimensions(req.body),
             video: sanitizeVideoUrl(req.body.video),
+            model3dUrl: modelFile ? publicPath(modelFile) : sanitizeModelUrl(req.body.model3dUrl),
             approvalStatus: 'pending',
             isActive: false
         });
@@ -549,7 +565,7 @@ const updateMyProduct = async (req, res) => {
         const body = req.body || {};
         const onlyToggle = body.isActive !== undefined && Object.keys(body).every((key) =>
             ['isActive'].includes(key)
-        ) && !req.files?.image && !req.files?.gallery;
+        ) && !req.files?.image && !req.files?.gallery && !req.files?.model3d;
 
         if (body.title !== undefined) product.title = String(body.title).trim();
         if (body.description !== undefined) product.description = String(body.description).trim();
@@ -569,6 +585,7 @@ const updateMyProduct = async (req, res) => {
         if (body.measureNote !== undefined) product.measureNote = String(body.measureNote).trim();
         if (body.careInstructions !== undefined) product.careInstructions = String(body.careInstructions).trim();
         if (body.video !== undefined) product.video = sanitizeVideoUrl(body.video);
+        assignModel(product, body, req.files?.model3d?.[0]);
         if (body.colors !== undefined) product.colors = toList(body.colors);
         if (body.sizes !== undefined) product.sizes = toList(body.sizes);
         if (body.features !== undefined) product.features = toList(body.features);
@@ -629,6 +646,7 @@ const deleteMyProduct = async (req, res) => {
         }
         removeUpload(product.image);
         (product.additionalImages || []).forEach(removeUpload);
+        if (product.model3dUrl) removeUpload(product.model3dUrl);
         await product.deleteOne();
         return res.json({ success: true, mesaj: 'Ürün silindi.', id: req.params.id });
     } catch (error) {

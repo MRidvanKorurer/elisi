@@ -10,6 +10,7 @@ const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
 const { releasePromoUse } = require('../utils/promoCode');
 const { publicPath, removeUpload } = require('../middleware/uploadMiddleware');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
+const { sanitizeModelUrl } = require('../utils/productModel');
 const FeaturedRequest = require('../models/FeaturedRequest');
 const WeeklyAtelier = require('../models/WeeklyAtelier');
 const {
@@ -471,6 +472,17 @@ const updateProduct = async (req, res) => {
     const galleryFiles = req.files?.gallery || [];
     if (galleryFiles.length) {
       product.additionalImages = [...(product.additionalImages || []), ...galleryFiles.map(publicPath)].slice(0, 8);
+    }
+
+    const modelFile = req.files?.model3d?.[0];
+    if (modelFile) {
+      const next = publicPath(modelFile);
+      if (product.model3dUrl && product.model3dUrl !== next) removeUpload(product.model3dUrl);
+      product.model3dUrl = next;
+    } else if (req.body.model3dUrl !== undefined) {
+      const next = sanitizeModelUrl(req.body.model3dUrl);
+      if (product.model3dUrl && product.model3dUrl !== next) removeUpload(product.model3dUrl);
+      product.model3dUrl = next;
     }
 
     await product.save();

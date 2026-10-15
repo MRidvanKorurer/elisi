@@ -103,6 +103,7 @@ export default function SellerPanel({ user, handleLogout }) {
   const [form, setForm] = useState(emptyProductForm);
   const [mainImage, setMainImage] = useState(null);
   const [gallery, setGallery] = useState([]);
+  const [modelFile, setModelFile] = useState(null);
   const [removedImages, setRemovedImages] = useState([]);
   const [savingProduct, setSavingProduct] = useState(false);
   const [productFilter, setProductFilter] = useState('all');
@@ -328,6 +329,7 @@ export default function SellerPanel({ user, handleLogout }) {
     setForm(emptyProductForm);
     setMainImage(null);
     setGallery([]);
+      setModelFile(null);
     setRemovedImages([]);
     setView('editor');
   };
@@ -337,6 +339,7 @@ export default function SellerPanel({ user, handleLogout }) {
     setForm(formFromProduct(product));
     setMainImage(null);
     setGallery([]);
+      setModelFile(null);
     setRemovedImages([]);
     setView('editor');
   };
@@ -346,6 +349,7 @@ export default function SellerPanel({ user, handleLogout }) {
     setEditing(null);
     setMainImage(null);
     setGallery([]);
+      setModelFile(null);
     setRemovedImages([]);
   };
 
@@ -379,6 +383,8 @@ export default function SellerPanel({ user, handleLogout }) {
       body.append('customProductionTime', form.customProductionTime);
       body.append('measureNote', form.measureNote || '');
       body.append('video', form.video || '');
+      body.append('model3dUrl', form.model3dUrl || '');
+      if (modelFile) body.append('model3d', modelFile);
       body.append('widthCm', form.widthCm);
       body.append('heightCm', form.heightCm);
       body.append('depthCm', form.depthCm);
@@ -623,6 +629,7 @@ export default function SellerPanel({ user, handleLogout }) {
         setEditing(null);
         setMainImage(null);
         setGallery([]);
+      setModelFile(null);
         setRemovedImages([]);
       }
       return;
@@ -636,6 +643,7 @@ export default function SellerPanel({ user, handleLogout }) {
       setEditing(null);
       setMainImage(null);
       setGallery([]);
+      setModelFile(null);
       setRemovedImages([]);
     }
   };
@@ -751,6 +759,8 @@ export default function SellerPanel({ user, handleLogout }) {
           setMainImage={setMainImage}
           gallery={gallery}
           setGallery={setGallery}
+          modelFile={modelFile}
+          setModelFile={setModelFile}
           removedImages={removedImages}
           setRemovedImages={setRemovedImages}
           saving={savingProduct}
@@ -878,6 +888,7 @@ export default function SellerPanel({ user, handleLogout }) {
                       });
                       setMainImage(null);
                       setGallery([]);
+      setModelFile(null);
                       setRemovedImages([]);
                       setView('editor');
                     }}

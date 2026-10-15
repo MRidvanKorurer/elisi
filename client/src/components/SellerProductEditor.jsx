@@ -37,6 +37,7 @@ export const emptyProductForm = {
   customProductionTime: '1-3 İş Günü',
   measureNote: '',
   video: '',
+  model3dUrl: '',
   widthCm: '',
   heightCm: '',
   depthCm: '',
@@ -63,6 +64,7 @@ export const formFromProduct = (product) => ({
   customProductionTime: product.customProductionTime || '1-3 İş Günü',
   measureNote: product.measureNote || '',
   video: product.video || '',
+  model3dUrl: product.model3dUrl || '',
   widthCm: product.dimensions?.widthCm ?? '',
   heightCm: product.dimensions?.heightCm ?? '',
   depthCm: product.dimensions?.depthCm ?? '',
@@ -126,6 +128,8 @@ export default function SellerProductEditor({
   setMainImage,
   gallery,
   setGallery,
+  modelFile,
+  setModelFile,
   removedImages,
   setRemovedImages,
   saving,
@@ -295,6 +299,27 @@ export default function SellerProductEditor({
               placeholder="mp4 bağlantısı"
               sx={fieldSx}
             />
+            <TextField
+              label="3D model bağlantısı (isteğe bağlı)"
+              value={form.model3dUrl || ''}
+              onChange={(e) => setForm((p) => ({ ...p, model3dUrl: e.target.value }))}
+              placeholder="https://.../model.glb"
+              helperText="Yalnızca .glb veya .gltf. Bağlantıyı silerseniz model kalkar."
+              sx={{ ...fieldSx, mt: 1.8 }}
+            />
+            <Button component="label" sx={{ ...panelButton, mt: 1.2 }}>
+              {modelFile ? modelFile.name : '3D model yükle (.glb / .gltf)'}
+              <input
+                hidden
+                type="file"
+                accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  setModelFile(file);
+                  event.target.value = '';
+                }}
+              />
+            </Button>
           </PanelCard>
         </Box>
 
