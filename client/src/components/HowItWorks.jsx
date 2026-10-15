@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import TravelExploreOutlined from '@mui/icons-material/TravelExploreOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
@@ -91,19 +92,13 @@ export default function HowItWorks() {
       sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}
     >
       <Box sx={{ mb: 3 }}>
-        <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#A290B7' }}>
+        <Typography sx={homeEyebrowSx}>
           {t('how.eyebrow')}
         </Typography>
-        <Typography
-          id="how-it-works-title"
-          component="h2"
-          variant="h4"
-          fontWeight={800}
-          sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}
-        >
+        <Typography id="how-it-works-title" component="h2" sx={homeTitleSx}>
           {t('how.title')}
         </Typography>
-        <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 1, lineHeight: 1.7, maxWidth: 540 }}>
+        <Typography sx={{ ...homeSubtitleSx, maxWidth: 540 }}>
           {t('how.subtitle')}
         </Typography>
       </Box>

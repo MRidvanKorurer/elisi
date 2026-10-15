@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { useTranslation } from 'react-i18next';
@@ -80,13 +81,13 @@ export default function SellerCtaBanner({ user }) {
           }}
         />
         <Box sx={{ position: 'relative', maxWidth: 560, zIndex: 1 }}>
-          <Typography variant="overline" sx={{ letterSpacing: 2, fontWeight: 800, color: '#FDF4D2' }}>
+          <Typography sx={{ ...homeEyebrowSx, color: '#FDF4D2' }}>
             {t('sellerCta.eyebrow')}
           </Typography>
-          <Typography component="h2" variant="h4" fontWeight={800} sx={{ color: '#FFFFFF', letterSpacing: '-0.6px', mb: 1.2, fontSize: { xs: '1.7rem', md: '2.1rem' } }}>
+          <Typography component="h2" sx={{ ...homeTitleSx, color: '#FFFFFF', mb: 0 }}>
             {isSeller ? t('sellerCta.sellerTitle') : t('sellerCta.guestTitle')}
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontWeight: 600, lineHeight: 1.75 }}>
+          <Typography sx={{ ...homeSubtitleSx, color: 'rgba(255,255,255,0.88)' }}>
             {isSeller ? t('sellerCta.sellerText') : t('sellerCta.guestText')}
           </Typography>
         </Box>

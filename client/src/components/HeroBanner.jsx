@@ -1,5 +1,6 @@
 ﻿
 import React, { useEffect, useRef, useState } from 'react';
+import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import {
   Box, Typography, Button, IconButton
 } from '@mui/material';
@@ -382,59 +383,29 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               boxShadow: '0 15px 30px rgba(0,0,0,0.12)'
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{
-                color: '#A290B7',
-                fontWeight: 800,
-                mb: 1,
-                display: 'block',
-                fontSize: '0.75rem',
-                letterSpacing: '2.5px',
-                textTransform: 'uppercase'
-              }}
-            >
+            <Typography sx={{ ...homeEyebrowSx, mb: 1 }}>
               {t('hero.kicker')}
             </Typography>
 
             <Typography
               variant="h1"
               sx={{
-                color: '#946D6D',
+                ...homeTitleSx,
                 mb: 1.5,
-                fontSize: { xs: '2rem', sm: '2.6rem', md: '3.3rem' },
-                fontWeight: 800,
-                letterSpacing: '-1px',
-                lineHeight: 1.05
+                mt: 0,
+                fontSize: { xs: '2rem', sm: '2.35rem', md: '2.6rem' }
               }}
             >
               Nik Bag.
               <Box
                 component="span"
-                sx={{
-                  display: 'block',
-                  mt: 0.6,
-                  color: '#2E3B55',
-                  fontSize: { xs: '0.82rem', md: '0.95rem' },
-                  fontWeight: 700,
-                  letterSpacing: '0.2px',
-                  lineHeight: 1.35
-                }}
+                sx={{ ...homeSubtitleSx, display: 'block', color: '#2E3B55' }}
               >
                 {t('hero.tagline')}
               </Box>
             </Typography>
 
-            <Typography
-              variant="body2"
-              sx={{
-                color: '#6E5252',
-                fontWeight: 500,
-                mb: 2.5,
-                fontSize: { xs: '0.85rem', md: '0.95rem' },
-                lineHeight: 1.5
-              }}
-            >
+            <Typography sx={{ ...homeSubtitleSx, mb: 2.5 }}>
               {!user ? t('hero.guestLead') : t('hero.memberLead')}
             </Typography>
 

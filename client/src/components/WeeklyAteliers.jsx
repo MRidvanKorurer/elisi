@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Avatar, Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
@@ -252,28 +253,14 @@ export default function WeeklyAteliers() {
             }}
           >
             <Box sx={{ minWidth: 0, maxWidth: 560 }}>
-              <Typography
-                variant="overline"
-                sx={{
-                  letterSpacing: 2,
-                  color: '#A290B7',
-                  fontWeight: 800,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5
-                }}
-              >
-                <CelebrationOutlined sx={{ fontSize: 18 }} />
+              <Typography sx={homeEyebrowSx}>
+                <CelebrationOutlined sx={{ fontSize: 16 }} />
                 {t('weekly.eyebrow')}
               </Typography>
-              <Typography
-                component="h2"
-                fontWeight={800}
-                sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}
-              >
+              <Typography component="h2" sx={homeTitleSx}>
                 {t('weekly.title')}
               </Typography>
-              <Typography sx={{ mt: 0.7, color: '#6E5252', fontWeight: 600, fontSize: { xs: '0.88rem', md: '0.95rem' } }}>
+              <Typography sx={homeSubtitleSx}>
                 {t('weekly.subtitle')}
               </Typography>
             </Box>

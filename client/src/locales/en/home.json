@@ -1,7 +1,7 @@
 {
   "hero": {
     "kicker": "Limited collection",
-    "tagline": "Handmade bags and a design atelier",
+    "tagline": "Handmade Bags and a Design Atelier",
     "guestLead": "Traditional craft with a modern line. Sign up and use your 10% first-order code right away.",
     "memberLead": "See the newest pieces from the atelier.",
     "featured": "Featured",
@@ -12,7 +12,7 @@
   },
   "categories": {
     "eyebrow": "ATELIER ROOMS",
-    "title": "Browse by category",
+    "title": "Browse by Category",
     "subtitle": "Pick a room; its pieces open just below.",
     "selected": "SELECTED",
     "discover": "EXPLORE",
@@ -32,7 +32,7 @@
   },
   "categoryRails": {
     "eyebrow": "BY CATEGORY",
-    "title": "Bestsellers in each category",
+    "title": "Bestsellers in Each Category",
     "subtitle": "The three most loved pieces from every category.",
     "seeAll": "See category",
     "top3": "Top 3 bestsellers",
@@ -41,7 +41,7 @@
   },
   "weekly": {
     "eyebrow": "THIS WEEK",
-    "title": "Ateliers of the week",
+    "title": "Ateliers of the Week",
     "subtitle": "Shops in the spotlight. Open a card to see the full vitrine.",
     "badge": "Atelier of the week",
     "slots": "{{current}}/3 in the vitrine",
@@ -52,14 +52,14 @@
   },
   "arrivals": {
     "eyebrow": "FRESH FROM THE ATELIER",
-    "title": "New arrivals",
+    "title": "New Arrivals",
     "region": "New arrivals",
     "prev": "Previous products",
     "next": "Next products"
   },
   "bestsellers": {
     "eyebrow": "THIS WEEK’S FAVORITES",
-    "title": "Best sellers",
+    "title": "Best Sellers",
     "region": "Best sellers",
     "prev": "Previous products",
     "next": "Next products"
@@ -111,7 +111,7 @@
   },
   "lookbook": {
     "eyebrow": "ATELIER",
-    "title": "Bags in motion",
+    "title": "Bags in Motion",
     "subtitle": "Knit detail, wooden handles, studio light. Three frames from the collection.",
     "knit": "Knit detail",
     "wood": "Wooden handle",
@@ -122,25 +122,25 @@
   },
   "film": {
     "eyebrow": "ATELIER FILM",
-    "title": "Bag, light, and craft",
+    "title": "Bag, Light, and Craft",
     "subtitle": "The collection, shot in the studio.",
     "label": "Atelier film"
   },
   "how": {
     "eyebrow": "THE RHYTHM",
-    "title": "How it works",
+    "title": "How It Works",
     "subtitle": "Many pieces are made to order. Delivery follows the maker’s pace, not a warehouse clock.",
     "s1Title": "Explore",
     "s1Text": "Browse categories and ateliers, then pick the piece that fits.",
     "s2Title": "Order",
     "s2Text": "Check out securely. Made-to-order notes live on the product page.",
-    "s3Title": "At your door",
+    "s3Title": "At Your Door",
     "s3Text": "The maker prepares and ships. You’ll see timing on the order summary."
   },
   "sellerCta": {
     "eyebrow": "FOR MAKERS",
-    "sellerTitle": "Your shop is waiting.",
-    "guestTitle": "Bring your atelier to the vitrine.",
+    "sellerTitle": "Your Shop Is Waiting.",
+    "guestTitle": "Bring Your Atelier to the Vitrine.",
     "sellerText": "Check your application and get ready to add your work to Nik Bag.",
     "guestText": "Reach thousands of curious buyers. We review your application, then your shop goes live.",
     "sellerButton": "Go to my shop",

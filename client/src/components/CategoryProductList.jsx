@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Skeleton, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import { categoryLabel } from '../utils/categories';
@@ -335,27 +336,14 @@ export default function CategoryProductList() {
           }}
         >
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="overline"
-              sx={{ letterSpacing: 2, color: '#A290B7', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
-            >
-              <CategoryOutlined sx={{ fontSize: 18 }} />
+            <Typography sx={homeEyebrowSx}>
+              <CategoryOutlined sx={{ fontSize: 16 }} />
               {t('categories.eyebrow', { ns: 'home' })}
             </Typography>
-            <Typography
-              component="h2"
-              sx={{
-                color: '#2E3B55',
-                fontWeight: 800,
-                letterSpacing: '-0.6px',
-                mt: 0.2,
-                fontSize: { xs: '1.5rem', sm: '1.85rem', md: '2.2rem' },
-                pr: { xs: 1, sm: 0 }
-              }}
-            >
+            <Typography component="h2" sx={homeTitleSx}>
               {t('categories.title', { ns: 'home' })}
             </Typography>
-            <Typography sx={{ mt: 0.8, color: '#6E5252', fontWeight: 600, maxWidth: 540, fontSize: { xs: '0.88rem', md: '0.95rem' } }}>
+            <Typography sx={{ ...homeSubtitleSx, maxWidth: 540 }}>
               {t('categories.subtitle', { ns: 'home' })}
             </Typography>
           </Box>

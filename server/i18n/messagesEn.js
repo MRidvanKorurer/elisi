@@ -208,6 +208,7 @@ const EXACT = {
   'SVG dosyaları kabul edilmiyor.': 'SVG files are not accepted.',
   'Yalnızca görsel dosyaları yükleyebilirsiniz.': 'You can only upload image files.',
   '3D model yalnızca .glb veya .gltf olabilir.': 'The 3D model must be a .glb or .gltf file.',
+  'Geçerli bir ürün seçin.': 'Choose a valid product.',
   'Dosya okunamadı.': 'The file could not be read.',
   'Bu işlem için süper admin yetkisi gerekir.': 'This action requires super admin permission.',
   'Bu hesaba bağlı satıcı kaydı bulunamadı.': 'No seller account is linked to this account.',

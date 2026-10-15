@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeEyebrowSx, homeTitleSx } from './homeType';
 import { useReducedMotion } from 'framer-motion';
 import LocalFireDepartmentOutlined from '@mui/icons-material/LocalFireDepartmentOutlined';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
@@ -128,21 +129,11 @@ export default function BestSellers() {
   return (
     <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
       <Box sx={{ textAlign: 'left', mb: 3 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            letterSpacing: 2,
-            color: '#946D6D',
-            fontWeight: 800,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5
-          }}
-        >
-          <LocalFireDepartmentOutlined sx={{ fontSize: '18px', color: '#946D6D' }} />
+        <Typography sx={homeEyebrowSx}>
+          <LocalFireDepartmentOutlined sx={{ fontSize: 16 }} />
           {t('bestsellers.eyebrow')}
         </Typography>
-        <Typography component="h2" variant="h4" fontWeight="800" sx={{ color: '#2E3B55', letterSpacing: '-0.5px', mt: 0.2, fontSize: { xs: '1.45rem', sm: '1.8rem', md: '2.125rem' } }}>
+        <Typography component="h2" sx={homeTitleSx}>
           {t('bestsellers.title')}
         </Typography>
       </Box>

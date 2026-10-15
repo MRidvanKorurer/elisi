@@ -1,7 +1,7 @@
 {
   "hero": {
     "kicker": "Özel Koleksiyon",
-    "tagline": "El yapımı çanta ve tasarım atölyesi",
+    "tagline": "El Yapımı Çanta ve Tasarım Atölyesi",
     "guestLead": "Geleneksel el işçiliğiyle modern çizgilerin buluştuğu eşsiz tasarımlar. Kayıt ol, ilk siparişine özel %10 indirim kodunu anında kullan.",
     "memberLead": "Atölyemizin en yeni ve seçkin tasarımlarını hemen inceleyin.",
     "featured": "Öne çıkanlar",
@@ -32,7 +32,7 @@
   },
   "categoryRails": {
     "eyebrow": "KATEGORİ VİTRİNİ",
-    "title": "Her kategorinin en çok satanları",
+    "title": "Her Kategorinin En Çok Satanları",
     "subtitle": "Her kategoriden en çok tercih edilen üç parça.",
     "seeAll": "Kategoriyi gör",
     "top3": "En çok satan 3 ürün",
@@ -41,7 +41,7 @@
   },
   "weekly": {
     "eyebrow": "HAFTANIN SEÇİMİ",
-    "title": "Haftanın atölyeleri",
+    "title": "Haftanın Atölyeleri",
     "subtitle": "Bu hafta öne çıkan mağazalar. Kartına bas, tüm vitrini aç.",
     "badge": "Haftanın atölyesi",
     "slots": "{{current}}/3 vitrinde",
@@ -66,7 +66,7 @@
   },
   "featured": {
     "eyebrow": "VİTRİN",
-    "title": "Öne çıkanlar",
+    "title": "Öne Çıkanlar",
     "subtitle": "Bu hafta vitrine alınan atölye parçaları.",
     "region": "Öne çıkan ürünler",
     "prev": "Önceki ürünler",
@@ -74,7 +74,7 @@
   },
   "made": {
     "eyebrow": "KİŞİYE ÖZEL",
-    "title": "Ölçüye özel ve hediye",
+    "title": "Ölçüye Özel ve Hediye",
     "subtitle": "Sipariş üzerine üretimde ölçü notu bırakın; hediye seçiminde atölye tempo ve paketlemeyi bilir.",
     "customEyebrow": "SİPARİŞ ÜZERİNE",
     "customTitle": "Ölçüye özel üretim",
@@ -111,32 +111,32 @@
   },
   "lookbook": {
     "eyebrow": "ATÖLYE",
-    "title": "Çantalar hareket halinde",
+    "title": "Çantalar Hareket Halinde",
     "subtitle": "El örgüsü detay, ahşap sap ve stüdyo ışığı",
     "knit": "El örgüsü detay",
     "wood": "Ahşap sap detay"
   },
   "film": {
     "eyebrow": "ATÖLYE FİLMİ",
-    "title": "Çanta, ışık ve el emeği",
+    "title": "Çanta, Işık ve El Emeği",
     "subtitle": "Koleksiyonun çekilmiş tam karesi.",
     "label": "Atölye filmi"
   },
   "how": {
     "eyebrow": "SÜREÇ",
-    "title": "Nasıl çalışır?",
+    "title": "Nasıl Çalışır?",
     "subtitle": "Birçok ürün sipariş üzerine üretilir. Teslimat, stoklu mağazadan biraz daha kişisel bir ritimdedir.",
     "s1Title": "Keşfet",
     "s1Text": "Kategori ve atölyelere göz at, sana uyan el emeğini seç.",
-    "s2Title": "Sipariş ver",
+    "s2Title": "Sipariş Ver",
     "s2Text": "Güvenli ödeme ile sepetini tamamla; kişiye özel üretim notu üründe yazar.",
-    "s3Title": "Kapına gelsin",
+    "s3Title": "Kapına Gelsin",
     "s3Text": "Üretici hazırlar, kargoya verir. Teslimat süresini sipariş özetinde görürsün."
   },
   "sellerCta": {
     "eyebrow": "ÜRETİCİLER İÇİN",
-    "sellerTitle": "Mağazan seni bekliyor.",
-    "guestTitle": "Atölyeni vitrine taşı.",
+    "sellerTitle": "Mağazan Seni Bekliyor.",
+    "guestTitle": "Atölyeni Vitrine Taşı.",
     "sellerText": "Başvuru durumunu gör, el emeğini Nik Bag koleksiyonuna eklemeye hazırlan.",
     "guestText": "El yapımı ürünlerini binlerce meraklıya ulaştır. Başvurun incelenir, onay sonrası mağazan yayına alınır.",
     "sellerButton": "Mağazama git",

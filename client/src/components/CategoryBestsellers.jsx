@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import LocaleLink from '../i18n/LocaleLink';
 import SiteContainer from './SiteContainer';
+import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import ProductCard from './ProductCard';
 import { productService } from '../api/productService';
 import { categoryService } from '../api/categoryService';
@@ -257,17 +258,14 @@ export default function CategoryBestsellers() {
           }}
         >
           <Box>
-            <Typography sx={{ letterSpacing: 2, color: '#946D6D', fontWeight: 800, fontSize: 12 }}>
+            <Typography sx={homeEyebrowSx}>
               {t('categoryRails.eyebrow')}
             </Typography>
-            <Typography
-              component="h2"
-              sx={{ color: '#2E3B55', fontWeight: 800, letterSpacing: '-0.4px', fontSize: { xs: '1.35rem', sm: '1.6rem', md: '1.8rem' }, mt: 0.3 }}
-            >
+            <Typography component="h2" sx={homeTitleSx}>
               {t('categoryRails.title')}
             </Typography>
           </Box>
-          <Typography sx={{ color: '#6E5252', fontWeight: 600, fontSize: { xs: 13.5, md: 14.5 }, maxWidth: 380 }}>
+          <Typography sx={{ ...homeSubtitleSx, maxWidth: 380, mt: { xs: 0.8, md: 0 } }}>
             {t('categoryRails.subtitle')}
           </Typography>
         </Box>

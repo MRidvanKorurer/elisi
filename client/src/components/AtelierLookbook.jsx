@@ -231,6 +231,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Skeleton, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeTitleSx } from './homeType';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
@@ -258,7 +259,6 @@ const mediaSx = {
 };
 
 function StudioClip({ src, poster, label, onClick, media = 'auto' }) {
-  const { t } = useTranslation('home');
   const wrapRef = useRef(null);
   const videoRef = useRef(null);
   const isVideo = Boolean(src) && (media === 'video' || (media !== 'image' && isVideoUrl(src)));
@@ -296,18 +296,9 @@ function StudioClip({ src, poster, label, onClick, media = 'auto' }) {
         borderRadius: { xs: '20px', md: '28px' },
         overflow: 'hidden',
         height: CLIP_HEIGHT,
-        bgcolor: '#0F172A',
-        cursor: onClick ? 'pointer' : 'default',
-        boxShadow: '0 12px 32px -12px rgba(15, 23, 42, 0.18)',
-        transition: 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease',
-        '&:hover': onClick
-          ? {
-              transform: 'translateY(-6px)',
-              boxShadow: '0 24px 48px -16px rgba(15, 23, 42, 0.3)',
-              '& .media-element': { transform: 'scale(1.05)' },
-              '& .cta-button': { opacity: 1, transform: 'translateX(0)' }
-            }
-          : undefined
+        bgcolor: '#F8F4EA',
+        border: '1px solid rgba(148,109,109,0.12)',
+        cursor: 'pointer'
       }}
     >
       {isVideo ? (
@@ -336,112 +327,6 @@ function StudioClip({ src, poster, label, onClick, media = 'auto' }) {
         />
       )}
 
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.8) 100%)',
-          pointerEvents: 'none',
-          zIndex: 1
-        }}
-      />
-
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          zIndex: 2,
-          px: 1.6,
-          py: 0.6,
-          borderRadius: '100px',
-          bgcolor: 'rgba(255, 255, 255, 0.2)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.8
-        }}
-      >
-        <Box
-          sx={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            bgcolor: isVideo ? '#10B981' : '#6366F1'
-          }}
-        />
-        <Typography
-          sx={{
-            color: '#FFFFFF',
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase'
-          }}
-        >
-          {isVideo
-            ? t('lookbook.badgeVideo', 'Canlı Detay')
-            : t('lookbook.badgeImage', 'Atölye')}
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          position: 'absolute',
-          left: { xs: 16, md: 24 },
-          right: { xs: 16, md: 24 },
-          bottom: { xs: 16, md: 24 },
-          zIndex: 2,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 1.5
-        }}
-      >
-        <Typography
-          sx={{
-            color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: { xs: '1.05rem', md: '1.25rem' },
-            letterSpacing: '-0.02em',
-            lineHeight: 1.25,
-            textShadow: '0 2px 8px rgba(0,0,0,0.4)'
-          }}
-        >
-          {label}
-        </Typography>
-
-        {onClick && (
-          <Box
-            className="cta-button"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.6,
-              px: 1.8,
-              py: 0.7,
-              borderRadius: '100px',
-              bgcolor: 'rgba(255, 255, 255, 0.95)',
-              color: '#0F172A',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              transition: 'opacity 0.3s ease, transform 0.3s ease',
-              opacity: { xs: 1, md: 0.85 },
-              transform: { xs: 'none', md: 'translateX(-4px)' },
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            <span>{t('lookbook.examine', 'İncele')}</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </Box>
-        )}
-      </Box>
     </Box>
   );
 }
@@ -520,43 +405,9 @@ export default function AtelierLookbook() {
 
   return (
     <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2.5, sm: 4 } }}>
-      <Box sx={{ mb: { xs: 3.5, md: 5 }, maxWidth: 640 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            letterSpacing: '0.18em',
-            fontWeight: 800,
-            color: '#8B5CF6',
-            fontSize: '0.75rem',
-            display: 'block',
-            mb: 0.5
-          }}
-        >
-          {t('lookbook.eyebrow', 'ATÖLYE LOOKBOOK')}
-        </Typography>
-        <Typography
-          component="h2"
-          variant="h4"
-          fontWeight={800}
-          sx={{
-            color: '#0F172A',
-            letterSpacing: '-0.03em',
-            fontSize: { xs: '1.65rem', sm: '2rem', md: '2.4rem' },
-            lineHeight: 1.15
-          }}
-        >
-          {t('lookbook.title', 'Zanaat ve Doğal Dokular')}
-        </Typography>
-        <Typography
-          sx={{
-            color: '#64748B',
-            fontWeight: 500,
-            mt: 1.2,
-            fontSize: { xs: '0.92rem', md: '1.05rem' },
-            lineHeight: 1.5
-          }}
-        >
-          {t('lookbook.subtitle', 'Özel tasarım koleksiyonlarımızdaki ince işçiliği ve özenle seçilmiş materyalleri keşfedin.')}
+      <Box sx={{ mb: { xs: 2.4, md: 3 }, maxWidth: 640 }}>
+        <Typography component="h2" sx={homeTitleSx}>
+          {t('lookbook.title', 'Çantalar hareket halinde')}
         </Typography>
       </Box>
 
@@ -580,7 +431,7 @@ export default function AtelierLookbook() {
                 <StudioClip
                   {...clip}
                   label={displayLabel}
-                  onClick={clip.id ? () => navigate(`/urun/${clip.id}`) : undefined}
+                  onClick={() => navigate('/kategori/canta')}
                 />
               </Reveal>
             );
