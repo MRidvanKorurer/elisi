@@ -28,6 +28,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import ViewInArOutlined from '@mui/icons-material/ViewInArOutlined';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -392,29 +393,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
           }}
         >
           <Box sx={{ minWidth: 0, position: { lg: 'sticky' }, top: { lg: 108 }, overflow: 'visible', zIndex: 2 }}>
-            {mediaView === 'model' && modelSrc ? (
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 400,
-                  borderRadius: { xs: '22px', md: '28px' },
-                  overflow: 'hidden',
-                  backgroundColor: '#fff',
-                  border: '1px solid rgba(148,109,109,0.12)',
-                  boxShadow: '0 22px 50px -24px rgba(46,59,85,0.35)'
-                }}
-              >
-                <model-viewer
-                  src={modelSrc}
-                  alt={p('modelAlt', '{{name}} 3D modeli', { name: title })}
-                  poster={mainImg}
-                  auto-rotate
-                  camera-controls
-                  shadow-intensity="1"
-                  style={{ width: '100%', height: '400px', backgroundColor: '#fff' }}
-                />
-              </Box>
-            ) : mediaView === 'video' && videoSrc ? (
+            {mediaView === 'video' && videoSrc ? (
               <Box
                 sx={{
                   width: '100%',
@@ -454,34 +433,61 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                 )}
               />
             )}
-            {(videoSrc || modelSrc) ? (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.6, mt: 1.2 }}>
-                {[
-                  { id: 'photo', label: t('product.photos', { ns: 'catalog', defaultValue: 'Fotoğraflar' }) },
-                  videoSrc ? { id: 'video', label: t('product.watchVideo', { ns: 'catalog' }) } : null,
-                  modelSrc ? { id: 'model', label: t('product.view3d', { ns: 'catalog', defaultValue: '3D model' }) } : null
-                ].filter(Boolean).map((tab) => (
-                  <Box
-                    key={tab.id}
-                    component="button"
-                    type="button"
-                    onClick={() => setMediaView(tab.id)}
-                    sx={{
-                      p: 0,
-                      border: 0,
-                      bgcolor: 'transparent',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      color: '#946D6D',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      letterSpacing: 0.2,
-                      textDecoration: mediaView === tab.id ? 'underline' : 'none'
-                    }}
-                  >
-                    {tab.label}
+            {videoSrc ? (
+              <Box
+                component="button"
+                type="button"
+                onClick={() => setMediaView((view) => (view === 'video' ? 'photo' : 'video'))}
+                sx={{
+                  mt: 1.2,
+                  p: 0,
+                  border: 0,
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  color: '#946D6D',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  letterSpacing: 0.2,
+                  textDecoration: mediaView === 'video' ? 'underline' : 'none'
+                }}
+              >
+                {mediaView === 'video' ? t('product.backToPhotos', { ns: 'catalog' }) : t('product.watchVideo', { ns: 'catalog' })}
+              </Box>
+            ) : null}
+            {modelSrc ? (
+              <Box sx={{ mt: 2.6 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, mb: 1.2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0 }}>
+                    <ViewInArOutlined sx={{ color: '#946D6D', fontSize: 20 }} />
+                    <Typography sx={{ color: '#2E3B55', fontWeight: 800, letterSpacing: '-0.02em', fontSize: '1.02rem' }}>
+                      {t('product.view3d', { ns: 'catalog', defaultValue: '3D model' })}
+                    </Typography>
                   </Box>
-                ))}
+                  <Typography sx={{ color: '#A290B7', fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {t('product.modelHint', { ns: 'catalog', defaultValue: 'Sürükleyerek çevir' })}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    height: { xs: 340, md: 440 },
+                    borderRadius: { xs: '22px', md: '28px' },
+                    overflow: 'hidden',
+                    border: '1px solid rgba(148,109,109,0.14)',
+                    background: 'radial-gradient(120% 80% at 50% 115%, rgba(176,205,230,0.55) 0%, rgba(253,244,210,0.72) 46%, #fff 78%)',
+                    boxShadow: '0 24px 50px -30px rgba(46,59,85,0.55)'
+                  }}
+                >
+                  <model-viewer
+                    src={modelSrc}
+                    alt={p('modelAlt', '{{name}} 3D modeli', { name: title })}
+                    poster={mainImg}
+                    auto-rotate
+                    camera-controls
+                    shadow-intensity="1"
+                    style={{ width: '100%', height: '100%', background: 'transparent' }}
+                  />
+                </Box>
               </Box>
             ) : null}
           </Box>

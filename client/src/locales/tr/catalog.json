@@ -86,6 +86,7 @@
     "watchVideo": "Videoyu izle",
     "photos": "Fotoğraflar",
     "view3d": "3D model",
+    "modelHint": "Sürükleyerek çevir",
     "modelAlt": "{{name}} 3D modeli",
     "noReviews": "Henüz değerlendirme yok",
     "noDescription": "Bu ürün için henüz detaylı bir açıklama eklenmedi.",

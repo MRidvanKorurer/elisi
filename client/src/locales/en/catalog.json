@@ -116,6 +116,7 @@
     "watchVideo": "Watch video",
     "photos": "Photos",
     "view3d": "3D model",
+    "modelHint": "Drag to turn",
     "modelAlt": "{{name}} 3D model",
     "noReviews": "No reviews yet",
     "noDescription": "A longer description hasn’t been added yet.",
