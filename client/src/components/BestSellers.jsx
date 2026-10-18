@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionSx, homeTitleSx } from './homeType';
 import { useReducedMotion } from 'framer-motion';
 import LocalFireDepartmentOutlined from '@mui/icons-material/LocalFireDepartmentOutlined';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
@@ -116,7 +116,7 @@ export default function BestSellers() {
 
   if (loading) {
     return (
-      <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
+      <SiteContainer sx={homeSectionSx}>
         <SectionSpinner />
       </SiteContainer>
     );
@@ -127,7 +127,7 @@ export default function BestSellers() {
   const scrollable = !(edges.start && edges.end);
 
   return (
-    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={homeSectionSx}>
       <Box sx={{ textAlign: 'left', mb: 3 }}>
         <Typography sx={homeEyebrowSx}>
           <LocalFireDepartmentOutlined sx={{ fontSize: 16 }} />

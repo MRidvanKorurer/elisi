@@ -4,6 +4,7 @@ const lookbookSchema = new mongoose.Schema(
   {
     title: { type: String, trim: true, default: '' },
     label: { type: String, trim: true, required: true },
+    subtitle: { type: String, trim: true, default: '' },
     videoUrl: { type: String, trim: true, default: '' },
     posterUrl: { type: String, trim: true, default: '' },
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
@@ -19,6 +20,7 @@ const lookbookSchema = new mongoose.Schema(
     en: {
       title: { type: String, default: '' },
       label: { type: String, default: '' },
+      subtitle: { type: String, default: '' },
       sourceHash: { type: String, default: '' },
       translatedAt: { type: Date }
     }

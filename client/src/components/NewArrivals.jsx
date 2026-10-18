@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionSx, homeTitleSx } from './homeType';
 import { useReducedMotion } from 'framer-motion';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
@@ -106,7 +106,7 @@ export default function NewArrivals() {
 
   if (loading) {
     return (
-      <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
+      <SiteContainer sx={homeSectionSx}>
         <SectionSpinner />
       </SiteContainer>
     );
@@ -117,7 +117,7 @@ export default function NewArrivals() {
   const scrollable = !(edges.start && edges.end);
 
   return (
-    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, mt: { xs: 1, md: 2 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={homeSectionSx}>
       <Box sx={{ textAlign: 'left', mb: 3 }}>
         <Typography sx={homeEyebrowSx}>
           <AutoAwesomeOutlined sx={{ fontSize: 16 }} />

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Skeleton, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionGap, homeSubtitleSx, homeTitleSx } from './homeType';
 import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import { categoryLabel } from '../utils/categories';
@@ -318,7 +318,7 @@ export default function CategoryProductList() {
       ref={sectionRef}
       component="section"
       sx={{
-        py: { xs: 4, md: 7 },
+        mb: homeSectionGap,
         backgroundColor: '#FDF4D2',
         contentVisibility: 'auto',
         containIntrinsicSize: '1200px'

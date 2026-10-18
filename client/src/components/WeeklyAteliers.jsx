@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Avatar, Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionGap, homeSubtitleSx, homeTitleSx } from './homeType';
 import { useTranslation } from 'react-i18next';
 import LocaleLink from '../i18n/LocaleLink';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
@@ -229,7 +229,7 @@ export default function WeeklyAteliers() {
 
   if (loading) {
     return (
-      <Box component="section" sx={{ py: { xs: 5, md: 7 } }}>
+      <Box component="section" sx={{ mb: homeSectionGap }}>
         <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
           <SectionSpinner />
         </SiteContainer>
@@ -241,7 +241,7 @@ export default function WeeklyAteliers() {
 
   return (
     <Reveal>
-      <Box component="section" sx={{ py: { xs: 5, md: 7 } }}>
+      <Box component="section" sx={{ mb: homeSectionGap }}>
         <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>
           <Box
             sx={{

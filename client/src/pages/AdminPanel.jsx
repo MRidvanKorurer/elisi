@@ -32,7 +32,6 @@ import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import AutoAwesomeOutlined from '@mui/icons-material/AutoAwesomeOutlined';
-import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import AccountBalanceOutlined from '@mui/icons-material/AccountBalanceOutlined';
 import CampaignOutlined from '@mui/icons-material/CampaignOutlined';

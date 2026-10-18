@@ -43,6 +43,7 @@ const createLookbook = async (req, res) => {
     const item = await Lookbook.create({
       title: String(req.body.title || '').trim(),
       label: String(req.body.label || req.body.title || (placement === 'hero' ? 'Hero' : 'Klip')).trim(),
+      subtitle: String(req.body.subtitle || '').trim(),
       videoUrl: videoFile?.storedUrl || '',
       posterUrl: posterFile?.storedUrl || '',
       product: productIdOf(req.body.productId),
@@ -70,6 +71,7 @@ const updateLookbook = async (req, res) => {
 
     if (req.body.label != null) item.label = String(req.body.label || '').trim() || item.label;
     if (req.body.title != null) item.title = String(req.body.title || '').trim();
+    if (req.body.subtitle != null) item.subtitle = String(req.body.subtitle || '').trim();
     if (req.body.order != null && req.body.order !== '') item.order = Number(req.body.order) || 0;
     if (req.body.isActive != null) item.isActive = req.body.isActive === true || req.body.isActive === 'true';
     if (req.body.placement) item.placement = placementOf(req.body.placement);

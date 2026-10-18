@@ -1,19 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeSectionSx } from './homeType';
 import { lookbookService, mediaUrl } from '../api/lookbookService';
-import { SITE_CLIPS } from '../utils/siteVideos';
 
-export default function HomepageFilm({ embedded = false }) {
-  const { t } = useTranslation('home');
+/** Admin panelde "Büyük film" altında yayında kayıt yoksa bölüm hiç görünmez. */
+export default function HomepageFilm() {
   const wrapRef = useRef(null);
   const videoRef = useRef(null);
-  const [clip, setClip] = useState({
-    src: SITE_CLIPS.canta1,
-    label: '',
-    poster: ''
-  });
+  const [clip, setClip] = useState(null);
   const [activated, setActivated] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -21,12 +16,14 @@ export default function HomepageFilm({ embedded = false }) {
     let cancelled = false;
     lookbookService.list(false, 'homepage')
       .then((data) => {
-        const item = (data.items || [])[0];
-        if (cancelled || !item?.videoUrl) return;
+        const item = (data.items || []).find((entry) => entry.videoUrl);
+        if (cancelled || !item) return;
         setClip({
-          src: mediaUrl(item.videoUrl) || SITE_CLIPS.canta1,
-          label: item.label || item.title || '',
-          poster: mediaUrl(item.posterUrl)
+          src: mediaUrl(item.videoUrl),
+          poster: mediaUrl(item.posterUrl),
+          eyebrow: item.label || '',
+          title: item.title || '',
+          subtitle: item.subtitle || ''
         });
       })
       .catch(() => {});
@@ -47,7 +44,7 @@ export default function HomepageFilm({ embedded = false }) {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [clip]);
 
   useEffect(() => {
     const node = videoRef.current;
@@ -56,9 +53,12 @@ export default function HomepageFilm({ embedded = false }) {
     else node.pause?.();
   }, [activated, visible]);
 
-  if (!clip.src) return null;
+  if (!clip?.src) return null;
 
-  const film = (
+  const hasText = Boolean(clip.eyebrow || clip.title || clip.subtitle);
+
+  return (
+    <SiteContainer sx={homeSectionSx}>
       <Box
         ref={wrapRef}
         sx={{
@@ -89,32 +89,35 @@ export default function HomepageFilm({ embedded = false }) {
             display: 'block'
           }}
         />
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, rgba(30,39,56,0.08) 20%, rgba(30,39,56,0.72) 100%)'
-          }}
-        />
-        <Box sx={{ position: 'absolute', left: { xs: 22, md: 36 }, bottom: { xs: 22, md: 32 }, right: 24, zIndex: 1 }}>
-          <Typography sx={{ letterSpacing: 2.2, fontWeight: 800, fontSize: 12, color: '#FDF4D2' }}>
-            {t('film.eyebrow')}
-          </Typography>
-          <Typography sx={{ fontWeight: 900, fontSize: { xs: '1.45rem', md: '2.15rem' }, color: '#fff', lineHeight: 1.15, mt: 0.6 }}>
-            {t('film.title')}
-          </Typography>
-          <Typography sx={{ color: 'rgba(253,244,210,0.82)', fontWeight: 600, mt: 0.8, maxWidth: 460 }}>
-            {t('film.subtitle')}
-          </Typography>
-        </Box>
+        {hasText ? (
+          <>
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(180deg, rgba(30,39,56,0.08) 20%, rgba(30,39,56,0.72) 100%)'
+              }}
+            />
+            <Box sx={{ position: 'absolute', left: { xs: 22, md: 36 }, bottom: { xs: 22, md: 32 }, right: 24, zIndex: 1 }}>
+              {clip.eyebrow ? (
+                <Typography sx={{ letterSpacing: 2.2, fontWeight: 800, fontSize: 12, color: '#FDF4D2', textTransform: 'uppercase' }}>
+                  {clip.eyebrow}
+                </Typography>
+              ) : null}
+              {clip.title ? (
+                <Typography sx={{ fontWeight: 900, fontSize: { xs: '1.45rem', md: '2.15rem' }, color: '#fff', lineHeight: 1.15, mt: 0.6 }}>
+                  {clip.title}
+                </Typography>
+              ) : null}
+              {clip.subtitle ? (
+                <Typography sx={{ color: 'rgba(253,244,210,0.82)', fontWeight: 600, mt: 0.8, maxWidth: 460 }}>
+                  {clip.subtitle}
+                </Typography>
+              ) : null}
+            </Box>
+          </>
+        ) : null}
       </Box>
-  );
-
-  if (embedded) return film;
-
-  return (
-    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
-      {film}
     </SiteContainer>
   );
 }

@@ -7,7 +7,13 @@ import { T } from '../utils/panel';
 const SECTIONS = [
   { id: 'hero', label: 'Hero banner', title: 'Ana sayfa hero görselleri', subtitle: 'Slayt sırasını, görseli ve yayını buradan değiştirin. Boş bırakırsanız varsayılan bannerlar kalır.' },
   { id: 'lookbook', label: 'Hareketli çantalar', title: 'Hareket halindeki çanta klipleri', subtitle: 'Yayından alınan klip silinmez. Video ve kapak durur, istediğiniz zaman tekrar yayınlanır.' },
-  { id: 'homepage', label: 'Büyük film', title: 'Ana sayfa filmi', subtitle: 'Lookbook’un altındaki geniş hareketli çanta videosu. İlk aktif klip oynar.' }
+  { id: 'homepage', label: 'Büyük film', title: 'Ana sayfa filmi', subtitle: 'Yeni gelenlerin altındaki geniş film. İlk yayındaki film oynar; yayında film yoksa bölüm ana sayfada görünmez.' }
+];
+
+const FILM_FIELDS = [
+  { name: 'label', label: 'Üst yazı', placeholder: 'ATÖLYE FİLMİ' },
+  { name: 'title', label: 'Başlık', placeholder: 'Çanta, Işık ve El Emeği' },
+  { name: 'subtitle', label: 'Alt yazı', placeholder: 'Koleksiyonun çekilmiş tam karesi.' }
 ];
 
 const fieldSx = {
@@ -49,6 +55,8 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
   const [section, setSection] = useState('hero');
   const [saving, setSaving] = useState(false);
   const [label, setLabel] = useState('');
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
   const [productId, setProductId] = useState('');
   const [image, setImage] = useState(null);
   const [video, setVideo] = useState(null);
@@ -77,8 +85,14 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
     [kept, section]
   );
 
+  const isFilm = section === 'homepage';
+  const filmDraft = { label, title, subtitle };
+  const setFilmDraft = { label: setLabel, title: setTitle, subtitle: setSubtitle };
+
   const reset = () => {
     setLabel('');
+    setTitle('');
+    setSubtitle('');
     setProductId('');
     setImage(null);
     setVideo(null);
@@ -99,7 +113,11 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
     try {
       const body = new FormData();
       body.append('placement', section);
-      body.append('label', label || (section === 'hero' ? 'Hero' : 'Hareketli çanta'));
+      body.append('label', label || (section === 'hero' ? 'Hero' : isFilm ? 'Atölye Filmi' : 'Hareketli çanta'));
+      if (isFilm) {
+        body.append('title', title);
+        body.append('subtitle', subtitle);
+      }
       if (productId) body.append('productId', productId);
       if (image) body.append('poster', image);
       if (video) body.append('video', video);
@@ -201,17 +219,29 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '0.85fr 1.15fr' }, gap: 1.8, alignItems: 'start' }}>
         <PanelCard>
           <Typography sx={{ fontWeight: 900, color: T.navy, mb: 1.6 }}>
-            {section === 'hero' ? 'Yeni hero görseli' : 'Yeni klip'}
+            {section === 'hero' ? 'Yeni hero görseli' : isFilm ? 'Yeni film' : 'Yeni klip'}
           </Typography>
           <Box component="form" onSubmit={add}>
-            <TextField
-              fullWidth
-              label={section === 'hero' ? 'Slayt adı' : 'Etiket'}
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              sx={{ ...fieldSx, mb: 2 }}
-            />
-            {section !== 'hero' ? (
+            {isFilm ? FILM_FIELDS.map((field) => (
+              <TextField
+                key={field.name}
+                fullWidth
+                label={field.label}
+                placeholder={field.placeholder}
+                value={filmDraft[field.name]}
+                onChange={(event) => setFilmDraft[field.name](event.target.value)}
+                sx={{ ...fieldSx, mb: 2 }}
+              />
+            )) : (
+              <TextField
+                fullWidth
+                label={section === 'hero' ? 'Slayt adı' : 'Etiket'}
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+                sx={{ ...fieldSx, mb: 2 }}
+              />
+            )}
+            {section === 'lookbook' ? (
               <TextField
                 select
                 fullWidth
@@ -236,7 +266,7 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
                 : 'Video zorunlu. Kapak, video yüklenene kadar görünür.'}
             </Typography>
             <Button type="submit" disabled={saving} sx={{ fontWeight: 800, bgcolor: T.navy, color: '#fff', borderRadius: '12px', px: 2.2, '&:hover': { bgcolor: T.navyDeep } }}>
-              {saving ? 'Yükleniyor...' : section === 'hero' ? 'Görsel ekle' : 'Klip ekle'}
+              {saving ? 'Yükleniyor...' : section === 'hero' ? 'Görsel ekle' : isFilm ? 'Film ekle' : 'Klip ekle'}
             </Button>
           </Box>
         </PanelCard>
@@ -244,9 +274,15 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
         <Box>
           {!rows.length ? (
             <PanelCard sx={{ textAlign: 'center', py: 5 }}>
-              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.6 }}>Henüz özel içerik yok</Typography>
+              <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.6 }}>
+                {isFilm ? 'Film yok' : 'Henüz özel içerik yok'}
+              </Typography>
               <Typography sx={{ color: T.muted }}>
-                {section === 'hero' ? 'Eklenene kadar site varsayılan bannerları gösterir.' : 'Eklenene kadar hazır çanta klipleri oynar.'}
+                {section === 'hero'
+                  ? 'Eklenene kadar site varsayılan bannerları gösterir.'
+                  : isFilm
+                    ? 'Film bölümü ana sayfada görünmüyor. Video eklerseniz yeniden çıkar.'
+                    : 'Eklenene kadar hazır çanta klipleri oynar.'}
               </Typography>
             </PanelCard>
           ) : rows.map((item, index) => (
@@ -254,17 +290,34 @@ export default function AdminSiteContent({ items = [], products = [], onChanged,
               <Box sx={{ display: 'flex', gap: 1.6, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <MediaPreview item={item} />
                 <Box sx={{ flex: 1, minWidth: 180 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    defaultValue={item.label}
-                    key={`${item._id}-${item.label}`}
-                    onBlur={(event) => {
-                      const next = event.target.value.trim();
-                      if (next && next !== item.label) patch(item, { label: next }, 'Etiket güncellendi.');
-                    }}
-                    sx={fieldSx}
-                  />
+                  {isFilm ? FILM_FIELDS.map((field) => (
+                    <TextField
+                      key={`${item._id}-${field.name}-${item[field.name] || ''}`}
+                      fullWidth
+                      size="small"
+                      label={field.label}
+                      defaultValue={item[field.name] || ''}
+                      onBlur={(event) => {
+                        const next = event.target.value.trim();
+                        if (next === (item[field.name] || '')) return;
+                        if (field.name === 'label' && !next) return;
+                        patch(item, { [field.name]: next }, `${field.label} güncellendi.`);
+                      }}
+                      sx={{ ...fieldSx, mb: 1 }}
+                    />
+                  )) : (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      defaultValue={item.label}
+                      key={`${item._id}-${item.label}`}
+                      onBlur={(event) => {
+                        const next = event.target.value.trim();
+                        if (next && next !== item.label) patch(item, { label: next }, 'Etiket güncellendi.');
+                      }}
+                      sx={fieldSx}
+                    />
+                  )}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.8, flexWrap: 'wrap' }}>
                     <Chip
                       size="small"

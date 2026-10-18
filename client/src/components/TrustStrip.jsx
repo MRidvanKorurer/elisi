@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
+import { homeSectionSx } from './homeType';
 import HandshakeOutlined from '@mui/icons-material/HandshakeOutlined';
 import VolunteerActivismOutlined from '@mui/icons-material/VolunteerActivismOutlined';
 import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
@@ -18,7 +19,7 @@ export default function TrustStrip() {
   const { t } = useTranslation('home');
   const items = ITEM_META.map((item) => ({ ...item, title: t(item.titleKey), text: t(item.textKey) }));
   return (
-    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={homeSectionSx}>
       <Box
         sx={{
           display: 'grid',

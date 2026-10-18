@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +38,7 @@ export default function SellerCtaBanner({ user }) {
   }, []);
 
   return (
-    <SiteContainer sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
+    <SiteContainer sx={homeSectionSx}>
       <Box
         sx={{
           position: 'relative',

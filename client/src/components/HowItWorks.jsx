@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import TravelExploreOutlined from '@mui/icons-material/TravelExploreOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
@@ -89,7 +89,7 @@ export default function HowItWorks() {
     <SiteContainer
       component="section"
       aria-labelledby="how-it-works-title"
-      sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 3 } }}
+      sx={homeSectionSx}
     >
       <Box sx={{ mb: 3 }}>
         <Typography sx={homeEyebrowSx}>

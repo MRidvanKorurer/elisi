@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import LocaleLink from '../i18n/LocaleLink';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionGap, homeSubtitleSx, homeTitleSx } from './homeType';
 import ProductCard from './ProductCard';
 import { productService } from '../api/productService';
 import { categoryService } from '../api/categoryService';
@@ -242,8 +242,7 @@ export default function CategoryBestsellers() {
     <Box
       component="section"
       sx={{
-        py: { xs: 3.5, md: 5 },
-        background: 'linear-gradient(180deg, #FDF4D2 0%, rgba(176,205,230,0.18) 100%)'
+        mb: homeSectionGap
       }}
     >
       <SiteContainer sx={{ px: { xs: 2, sm: 3 } }}>

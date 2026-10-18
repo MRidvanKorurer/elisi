@@ -1,6 +1,10 @@
 /** Ana sayfa başlıkları tek tip: Plus Jakarta, lacivert başlık, lavanta üst yazı. */
 export const homeFont = '"Plus Jakarta Sans", sans-serif';
 
+/** Ana sayfa bölümleri arası tek boşluk: her bölüm yalnızca alt boşluk taşır. */
+export const homeSectionGap = { xs: 6, md: 8 };
+export const homeSectionSx = { mt: 0, mb: homeSectionGap, px: { xs: 2, sm: 3 } };
+
 export const homeEyebrowSx = {
   fontFamily: homeFont,
   fontSize: '0.72rem',

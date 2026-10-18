@@ -29,7 +29,7 @@ const productSource = (doc = {}) => ({
 
 const categorySource = (doc = {}) => ({ categoryId: clean(doc.categoryId), name: clean(doc.name), description: clean(doc.description) });
 const sellerSource = (doc = {}) => ({ aciklama: clean(doc.aciklama) });
-const lookbookSource = (doc = {}) => ({ title: clean(doc.title), label: clean(doc.label) });
+const lookbookSource = (doc = {}) => ({ title: clean(doc.title), label: clean(doc.label), subtitle: clean(doc.subtitle) });
 
 const pick = (map, overrides, key, source) => {
   if (!source) return { value: '', ok: true };
@@ -110,11 +110,14 @@ const buildSellerEn = async (doc, overrides = {}) => {
 
 const buildLookbookEn = async (doc) => {
   const source = lookbookSource(doc);
-  const map = await translateTexts([source.title, source.label]);
+  const map = await translateTexts([source.title, source.label, source.subtitle]);
   const title = source.title ? map.get(source.title) || '' : '';
   const label = source.label ? map.get(source.label) || '' : '';
-  const complete = (!source.title || Boolean(title)) && (!source.label || Boolean(label));
-  return { title, label, sourceHash: complete ? hashOf(source) : '', translatedAt: new Date(), complete };
+  const subtitle = source.subtitle ? map.get(source.subtitle) || '' : '';
+  const complete = (!source.title || Boolean(title))
+    && (!source.label || Boolean(label))
+    && (!source.subtitle || Boolean(subtitle));
+  return { title, label, subtitle, sourceHash: complete ? hashOf(source) : '', translatedAt: new Date(), complete };
 };
 
 const stripComplete = ({ complete, ...rest }) => rest;
@@ -166,7 +169,7 @@ const sweepTranslations = async ({ limit = 25 } = {}) => {
       stats.sellers += 1;
     }
 
-    const clips = await Lookbook.find({}).select('title label en.sourceHash').lean();
+    const clips = await Lookbook.find({}).select('title label subtitle en.sourceHash').lean();
     for (const doc of clips) {
       if (hashOf(lookbookSource(doc)) === doc.en?.sourceHash || !canTry(`l:${doc._id}`)) continue;
       const built = await buildLookbookEn(doc);

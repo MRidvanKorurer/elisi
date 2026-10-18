@@ -13,7 +13,7 @@ export const localeFromPath = (pathname = '/') =>
 export const stripLocale = (pathname = '/') => {
   if (!pathname) return '/';
   const clean = pathname.replace(EN_PREFIX, '');
-  return clean.startsWith('/') ? clean : `/${clean}` || '/';
+  return clean.startsWith('/') ? clean : `/${clean}`;
 };
 
 export const isLocaleHome = (pathname = '/') => {

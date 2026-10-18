@@ -1,6 +1,6 @@
 ﻿
 import React, { useEffect, useRef, useState } from 'react';
-import { homeEyebrowSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeSectionGap, homeSubtitleSx, homeTitleSx } from './homeType';
 import {
   Box, Typography, Button, IconButton
 } from '@mui/material';
@@ -146,7 +146,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
         width: '100%',
         height: { xs: 'auto', md: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 108px))' },
         mt: 0,
-        mb: { xs: 2, md: 3 },
+        mb: homeSectionGap,
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         alignItems: { xs: 'stretch', md: 'flex-end' },
