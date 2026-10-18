@@ -630,9 +630,6 @@ export default function AdminPanel({ user, handleLogout }) {
             title="Günlük durum"
             subtitle="Ödeme onayı, ürün incelemesi ve satıcı başvurularını buradan yönetin. Sipariş kargosunu satıcı ilerletir."
           />
-          <Box sx={{ mb: 2.4 }}>
-            <AdminWhatsApp />
-          </Box>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, 1fr)' }, gap: 1.8, mb: 2 }}>
             <StatCard icon={ShoppingBagOutlined} title="Bugünkü sipariş" value={overview.todayOrders} hint="Adet" tone={T.navy} />

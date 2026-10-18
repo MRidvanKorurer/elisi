@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const ProductQuestion = require('../models/ProductQuestion');
 const Product = require('../models/Product');
 const { isSuperAdmin } = require('../utils/roles');
+const { notifyAdmin } = require('../services/emailService');
 const { RESPONSE_MS, questionTiming, overdueQuery, unansweredQuery } = require('../utils/questionDeadline');
 
 const MIN_QUESTION = 10;
@@ -162,10 +163,19 @@ const askQuestion = async (req, res) => {
       .populate('answeredBy', 'adSoyad')
       .lean();
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       mesaj: 'Sorunuz satıcıya iletildi. 3 gün içinde yanıtlanır.',
       question: serializeQuestion(populated)
+    });
+    return notifyAdmin({
+      subject: 'Yeni ürün sorusu',
+      intro: 'Bir ürüne yeni soru soruldu. Satıcının 3 gün içinde yanıtlaması gerekiyor.',
+      fields: [
+        ['Ürün', product.title],
+        ['Soran', req.user?.adSoyad || `${guestName} (misafir)`],
+        ['Soru', question]
+      ]
     });
   } catch (error) {
     return res.status(500).json({ success: false, mesaj: 'Soru gönderilemedi.', hata: error.message });

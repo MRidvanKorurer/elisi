@@ -16,6 +16,7 @@ const { translateTexts } = require('../services/translationService');
 const { sanitizeVideoUrl } = require('../utils/productVideo');
 const { sanitizeModelUrl } = require('../utils/productModel');
 const { notifyFavoritesIfDiscounted } = require('../services/whatsappService');
+const { notifyAdmin } = require('../services/emailService');
 
 const getCatalogCategoryIds = async () => {
     const docs = await Category.find({ isActive: true }).sort({ order: 1 }).select('categoryId').lean();
@@ -541,10 +542,22 @@ const createMyProduct = async (req, res) => {
             approvalStatus: 'pending',
             isActive: false
         });
-        return res.status(201).json({
+        res.status(201).json({
             success: true,
             mesaj: 'Ürün onaya gönderildi. Süper admin onayladığında yayına alınır.',
             product
+        });
+        const shop = await Seller.findOne({ user: req.user._id }).select('magazaAdi').lean().catch(() => null);
+        return notifyAdmin({
+            subject: 'Onay bekleyen yeni ürün',
+            intro: 'Bir satıcı yeni ürün ekledi. Ürün siz onaylayana kadar yayında görünmez.',
+            fields: [
+                ['Ürün', product.title],
+                ['Mağaza', shop?.magazaAdi || req.user.adSoyad],
+                ['Fiyat', `${Number(product.price || 0).toLocaleString('tr-TR')} ₺`],
+                ['Kategori', product.category],
+                ['Stok', product.stock]
+            ]
         });
     } catch (error) {
         return res.status(500).json({ mesaj: 'Ürün eklenemedi.', hata: error.message });

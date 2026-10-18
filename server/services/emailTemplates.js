@@ -173,6 +173,51 @@ const adminSignup = ({ kind, name, email, phone, shop }) => {
   };
 };
 
+const customerWelcome = ({ name, code, percent }) => {
+  const first = String(name || '').trim().split(/\s+/)[0] || '';
+  const greeting = first ? `Hoş geldin ${first}` : 'Hoş geldin';
+  const codeBox = `<span style="display:inline-block;padding:12px 18px;border:1px dashed #936e6d;border-radius:12px;background:#fdf4d2;font-family:'Courier New',monospace;font-size:22px;font-weight:700;letter-spacing:0.12em;color:#2e3b55;">${escapeHtml(code)}</span>`;
+  const text = [
+    `${greeting}!`,
+    'Nik Bag ailesine katıldığın için teşekkürler.',
+    `İlk siparişine özel %${percent} indirim kodun: ${code}`,
+    'Hesabınla giriş yaptığında kod sepetteki "Hoş geldin kodu" alanında hazır olur; uygulaman yeterli. Kod yalnızca senin hesabında ve ilk siparişinde geçerlidir.',
+    site()
+  ].join('\n');
+  return {
+    subject: `Nik Bag'e hoş geldin, ilk siparişine %${percent} indirim`,
+    text,
+    html: layout({
+      title: `${greeting}!`,
+      intro: `Nik Bag ailesine katıldığın için teşekkürler. El emeği atölyelerin özenle hazırladığı parçalar seni bekliyor. İlk siparişine özel %${percent} indirim kodun aşağıda.`,
+      rows: [
+        rowHtml('İndirim kodun', codeBox),
+        row('İndirim', `İlk siparişine %${percent}`),
+        row('Nasıl kullanılır', 'Hesabınla giriş yap. Kod sepetteki "Hoş geldin kodu" alanında hazır olur; uygula butonuna basman yeterli.')
+      ].join(''),
+      note: 'Kod yalnızca senin hesabına tanımlıdır ve ilk siparişinde bir kez kullanılabilir. Sorun olursa bu e-postayı yanıtlaman yeterli.'
+    })
+  };
+};
+
+const adminEvent = ({ subject, intro, fields = [], link }) => {
+  const filled = fields.filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '');
+  const panel = `${site()}${link || '/admin'}`;
+  return {
+    subject,
+    text: [subject, intro, ...filled.map(([label, value]) => `${label}: ${value}`), panel].filter(Boolean).join('\n'),
+    html: layout({
+      title: subject,
+      intro,
+      rows: [
+        ...filled.map(([label, value]) => row(label, value)),
+        rowHtml('Panel', `<a href="${escapeHtml(panel)}" style="color:#936e6d;font-weight:700;">Süper admin paneline git</a>`)
+      ].join(''),
+      note: 'Bu bilgi yalnızca süper admin içindir.'
+    })
+  };
+};
+
 const adminStatus = ({ buyerName, orderId, status, trackingCode }) => {
   const label = statusLabel(status);
   const text = `${orderId} numaralı siparişin durumu ${label} oldu. Alıcı: ${buyerName || '—'}.${trackingCode ? ` Takip: ${trackingCode}.` : ''}`;
@@ -261,6 +306,8 @@ module.exports = {
   buyerCreated,
   adminSale,
   adminSignup,
+  adminEvent,
+  customerWelcome,
   adminStatus,
   buyerStatus,
   paymentReminder,

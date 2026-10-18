@@ -163,10 +163,11 @@ const dispatch = (jobs) => {
   });
 };
 
-const SUPER_ADMIN_EMAIL = 'nikbagadmin@gmail.com';
+const SITE_EMAIL = 'nikbagofficial@gmail.com';
 
+/** Site bildirimlerinin gittiği adres. SUPERADMIN_EMAIL'den ayrıdır; o yalnızca süper admin hesabını belirler. */
 const superAdminEmail = (explicit) =>
-  String(explicit || process.env.SUPERADMIN_EMAIL || SUPER_ADMIN_EMAIL).trim();
+  String(explicit || clean(process.env.ADMIN_NOTIFY_EMAIL) || SITE_EMAIL).trim();
 
 const productLabel = (items = []) => {
   const names = [...new Set((items || []).map((item) => item.name || item.title).filter(Boolean))];
@@ -256,6 +257,18 @@ const notifyAdminSignup = ({ kind, name, email, phone, shop } = {}) => {
   dispatch([{ to: admin, ...templates.adminSignup({ kind, name, email, phone, shop }) }]);
 };
 
+const notifyCustomerWelcome = ({ email, name, code, percent } = {}) => {
+  if (!email || !code) return;
+  dispatch([{ to: email, ...templates.customerWelcome({ name, code, percent }) }]);
+};
+
+/** Siteyle ilgili her olay için süper admine tek tip bilgi e-postası. */
+const notifyAdmin = ({ subject, intro, fields, link } = {}) => {
+  const admin = superAdminEmail();
+  if (!admin || !subject) return;
+  dispatch([{ to: admin, ...templates.adminEvent({ subject, intro, fields, link }) }]);
+};
+
 const notifyPaymentReminder = ({ buyerEmail, buyerName, paymentCode, total, shortfall } = {}) => {
   if (!buyerEmail) return;
   dispatch([{ to: buyerEmail, ...templates.paymentReminder({ buyerName, paymentCode, total, shortfall }) }]);
@@ -284,6 +297,8 @@ module.exports = {
   notifyOrderCreated,
   notifyOrderStatusChanged,
   notifyAdminSignup,
+  notifyCustomerWelcome,
+  notifyAdmin,
   notifyPaymentReminder,
   notifyPaymentExpired
 };

@@ -3,6 +3,7 @@ const NewsletterSubscriber = require('../models/NewsletterSubscriber');
 const { publicSite } = require('../utils/runtime');
 const { resolveBank } = require('../utils/bank');
 const { getUsdTry } = require('../services/exchangeRate');
+const { notifyAdmin } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -24,8 +25,15 @@ router.post('/newsletter', async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ success: false, mesaj: 'Geçerli bir e-posta yazın.' });
     }
-    await NewsletterSubscriber.updateOne({ email }, { $setOnInsert: { email } }, { upsert: true });
+    const result = await NewsletterSubscriber.updateOne({ email }, { $setOnInsert: { email } }, { upsert: true });
     res.json({ success: true, mesaj: 'Kayıt alındı.' });
+    if (result.upsertedCount) {
+      notifyAdmin({
+        subject: 'Yeni bülten abonesi',
+        intro: 'Bir ziyaretçi e-bültene abone oldu.',
+        fields: [['E-posta', email]]
+      });
+    }
   } catch (error) {
     res.status(500).json({ success: false, mesaj: 'Kayıt alınamadı.' });
   }

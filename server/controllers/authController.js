@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { WELCOME_PERCENT, normalizeCode, generateWelcomeCode, couponAlreadyConsumed, syncWelcomeCouponFlag } = require('../utils/welcomeCoupon');
 
 const { cookieOptions } = require('../utils/runtime');
-const { notifyAdminSignup } = require('../services/emailService');
+const { notifyAdminSignup, notifyCustomerWelcome } = require('../services/emailService');
 const COOKIE_OPTIONS = cookieOptions();
 
 const isValidPhone = (telefon = '') => {
@@ -80,6 +80,12 @@ const register = async (req, res) => {
             name: user.adSoyad,
             email: user.email,
             phone: user.telefon
+        });
+        notifyCustomerWelcome({
+            email: user.email,
+            name: user.adSoyad,
+            code: user.kampanyaKodu,
+            percent: WELCOME_PERCENT
         });
     } catch (error) {
         console.error('Kayıt hatası:', error);
@@ -323,6 +329,12 @@ const googleAuth = async (req, res) => {
                 name: user.adSoyad,
                 email: user.email,
                 phone: user.telefon
+            });
+            notifyCustomerWelcome({
+                email: user.email,
+                name: user.adSoyad,
+                code: user.kampanyaKodu,
+                percent: WELCOME_PERCENT
             });
         }
     } catch (error) {

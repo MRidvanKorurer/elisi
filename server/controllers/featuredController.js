@@ -5,6 +5,7 @@ const Seller = require('../models/Seller');
 const { packageOf, packageList } = require('../utils/featuredPackages');
 const { formatIban, isValidIbanTr, resolveBank } = require('../utils/bank');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
+const { notifyAdmin } = require('../services/emailService');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -218,13 +219,25 @@ const createFeatured = async (req, res) => {
       receiptName: String(req.file.originalname || req.file.filename || '').slice(0, 180)
     });
     await request.populate('product', 'title image price isSponsored sponsoredUntil');
+    const shopName = await shopNameFor(req.user._id);
 
-    return res.status(201).json({
+    res.status(201).json({
       mesaj: product.isSponsored
         ? 'Uzatma dekontu alındı. Onaylanınca mevcut vitrin süren uzar.'
         : 'Dekont alındı. Onaylanınca ürün vitrine çıkar.',
       slots: await slotsOf(),
-      request: serializeRequest(request, await shopNameFor(req.user._id))
+      request: serializeRequest(request, shopName)
+    });
+    return notifyAdmin({
+      subject: product.isSponsored ? 'Vitrin uzatma talebi ve dekont' : 'Yeni vitrin talebi ve dekont',
+      intro: 'Bir satıcı öne çıkan ürün paketi için ödeme dekontu yükledi. Dekontu panelden kontrol edip onaylayın.',
+      fields: [
+        ['Ürün', product.title],
+        ['Mağaza', shopName || req.user.adSoyad],
+        ['Paket', `${pack.days} gün`],
+        ['Tutar', `${Number(pack.price || 0).toLocaleString('tr-TR')} ₺`],
+        ['Not', request.note]
+      ]
     });
   } catch (error) {
     removeUpload(uploaded);

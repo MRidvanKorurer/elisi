@@ -7,6 +7,7 @@ const { ATELIER_WEEK_PACKAGE, packageOf, packageList } = require('../utils/ateli
 const { resolveBank } = require('../utils/bank');
 const { serializePublicAtelier } = require('../utils/publicAtelier');
 const { receiptPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
+const { notifyAdmin } = require('../services/emailService');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -254,12 +255,23 @@ const createWeek = async (req, res) => {
       receiptName: String(req.file.originalname || req.file.filename || '').slice(0, 180)
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       mesaj: extending
         ? 'Uzatma dekontu alındı. Onaylanınca mevcut hafta süren uzar.'
         : 'Dekont alındı. Onaylanınca atölyen haftalık vitrine çıkar.',
       slots: await slotsOf(),
       request: serializeRequest(request, shop, req.user)
+    });
+    return notifyAdmin({
+      subject: extending ? 'Haftanın atölyesi uzatma talebi ve dekont' : 'Yeni haftanın atölyesi talebi ve dekont',
+      intro: 'Bir satıcı haftanın atölyesi paketi için ödeme dekontu yükledi. Dekontu panelden kontrol edip onaylayın.',
+      fields: [
+        ['Mağaza', shop.magazaAdi],
+        ['Satıcı', req.user.adSoyad],
+        ['Paket', `${pack.days} gün`],
+        ['Tutar', `${Number(pack.price || 0).toLocaleString('tr-TR')} ₺`],
+        ['Not', request.note]
+      ]
     });
   } catch (error) {
     removeUpload(uploaded);

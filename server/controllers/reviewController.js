@@ -3,6 +3,7 @@ const Review = require('../models/Review');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const { isSuperAdmin } = require('../utils/roles');
+const { notifyAdmin } = require('../services/emailService');
 const { reviewPublicPath, removeUpload } = require('../middleware/uploadMiddleware');
 
 const isObjectId = (value) =>
@@ -187,10 +188,22 @@ const createReview = async (req, res) => {
 
     const populated = await Review.findById(review._id).populate('user', 'adSoyad avatarUrl').lean();
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       mesaj: 'Yorumunuz kaydedildi.',
       review: serializeReview(populated)
+    });
+    if (superAdmin) return undefined;
+    return notifyAdmin({
+      subject: existing ? 'Ürün yorumu güncellendi' : 'Yeni ürün yorumu',
+      intro: 'Bir müşteri satın aldığı ürün için yorum bıraktı.',
+      fields: [
+        ['Ürün', product.title],
+        ['Müşteri', req.user.adSoyad],
+        ['Puan', `${rating} / 5`],
+        ['Yorum', comment],
+        ['Fotoğraf', images.length ? `${images.length} adet` : '']
+      ]
     });
   } catch (error) {
     if (error.code === 11000) {
