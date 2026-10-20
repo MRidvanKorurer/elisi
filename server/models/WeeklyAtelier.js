@@ -8,10 +8,12 @@ const weeklyAtelierSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    // Uzatmalarda gün sayısı birikir (7, 14, 21...); paket seçimi denetleyicide doğrulanır.
     days: {
       type: Number,
       required: true,
-      enum: [7]
+      min: 1,
+      validate: { validator: Number.isInteger, message: 'Gün sayısı tam sayı olmalı.' }
     },
     price: {
       type: Number,

@@ -14,10 +14,12 @@ const featuredRequestSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    // Uzatmalarda gün sayısı birikir; paket seçimi (3, 5, 7) denetleyicide doğrulanır.
     days: {
       type: Number,
       required: true,
-      enum: [3, 5, 7]
+      min: 1,
+      validate: { validator: Number.isInteger, message: 'Gün sayısı tam sayı olmalı.' }
     },
     price: {
       type: Number,
