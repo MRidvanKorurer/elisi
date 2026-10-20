@@ -150,7 +150,7 @@ function CategoryPanel({ group, t }) {
             >
               {index + 1}
             </Box>
-            <ProductCard product={product} fullWidth />
+            <ProductCard product={product} brief />
           </Box>
         ))}
       </Box>
@@ -196,7 +196,7 @@ export default function CategoryBestsellers() {
             category: id,
             sort: 'popular',
             page: 1,
-            limit: 3
+            limit: 8
           });
           const products = response?.products || [];
           if (!products.length) return null;
@@ -214,9 +214,29 @@ export default function CategoryBestsellers() {
       return rows.filter(Boolean);
     };
 
+    const attachDescriptions = async (rows) => {
+      const list = Array.isArray(rows) ? rows : [];
+      const missing = list.some((row) => (row.products || []).some((item) => !String(item.description || '').trim()));
+      if (!missing) return list;
+      const filled = await fromFilter();
+      const byId = new Map();
+      filled.forEach((row) => (row.products || []).forEach((item) => {
+        const text = String(item.description || '').trim();
+        if (text) byId.set(String(item._id || item.id), text);
+      }));
+      return list.map((row) => ({
+        ...row,
+        products: (row.products || []).map((item) => ({
+          ...item,
+          description: String(item.description || '').trim() || byId.get(String(item._id || item.id)) || ''
+        }))
+      }));
+    };
+
     productService.getCategoryHighlights()
       .then((data) => (data?.highlights?.length ? data.highlights : fromFilter()))
       .catch(() => fromFilter())
+      .then((rows) => attachDescriptions(rows))
       .then((rows) => {
         if (!cancelled) setGroups(Array.isArray(rows) ? rows : []);
       })

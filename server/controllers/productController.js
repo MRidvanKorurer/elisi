@@ -730,6 +730,7 @@ const getCategoryHighlights = async (req, res) => {
                             $push: {
                                 _id: '$_id',
                                 title: '$title',
+                                description: '$description',
                                 image: '$image',
                                 price: '$price',
                                 discountPercentage: '$discountPercentage',
