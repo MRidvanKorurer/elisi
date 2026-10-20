@@ -4,9 +4,8 @@ import { useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
 import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
-import ProductCard, { PRODUCT_CARD_WIDTH, productCardFlexBasis } from './ProductCard';
+import ProductCard, { productCardSlotSx } from './ProductCard';
 
-const GAP = 24;
 
 const arrowSx = (disabled) => ({
   width: 42,
@@ -75,7 +74,8 @@ export default function ProductSlider({ products = [], ariaLabel }) {
     const node = trackRef.current;
     if (!node) return;
 
-    const step = PRODUCT_CARD_WIDTH + GAP;
+    const card = node.firstElementChild;
+    const step = card ? card.getBoundingClientRect().width + 12 : node.clientWidth;
     const perPage = Math.max(1, Math.floor(node.clientWidth / step));
     node.scrollBy({ left: direction * perPage * step, behavior: reduced ? 'auto' : 'smooth' });
   };
@@ -103,7 +103,7 @@ export default function ProductSlider({ products = [], ariaLabel }) {
         }}
         sx={{
           display: 'flex',
-          gap: `${GAP}px`,
+          gap: { xs: '12px', md: '24px' },
           overflowX: 'auto',
           overflowY: 'hidden',
           scrollSnapType: 'x mandatory',
@@ -117,13 +117,9 @@ export default function ProductSlider({ products = [], ariaLabel }) {
         {products.map((product) => (
           <Box
             key={product._id || product.id}
-            sx={{
-              flex: { xs: `0 0 ${productCardFlexBasis.xs}`, sm: `0 0 ${PRODUCT_CARD_WIDTH}px` },
-              maxWidth: '100%',
-              scrollSnapAlign: 'start'
-            }}
+            sx={productCardSlotSx}
           >
-            <ProductCard product={product} />
+            <ProductCard product={product} fullWidth />
           </Box>
         ))}
       </Box>

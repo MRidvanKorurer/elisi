@@ -24,7 +24,8 @@ export default function useProductGridPageSize({
   minRows = 1,
   maxRows = 6,
   minCard = PRODUCT_GRID_MIN_CARD,
-  cardHeight = PRODUCT_GRID_CARD_HEIGHT
+  cardHeight = PRODUCT_GRID_CARD_HEIGHT,
+  useBatch = true
 } = {}) {
   const [gridNode, setGridNode] = useState(null);
   const [pageSize, setPageSize] = useState(0);
@@ -41,7 +42,8 @@ export default function useProductGridPageSize({
         minRows,
         maxRows,
         minCard,
-        cardHeight
+        cardHeight,
+        useBatch
       });
       if (next > 0) setPageSize((prev) => (prev === next ? prev : next));
     };
@@ -55,7 +57,7 @@ export default function useProductGridPageSize({
       window.removeEventListener('resize', measure);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- caller passes explicit deps
-  }, [enabled, gridNode, fillViewport, minRows, maxRows, minCard, cardHeight, ...deps]);
+  }, [enabled, gridNode, fillViewport, minRows, maxRows, minCard, cardHeight, useBatch, ...deps]);
 
   return { gridRef, pageSize };
 }

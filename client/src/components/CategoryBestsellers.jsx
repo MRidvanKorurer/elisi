@@ -111,18 +111,11 @@ function CategoryPanel({ group, t }) {
 
       <Box
         sx={{
-          display: { xs: 'flex', sm: 'grid' },
-          gridTemplateColumns: { sm: 'repeat(3, minmax(0, 1fr))' },
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(3, minmax(0, 1fr))' },
           gap: { xs: 1.2, sm: 1.4 },
-          overflowX: { xs: 'auto', sm: 'visible' },
-          scrollSnapType: { xs: 'x mandatory', sm: 'none' },
-          WebkitOverflowScrolling: 'touch',
-          mx: { xs: -1.4, sm: 0 },
-          px: { xs: 1.4, sm: 0 },
           pt: 1.2,
-          pb: 0.6,
-          scrollbarWidth: 'none',
-          '&::-webkit-scrollbar': { display: 'none' }
+          pb: 0.6
         }}
       >
         {(group.products || []).slice(0, 3).map((product, index) => (
@@ -130,9 +123,7 @@ function CategoryPanel({ group, t }) {
             key={product._id || product.id}
             sx={{
               position: 'relative',
-              flex: { xs: '0 0 156px', sm: 'initial' },
-              minWidth: 0,
-              scrollSnapAlign: 'start'
+              minWidth: 0
             }}
           >
             <Box
@@ -159,7 +150,7 @@ function CategoryPanel({ group, t }) {
             >
               {index + 1}
             </Box>
-            <ProductCard product={product} compact />
+            <ProductCard product={product} fullWidth />
           </Box>
         ))}
       </Box>

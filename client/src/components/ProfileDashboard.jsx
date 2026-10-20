@@ -125,7 +125,7 @@ export default function ProfileDashboard() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isLg = useMediaQuery(theme.breakpoints.up('lg'));
   const isSm = useMediaQuery(theme.breakpoints.up('sm'));
-  const favoritesPageSize = isLg ? 3 : isSm ? 2 : 1;
+  const favoritesPageSize = isLg ? 12 : isSm ? 8 : 6;
 
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);

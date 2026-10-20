@@ -14,7 +14,7 @@ import { productService } from '../api/productService';
 import ProductCard, { productCardGridSx } from './ProductCard';
 import LoadingButton, { ProductGridSkeleton } from './LoadingButton';
 import { scrollPageTo } from '../hooks/useSmoothScroll';
-import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGridPageSize';
+import { resolveFetchLimit } from '../hooks/useProductGridPageSize';
 import { imgBanner1Tile as allCover } from '../assets/media';
 
 const tileRadius = { xs: '20px', md: '24px' };
@@ -152,10 +152,7 @@ export default function CategoryProductList() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
-  const { gridRef, pageSize } = useProductGridPageSize({
-    enabled: productsReady,
-    deps: [selected, productsReady]
-  });
+  const pageSize = 10;
   const requestSeq = useRef(0);
   const fetchLimitRef = useRef(0);
 
@@ -204,7 +201,7 @@ export default function CategoryProductList() {
   }, [selected, productsReady]);
 
   useEffect(() => {
-    if (!productsReady || pageSize < 1 || page < 1) return undefined;
+    if (!productsReady || page < 1) return undefined;
     let cancelled = false;
     const seq = ++requestSeq.current;
     const requestPage = page;
@@ -530,9 +527,9 @@ export default function CategoryProductList() {
             <ProductGridSkeleton count={4} />
           ) : (
             <>
-              {(initialLoading || (productsReady && pageSize < 1)) && (
-                <ProductGridSkeleton count={Math.max(pageSize, 4)} />
-              )}
+              {initialLoading ? (
+                <ProductGridSkeleton count={pageSize} />
+              ) : null}
 
               {error && !initialLoading ? (
                 <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -540,27 +537,12 @@ export default function CategoryProductList() {
                 </Box>
               ) : null}
 
-              {!error && !initialLoading && products.length === 0 && pageSize > 0 ? (
+              {!error && !initialLoading && products.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 8, px: 2, borderRadius: '24px', backgroundColor: 'rgba(255,255,255,0.7)', border: '1px dashed rgba(148,109,109,0.22)' }}>
                   <Typography sx={{ color: '#2E3B55', fontWeight: 800 }}>{t('categories.emptyTitle', { ns: 'home' })}</Typography>
                   <Typography sx={{ color: '#6E5252', fontWeight: 600, mt: 0.6 }}>{t('categories.emptyText', { ns: 'home' })}</Typography>
                 </Box>
               ) : null}
-
-              <Box
-                ref={gridRef}
-                aria-hidden
-                sx={{
-                  ...productCardGridSx,
-                  height: 0,
-                  overflow: 'hidden',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  m: 0,
-                  p: 0,
-                  border: 0
-                }}
-              />
 
               <Box
                 key={selected}
@@ -584,7 +566,7 @@ export default function CategoryProductList() {
                     tone="outline"
                     loading={loadingMore}
                     onClick={() => {
-                      if (pageSize < 1 || loadingMore) return;
+                      if (loadingMore) return;
                       setPage((prev) => prev + 1);
                     }}
                     endIcon={<ExpandMoreIcon />}

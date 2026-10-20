@@ -275,8 +275,7 @@ export default function AteliersPage() {
   const theme = useTheme();
   const isLg = useMediaQuery(theme.breakpoints.up('lg'));
   const isMd = useMediaQuery(theme.breakpoints.up('md'));
-  const isSm = useMediaQuery(theme.breakpoints.up('sm'));
-  const pageSize = isLg ? 9 : isMd ? 6 : isSm ? 4 : 2;
+  const pageSize = isLg ? 24 : isMd ? 18 : 12;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);

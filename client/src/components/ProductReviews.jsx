@@ -336,7 +336,7 @@ export default function ProductReviews({ productId, user, onSummaryChange }) {
           ))}
           {remainingReviews > 0 && (
             <Button
-              onClick={() => setVisibleCount((prev) => prev + 3)}
+              onClick={() => setVisibleCount((prev) => prev + 10)}
               sx={{ alignSelf: 'flex-start', fontWeight: 800, fontSize: '0.82rem', color: '#946D6D', px: 0, textTransform: 'none' }}
             >
               {t('actions.showMoreCount', { ns: 'common', count: remainingReviews })}

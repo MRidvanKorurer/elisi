@@ -305,7 +305,7 @@ export default function ProductQuestions({ productId, productSellerId, user, onA
           })}
           {remainingQuestions > 0 && (
             <Button
-              onClick={() => setVisibleCount((prev) => prev + 4)}
+              onClick={() => setVisibleCount((prev) => prev + 10)}
               sx={{ alignSelf: 'flex-start', fontWeight: 800, color: '#946D6D', textTransform: 'none' }}
             >
               {t('actions.showMoreCount', { ns: 'common', count: remainingQuestions })}

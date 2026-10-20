@@ -41,77 +41,78 @@ export default function SellerCtaBanner({ user }) {
     <SiteContainer sx={homeSectionSx}>
       <Box
         sx={{
-          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.05fr) minmax(0, 0.95fr)' },
           overflow: 'hidden',
           borderRadius: { xs: '28px', md: '36px' },
-          minHeight: { xs: 280, md: 320 },
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { md: 'center' },
-          justifyContent: 'space-between',
-          gap: 3,
-          p: { xs: 3.5, md: 5.5 },
-          border: '1px solid rgba(255,255,255,0.35)',
+          bgcolor: '#1E2738',
+          minHeight: { md: 420 },
           boxShadow: '0 24px 50px -24px rgba(46,59,85,0.28)'
         }}
       >
         <Box
-          component="video"
-          ref={videoRef}
-          src={activated ? SITE_CLIPS.hareket : undefined}
-          poster={imgBagGreen}
-          muted
-          loop
-          playsInline
-          disablePictureInPicture
-          preload="none"
           sx={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
+            order: { xs: 2, md: 1 },
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: { xs: 'stretch', md: 'flex-start' },
+            gap: 0,
+            p: { xs: 3, md: 5.5 }
           }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(90deg, rgba(30,39,56,0.78) 0%, rgba(30,39,56,0.45) 55%, rgba(30,39,56,0.2) 100%)'
-          }}
-        />
-        <Box sx={{ position: 'relative', maxWidth: 560, zIndex: 1 }}>
+        >
           <Typography sx={{ ...homeEyebrowSx, color: '#FDF4D2' }}>
             {t('sellerCta.eyebrow')}
           </Typography>
           <Typography component="h2" sx={{ ...homeTitleSx, color: '#FFFFFF', mb: 0 }}>
             {isSeller ? t('sellerCta.sellerTitle') : t('sellerCta.guestTitle')}
           </Typography>
-          <Typography sx={{ ...homeSubtitleSx, color: 'rgba(255,255,255,0.88)' }}>
+          <Typography sx={{ ...homeSubtitleSx, color: 'rgba(255,255,255,0.88)', maxWidth: 460 }}>
             {isSeller ? t('sellerCta.sellerText') : t('sellerCta.guestText')}
           </Typography>
+          <Button
+            onClick={() => navigate(isSeller ? '/panel' : '/satici-ol')}
+            startIcon={<StorefrontOutlined />}
+            endIcon={<ArrowForwardRounded />}
+            sx={{
+              mt: 2.4,
+              alignSelf: { xs: 'stretch', md: 'flex-start' },
+              py: 1.4,
+              px: 2.8,
+              borderRadius: '14px',
+              fontWeight: 800,
+              color: '#2E3B55',
+              bgcolor: '#FDF4D2',
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#946D6D', color: '#fff' }
+            }}
+          >
+            {isSeller ? t('sellerCta.sellerButton') : t('sellerCta.guestButton')}
+          </Button>
         </Box>
-        <Button
-          onClick={() => navigate(isSeller ? '/panel' : '/satici-ol')}
-          startIcon={<StorefrontOutlined />}
-          endIcon={<ArrowForwardRounded />}
-          sx={{
-            position: 'relative',
-            zIndex: 1,
-            flexShrink: 0,
-            width: { xs: '100%', md: 'auto' },
-            py: 1.5,
-            px: 3.2,
-            borderRadius: '16px',
-            fontWeight: 800,
-            color: '#2E3B55',
-            background: 'linear-gradient(135deg, #B0CDE6 0%, #9BB8D4 100%)',
-            boxShadow: '0 12px 24px rgba(176,205,230,0.45)',
-            '&:hover': { background: '#946D6D', color: '#fff' }
-          }}
-        >
-          {isSeller ? t('sellerCta.sellerButton') : t('sellerCta.guestButton')}
-        </Button>
+
+        <Box sx={{ order: { xs: 1, md: 2 }, position: 'relative', minHeight: { xs: 240, md: '100%' }, aspectRatio: { xs: '16 / 10', md: 'auto' } }}>
+          <Box
+            component="video"
+            ref={videoRef}
+            src={activated ? SITE_CLIPS.hareket : undefined}
+            poster={imgBagGreen}
+            muted
+            loop
+            playsInline
+            disablePictureInPicture
+            preload="none"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center center',
+              display: 'block'
+            }}
+          />
+        </Box>
       </Box>
     </SiteContainer>
   );

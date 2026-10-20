@@ -1,83 +1,93 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography } from '@mui/material';
 import SiteContainer from './SiteContainer';
-import { homeEyebrowSx, homeSectionSx, homeSubtitleSx, homeTitleSx } from './homeType';
+import { homeEyebrowSx, homeFont, homeSectionSx, homeSubtitleSx, homeTitleSx } from './homeType';
 import TravelExploreOutlined from '@mui/icons-material/TravelExploreOutlined';
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined';
 import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
-import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 
 const STEP_META = [
-  { n: '01', Icon: TravelExploreOutlined, titleKey: 'how.s1Title', textKey: 'how.s1Text', tint: '#D7E7F4', ink: '#2E3B55' },
-  { n: '02', Icon: ShoppingBagOutlined, titleKey: 'how.s2Title', textKey: 'how.s2Text', tint: '#E4DCF0', ink: '#6B5A82' },
-  { n: '03', Icon: LocalShippingOutlined, titleKey: 'how.s3Title', textKey: 'how.s3Text', tint: '#EDD8D4', ink: '#946D6D' }
+  { n: '01', Icon: TravelExploreOutlined, titleKey: 'how.s1Title', textKey: 'how.s1Text' },
+  { n: '02', Icon: ShoppingBagOutlined, titleKey: 'how.s2Title', textKey: 'how.s2Text' },
+  { n: '03', Icon: LocalShippingOutlined, titleKey: 'how.s3Title', textKey: 'how.s3Text' }
 ];
 
-function StepCard({ step }) {
+function Step({ step, last }) {
   const Icon = step.Icon;
 
   return (
     <Box
       sx={{
+        position: 'relative',
+        display: 'grid',
+        gridTemplateColumns: { xs: '52px minmax(0, 1fr)', md: '1fr' },
+        columnGap: 1.6,
         minWidth: 0,
-        height: '100%',
-        p: { xs: 2.2, md: 2.6 },
-        borderRadius: '22px',
-        backgroundColor: '#FFFFFF',
-        border: '1px solid rgba(148,109,109,0.12)',
-        borderTop: `3px solid ${step.ink}`,
-        boxShadow: '0 16px 36px -24px rgba(46,59,85,0.32)',
-        transition: 'transform 220ms ease, box-shadow 220ms ease',
-        '&:hover': {
-          transform: { sm: 'translateY(-4px)' },
-          boxShadow: '0 22px 40px -22px rgba(46,59,85,0.4)'
-        }
+        pb: { xs: last ? 0 : 2.6, md: 0 }
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.4, mb: 1.8 }}>
+      {!last ? (
         <Box
+          aria-hidden
           sx={{
-            width: 52,
-            height: 52,
-            flexShrink: 0,
-            borderRadius: '16px',
-            display: 'grid',
-            placeItems: 'center',
-            backgroundColor: step.tint,
-            color: step.ink
+            display: { xs: 'block', md: 'none' },
+            position: 'absolute',
+            left: 25,
+            top: 52,
+            bottom: 0,
+            width: '1px',
+            bgcolor: 'rgba(162,144,183,0.55)'
           }}
-        >
-          <Icon sx={{ fontSize: 24 }} />
-        </Box>
+        />
+      ) : null}
+
+      <Box
+        sx={{
+          width: 52,
+          height: 52,
+          justifySelf: { md: 'start' },
+          borderRadius: '50%',
+          display: 'grid',
+          placeItems: 'center',
+          bgcolor: '#FFFFFF',
+          color: '#2E3B55',
+          border: '1px solid rgba(148,109,109,0.18)',
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
+        <Icon sx={{ fontSize: 22 }} />
+      </Box>
+
+      <Box sx={{ pt: { xs: 0.4, md: 1.6 }, minWidth: 0 }}>
         <Typography
-          component="span"
           sx={{
-            color: step.ink,
+            fontFamily: homeFont,
+            color: '#A290B7',
             fontWeight: 800,
-            fontSize: '0.78rem',
-            letterSpacing: 1.6
+            fontSize: '0.72rem',
+            letterSpacing: '0.16em'
           }}
         >
           {step.n}
         </Typography>
+        <Typography
+          component="h3"
+          sx={{
+            fontFamily: homeFont,
+            color: '#2E3B55',
+            fontWeight: 800,
+            fontSize: { xs: '1.05rem', md: '1.15rem' },
+            letterSpacing: '-0.03em',
+            mt: 0.3
+          }}
+        >
+          {step.title}
+        </Typography>
+        <Typography sx={{ ...homeSubtitleSx, mt: 0.7, maxWidth: 320 }}>
+          {step.text}
+        </Typography>
       </Box>
-
-      <Typography
-        component="h3"
-        sx={{
-          color: '#2E3B55',
-          fontWeight: 800,
-          fontSize: { xs: '1.05rem', md: '1.15rem' },
-          letterSpacing: '-0.3px',
-          mb: 0.7
-        }}
-      >
-        {step.title}
-      </Typography>
-      <Typography sx={{ color: '#6E5252', fontWeight: 600, lineHeight: 1.65, fontSize: '0.88rem' }}>
-        {step.text}
-      </Typography>
     </Box>
   );
 }
@@ -85,50 +95,46 @@ function StepCard({ step }) {
 export default function HowItWorks() {
   const { t } = useTranslation('home');
   const steps = STEP_META.map((step) => ({ ...step, title: t(step.titleKey), text: t(step.textKey) }));
+
   return (
     <SiteContainer
       component="section"
       aria-labelledby="how-it-works-title"
       sx={homeSectionSx}
     >
-      <Box sx={{ mb: 3 }}>
-        <Typography sx={homeEyebrowSx}>
-          {t('how.eyebrow')}
-        </Typography>
+      <Box sx={{ mb: { xs: 2.6, md: 3.4 }, maxWidth: 560 }}>
+        <Typography sx={homeEyebrowSx}>{t('how.eyebrow')}</Typography>
         <Typography id="how-it-works-title" component="h2" sx={homeTitleSx}>
           {t('how.title')}
         </Typography>
-        <Typography sx={{ ...homeSubtitleSx, maxWidth: 540 }}>
-          {t('how.subtitle')}
-        </Typography>
+        <Typography sx={homeSubtitleSx}>{t('how.subtitle')}</Typography>
       </Box>
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr auto 1fr' },
-          alignItems: 'stretch',
-          gap: { xs: 1.6, sm: 1.2, md: 1.6 }
-        }}
-      >
-        {steps.map((step, index) => (
-          <React.Fragment key={step.n}>
-            <StepCard step={step} />
-              {index < steps.length - 1 && (
-              <Box
-                aria-hidden
-                sx={{
-                  display: { xs: 'none', sm: 'grid' },
-                  placeItems: 'center',
-                  color: '#A290B7',
-                  opacity: 0.7
-                }}
-              >
-                <ArrowForwardRounded sx={{ fontSize: 22 }} />
-              </Box>
-            )}
-          </React.Fragment>
-        ))}
+      <Box sx={{ position: 'relative' }}>
+        <Box
+          aria-hidden
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            position: 'absolute',
+            top: 26,
+            left: 26,
+            right: '18%',
+            height: '1px',
+            bgcolor: 'rgba(162,144,183,0.45)'
+          }}
+        />
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+            columnGap: { md: 4 },
+            position: 'relative'
+          }}
+        >
+          {steps.map((step, index) => (
+            <Step key={step.n} step={step} last={index === steps.length - 1} />
+          ))}
+        </Box>
       </Box>
     </SiteContainer>
   );

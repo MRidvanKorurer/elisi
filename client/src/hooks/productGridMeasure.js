@@ -9,6 +9,11 @@
 export const PRODUCT_GRID_MIN_CARD = 260;
 export const PRODUCT_GRID_CARD_HEIGHT = 480;
 
+/** “Daha fazla” her basışta en az bu kadar kart ekler. Dar ekranda 12, genişte 24. */
+export function batchForColumns(cols) {
+  return cols <= 2 ? 12 : 24;
+}
+
 /** Split a CSS track list without breaking nested functions such as minmax(). */
 export function splitCssTracks(value) {
   const src = String(value || '').trim();
@@ -86,6 +91,7 @@ export function measureProductGridPageSize(node, {
   maxRows = 6,
   minCard = PRODUCT_GRID_MIN_CARD,
   cardHeight = PRODUCT_GRID_CARD_HEIGHT,
+  useBatch = true,
   viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0
 } = {}) {
   if (!node) return 0;
@@ -111,7 +117,9 @@ export function measureProductGridPageSize(node, {
     cardHeight
   });
 
-  return cols * rows;
+  const count = cols * rows;
+  if (!useBatch) return count;
+  return Math.min(48, Math.max(count, batchForColumns(cols)));
 }
 
 /** Keep skip/limit stable after the first page so resize cannot desync pagination. */

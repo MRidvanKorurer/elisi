@@ -147,7 +147,6 @@ export default function AdminPanel({ user, handleLogout }) {
   const [promoForm, setPromoForm] = useState({ code: '', percent: 5, minSubtotal: 5000, note: '', isActive: true });
   const [savingPromo, setSavingPromo] = useState(false);
   const [featuredRequests, setFeaturedRequests] = useState([]);
-  const [featuredSlots, setFeaturedSlots] = useState({ used: 0, unlimited: true });
   const [featuredFilter, setFeaturedFilter] = useState('pending');
   const [featuredRejecting, setFeaturedRejecting] = useState(null);
   const [featuredRejectReason, setFeaturedRejectReason] = useState('');
@@ -163,7 +162,6 @@ export default function AdminPanel({ user, handleLogout }) {
   const [bankIban, setBankIban] = useState('');
   const [savingBank, setSavingBank] = useState(false);
   const [weekRequests, setWeekRequests] = useState([]);
-  const [weekSlots, setWeekSlots] = useState({ used: 0, unlimited: true });
   const [weekFilter, setWeekFilter] = useState('pending');
   const [weekRejecting, setWeekRejecting] = useState(null);
   const [weekRejectReason, setWeekRejectReason] = useState('');
@@ -215,14 +213,12 @@ export default function AdminPanel({ user, handleLogout }) {
       setOrders(or.orders || []);
       setPromos(pm.promos || []);
       setFeaturedRequests(ft.requests || []);
-      if (ft.slots) setFeaturedSlots(ft.slots);
       if (ft.bank) {
         setBankName(ft.bank.name || '');
         setBankHolder(ft.bank.holder || '');
         setBankIban(ft.bank.iban || '');
       }
       setWeekRequests(wk.requests || []);
-      if (wk.slots) setWeekSlots(wk.slots);
       setReport(rp.report || null);
       setCatalogCategories(cats.categories || []);
       setError('');
@@ -812,16 +808,7 @@ export default function AdminPanel({ user, handleLogout }) {
             title="Öne çıkan ürünler"
             subtitle="Dekontu onayla, ücretsiz ver, süreyi uzat veya yayından kaldır."
           />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.8, mb: 2.2 }}>
-            <PanelCard>
-              <Typography sx={{ fontWeight: 900, color: T.navy }}>Kapasite</Typography>
-              <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
-                {featuredSlots.used} ürün vitrinde
-              </Typography>
-              <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
-                <Box sx={{ width: '100%', height: '100%', bgcolor: T.navy }} />
-              </Box>
-            </PanelCard>
+          <Box sx={{ mb: 2.2 }}>
             <PanelCard>
               <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Havale hesabı</Typography>
               <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.2 }}>
@@ -839,7 +826,7 @@ export default function AdminPanel({ user, handleLogout }) {
           </Box>
           <PanelCard sx={{ mb: 2.2 }}>
             <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Ücretsiz vitrin</Typography>
-            <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>Yayındaki ürüne 3 / 5 / 7 gün hediye. Vitrin doluysa yalnızca zaten vitrindeki ürüne süre ekler.</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>Yayındaki ürüne 3 / 5 / 7 gün hediye. Ürün zaten vitrindeyse süresine eklenir.</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 2fr auto' }, gap: 1.2, alignItems: 'start' }}>
               <TextField
                 select
@@ -964,17 +951,8 @@ export default function AdminPanel({ user, handleLogout }) {
             subtitle="Dekontu onayla, ücretsiz hafta ver, süreyi uzat veya yayından kaldır."
           />
           <PanelCard sx={{ mb: 2.2 }}>
-            <Typography sx={{ fontWeight: 900, color: T.navy }}>Kapasite</Typography>
-            <Typography sx={{ color: T.muted, fontSize: 13, mt: 0.4 }}>
-              {weekSlots.used} atölye vitrinde
-            </Typography>
-            <Box sx={{ mt: 1.4, height: 8, borderRadius: 99, bgcolor: T.surfaceSoft, overflow: 'hidden' }}>
-              <Box sx={{ width: '100%', height: '100%', bgcolor: T.navy }} />
-            </Box>
-          </PanelCard>
-          <PanelCard sx={{ mb: 2.2 }}>
             <Typography sx={{ fontWeight: 900, color: T.navy, mb: 0.4 }}>Ücretsiz hafta</Typography>
-            <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>Onaylı atölyeye 7 gün hediye. Vitrin doluysa yalnızca zaten vitrindeki mağazaya süre ekler.</Typography>
+            <Typography sx={{ color: T.muted, fontSize: 13, mb: 1.4 }}>Onaylı atölyeye 7 gün hediye. Atölye zaten vitrindeyse süresine eklenir.</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 2fr auto' }, gap: 1.2, alignItems: 'start' }}>
               <TextField
                 select

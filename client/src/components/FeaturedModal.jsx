@@ -35,7 +35,7 @@ export default function FeaturedModal({ open, onClose }) {
   const theme = useTheme();
   const isMd = useMediaQuery(theme.breakpoints.up('md'));
   const isSm = useMediaQuery(theme.breakpoints.up('sm'));
-  const pageSize = isMd ? 3 : isSm ? 2 : 1;
+  const pageSize = isMd ? 9 : isSm ? 6 : 4;
   const reducedMotion = useReducedMotion();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);

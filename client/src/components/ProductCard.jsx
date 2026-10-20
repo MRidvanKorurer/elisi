@@ -29,16 +29,19 @@ const FALLBACK_IMAGE = imgBagOrange;
 export const PRODUCT_CARD_WIDTH = 280;
 /** Kare görsel (280) + içerik + buton */
 export const PRODUCT_CARD_HEIGHT = 540;
-/** Carousel’da dar ekranda taşmayı önler */
-export const productCardFlexBasis = {
-  xs: 'min(280px, calc(100vw - 48px))',
-  sm: `${PRODUCT_CARD_WIDTH}px`
+/** Mobilde ızgarayla aynı: iki eşit kart. Geniş ekranda sabit kart. */
+export const productCardSlotSx = {
+  flex: { xs: '0 0 calc((100% - 12px) / 2)', md: `0 0 ${PRODUCT_CARD_WIDTH}px` },
+  width: { xs: 'calc((100% - 12px) / 2)', md: `${PRODUCT_CARD_WIDTH}px` },
+  maxWidth: '100%',
+  minWidth: 0,
+  scrollSnapAlign: 'start'
 };
 
 export const productCardGridSx = {
   display: 'grid',
   gridTemplateColumns: {
-    xs: 'repeat(auto-fill, minmax(150px, 1fr))',
+    xs: 'repeat(2, minmax(0, 1fr))',
     sm: 'repeat(auto-fill, minmax(200px, 1fr))',
     md: 'repeat(auto-fill, minmax(240px, 1fr))',
     lg: 'repeat(auto-fill, minmax(260px, 1fr))'
