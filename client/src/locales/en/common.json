@@ -23,6 +23,13 @@
     "never": "Don’t show again",
     "close": "Close"
   },
+  "saleFloat": {
+    "button": "On sale",
+    "title": "On sale",
+    "count": "{{count}} discounted pieces",
+    "loading": "Loading sale pieces",
+    "empty": "Nothing is on sale right now."
+  },
   "nav": {
     "search": "Search",
     "cart": "Bag",

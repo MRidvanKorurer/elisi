@@ -44,6 +44,7 @@ export default function Navbar({ setPage, user, handleLogout }) {
   const solid = !isHome || scrolled;
 
   const [cartCount, setCartCount] = useState(0);
+  const [cartHop, setCartHop] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
 
@@ -71,13 +72,22 @@ export default function Navbar({ setPage, user, handleLogout }) {
 
   useEffect(() => {
     let active = true;
+    let seen = false;
+    let count = 0;
     const syncCart = async () => {
       try {
         const response = await cartService.getCart();
         if (!active) return;
-        setCartCount(countCartItems(response?.items));
+        const next = countCartItems(response?.items);
+        if (seen && next > count) setCartHop((hop) => hop + 1);
+        seen = true;
+        count = next;
+        setCartCount(next);
       } catch {
-        if (active) setCartCount(0);
+        if (!active) return;
+        seen = true;
+        count = 0;
+        setCartCount(0);
       }
     };
     syncCart();
@@ -202,14 +212,29 @@ export default function Navbar({ setPage, user, handleLogout }) {
             )}
 
             <IconButton aria-label={t('nav.cart')} onClick={() => go('sepet')} sx={iconBtn(solid)}>
-              <Badge
-                badgeContent={cartCount}
-                color="error"
-                invisible={cartCount < 1}
-                sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}
+              <Box
+                key={cartHop}
+                sx={{
+                  display: 'inline-flex',
+                  ...(cartHop > 0 ? { animation: 'cartHop 0.62s cubic-bezier(0.22, 0.61, 0.36, 1)' } : {}),
+                  '@keyframes cartHop': {
+                    '0%': { transform: 'translateY(0) scale(1)' },
+                    '38%': { transform: 'translateY(-8px) scale(1.16)' },
+                    '68%': { transform: 'translateY(1px) scale(0.96)' },
+                    '100%': { transform: 'translateY(0) scale(1)' }
+                  },
+                  '@media (prefers-reduced-motion: reduce)': { animation: 'none' }
+                }}
               >
-                <ShoppingBagOutlined />
-              </Badge>
+                <Badge
+                  badgeContent={cartCount}
+                  color="error"
+                  invisible={cartCount < 1}
+                  sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}
+                >
+                  <ShoppingBagOutlined />
+                </Badge>
+              </Box>
             </IconButton>
 
             {user ? (

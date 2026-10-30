@@ -23,6 +23,13 @@
     "never": "Bir daha gösterme",
     "close": "Kapat"
   },
+  "saleFloat": {
+    "button": "Kampanyalı ürünler",
+    "title": "Kampanyalı ürünler",
+    "count": "{{count}} indirimli parça",
+    "loading": "Kampanyalı ürünler yükleniyor",
+    "empty": "Şu an kampanyalı ürün yok."
+  },
   "nav": {
     "search": "Ara",
     "cart": "Sepet",

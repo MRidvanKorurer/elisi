@@ -10,6 +10,7 @@ import ArrowBackIosNewOutlined from '@mui/icons-material/ArrowBackIosNewOutlined
 import ArrowForwardIosOutlined from '@mui/icons-material/ArrowForwardIosOutlined';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import useLocaleNavigate from '../i18n/useLocaleNavigate';
@@ -410,6 +411,32 @@ export default function HeroBanner({ user, onNavigateAuth }) {
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, width: '100%' }}>
+              <Button
+                onClick={() => navigate('/urunler?sale=1')}
+                fullWidth
+                startIcon={<LocalOfferOutlined sx={{ fontSize: '18px !important' }} />}
+                endIcon={<ArrowForward sx={{ fontSize: '18px !important' }} />}
+                sx={{
+                  borderRadius: '14px',
+                  py: 1.15,
+                  px: 1.8,
+                  justifyContent: 'space-between',
+                  backgroundColor: '#2E3B55',
+                  color: '#FBF6EA',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  letterSpacing: '0.02em',
+                  boxShadow: 'none',
+                  '& .MuiButton-startIcon, & .MuiButton-endIcon': { color: '#E4C2B8' },
+                  '&:hover': {
+                    backgroundColor: '#946D6D',
+                    color: '#FFFFFF',
+                    '& .MuiButton-startIcon, & .MuiButton-endIcon': { color: '#FBF6EA' }
+                  }
+                }}
+              >
+                {t('hero.sale')}
+              </Button>
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.2, width: '100%' }}>
                 <Button
                   variant="contained"
