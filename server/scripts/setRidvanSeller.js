@@ -12,8 +12,6 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Seller = require('../models/Seller');
-const ensureRoles = require('../utils/ensureRoles');
-
 const SUPERADMIN_EMAIL = 'admin@gmail.com';
 const SELLER_EMAIL = 'ridvan@gmail.com';
 
@@ -68,8 +66,6 @@ const emailMatch = (email) => new RegExp(`^${String(email).replace(/[.*+?^${}()|
     seller.reddetmeNedeni = '';
     await seller.save();
   }
-
-  await ensureRoles();
 
   const after = await User.find({
     $or: [

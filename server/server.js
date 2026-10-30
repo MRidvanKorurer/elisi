@@ -21,7 +21,7 @@ const connectDB = require('./config/db');
 // Veritabanına bağlan
 connectDB();
 
-const { corsOriginDelegate, warnProductionConfig } = require('./utils/runtime');
+const { corsOriginDelegate, warnProductionConfig, hasTrustedWriteOrigin } = require('./utils/runtime');
 const { configured: mediaConfigured } = require('./utils/mediaStore');
 const { verifySmtp } = require('./services/emailService');
 const { startPaymentHoldJob, runPaymentHolds, kickPaymentHolds } = require('./services/paymentHold');
@@ -67,6 +67,25 @@ app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
+
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const writeOrigin = (req) => {
+  const origin = req.get('origin');
+  if (origin) return origin;
+  const referer = req.get('referer');
+  if (!referer) return '';
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return '';
+  }
+};
+
+app.use((req, res, next) => {
+  if (!UNSAFE_METHODS.has(req.method) || !req.cookies?.token) return next();
+  if (hasTrustedWriteOrigin(writeOrigin(req))) return next();
+  return res.status(403).json({ mesaj: 'Bu istek site dışından kabul edilmedi.' });
+});
 
 const { uploadRoot } = require('./utils/uploadStore');
 // Eski /uploads kayıtları ve site videoları. Yeni yüklemeler Cloudinary'ye gider.

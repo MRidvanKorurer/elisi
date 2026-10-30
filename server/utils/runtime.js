@@ -86,6 +86,12 @@ const corsOriginDelegate = (origin, callback) => {
   return callback(null, false);
 };
 
+const hasTrustedWriteOrigin = (origin) => {
+  const value = normalizeOrigin(origin);
+  if (!value || value === 'null') return false;
+  return isAllowedCorsOrigin(value);
+};
+
 const bank = () => require('./bank').envBank();
 
 const contact = () => ({
@@ -142,6 +148,7 @@ module.exports = {
   corsOrigins,
   corsOriginDelegate,
   isAllowedCorsOrigin,
+  hasTrustedWriteOrigin,
   bank,
   contact,
   publicSite,

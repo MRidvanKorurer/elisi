@@ -452,7 +452,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
 
   if (seller) {
     return (
-      <Box sx={{ minHeight: '100vh', position: 'relative', pt: { xs: 13, md: 16 }, pb: 10, px: 2 }}>
+      <Box sx={{ minHeight: '100vh', position: 'relative', pt: { xs: 17.5, md: 20.5 }, pb: 10, px: 2 }}>
         <PageBackdrop />
         <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
           <motion.div initial={{ opacity: 0, y: 28, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5 }}>
@@ -525,7 +525,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', position: 'relative', pt: { xs: 11, md: 13 }, pb: { xs: 8, md: 10 } }}>
+    <Box sx={{ minHeight: '100vh', position: 'relative', pt: { xs: 15.5, md: 17.5 }, pb: { xs: 8, md: 10 } }}>
       <Seo
         title={t('seoTitle')}
         description={t('seoDescription')}
@@ -552,7 +552,7 @@ export default function BecomeSellerPage({ user, onLoginSuccess }) {
               sx={{
                 ...glassPanel,
                 position: { lg: 'sticky' },
-                top: { lg: 110 },
+                top: { lg: 146 },
                 overflow: 'hidden',
                 p: { xs: 3.2, md: 4.5 },
                 minHeight: { lg: 620 },

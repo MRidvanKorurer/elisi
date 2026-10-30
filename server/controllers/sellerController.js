@@ -15,6 +15,7 @@ const { releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
 const { releaseReservedStock } = require('../utils/orderStock');
 const { releasePromoUse } = require('../utils/promoCode');
 const { isSuperAdmin } = require('../utils/roles');
+const { normalizeEmail, findUserByEmail } = require('../utils/accountEmail');
 const { expireFeaturedProducts } = require('./featuredController');
 const { expireWeeklyAteliers } = require('./atelierWeekController');
 const {
@@ -224,8 +225,8 @@ const registerSeller = async (req, res) => {
                 return res.status(400).json({ mesaj: 'Şifre en az bir harf ve bir rakam içermelidir.' });
             }
 
-            const emailNorm = String(email).trim().toLowerCase();
-            const userExists = await User.findOne({ email: emailNorm });
+            const emailNorm = normalizeEmail(email);
+            const userExists = await findUserByEmail(emailNorm);
             if (userExists) {
                 return res.status(400).json({
                     mesaj: 'Bu e-posta ile bir hesap zaten var. Giriş yapıp satıcı başvurusunu tamamlayın.'

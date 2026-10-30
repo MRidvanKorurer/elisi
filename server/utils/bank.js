@@ -8,8 +8,8 @@ const isValidIbanTr = (iban = '') => /^TR\d{24}$/.test(compactIban(iban));
 
 const PLATFORM_BANK = {
   name: 'Nik Bag',
-  holder: 'Muhammet Rıdvan Korurer',
-  iban: 'TR26 0006 2000 5890 0006 6103 80'
+  holder: '',
+  iban: ''
 };
 
 function normalizeBank({ name = '', holder = '', iban = '' } = {}) {

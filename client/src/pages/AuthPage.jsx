@@ -244,7 +244,7 @@ export default function AuthPage({ onLoginSuccess }) {
         justifyContent: 'center',
         overflow: 'hidden',
         // Fixed navbar (64 / 76) + nefes payı — içerik barın altına girmesin
-        pt: { xs: 11, sm: 12, md: 14 },
+        pt: { xs: 15.5, sm: 16.5, md: 18.5 },
         pb: { xs: 3, sm: 4, md: 5 },
         px: { xs: 1.5, sm: 2, md: 3 },
         boxSizing: 'border-box'

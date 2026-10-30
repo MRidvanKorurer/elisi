@@ -3,6 +3,7 @@
   --color-secondary: #946D6D;
   --color-bg-vanilla: #FDF4D2;
   --color-accent-lavender: #A290B7;
+  --announce-h: 36px;
 
   --bg-gradient: radial-gradient(circle at top left, #FDF4D2 0%, #F5E8C7 50%, #E8D9CE 100%);
   --glass-bg: rgba(253, 244, 210, 0.72);
@@ -123,5 +124,10 @@ img, video {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  [data-ribbon] {
+    animation: none !important;
+    transform: none !important;
   }
 }

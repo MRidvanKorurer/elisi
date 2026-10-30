@@ -6,12 +6,9 @@ const { normalizeCode, money } = require('./welcomeCoupon');
 const promoDiscountOf = (subtotal, percent) =>
   money((Number(subtotal) || 0) * (Number(percent) || 0) / 100);
 
-const salePriceOf = (product) => {
-  if (!product) return 0;
-  const discountRate = Number(product.discountPercentage || 0);
-  const price = Number(product.price || 0);
-  return discountRate > 0 ? money(price - (price * discountRate / 100)) : money(price);
-};
+const { unitPriceOf } = require('./pricing');
+
+const salePriceOf = (product) => unitPriceOf(product);
 
 const normalizeEvaluateInput = (input) => {
   if (input == null || typeof input === 'number') {

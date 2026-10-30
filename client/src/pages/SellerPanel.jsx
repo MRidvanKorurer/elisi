@@ -355,6 +355,16 @@ export default function SellerPanel({ user, handleLogout }) {
       setError('Başlık, açıklama, fiyat ve stok zorunludur.');
       return;
     }
+    const listPrice = Number(form.price);
+    const discount = Number(form.discountPercentage || 0);
+    if (!Number.isFinite(listPrice) || listPrice < 1) {
+      setError('Fiyat en az 1 ₺ olmalı.');
+      return;
+    }
+    if (!Number.isFinite(discount) || discount < 0 || discount > 90) {
+      setError('İndirim %0 ile %90 arasında olmalı.');
+      return;
+    }
     if (!editing && !mainImage?.file) {
       setError('Kapak görseli yüklemelisiniz.');
       return;

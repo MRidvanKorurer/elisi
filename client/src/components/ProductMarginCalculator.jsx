@@ -80,7 +80,8 @@ export default function ProductMarginCalculator({
             value={price}
             onChange={(e) => set({ price: e.target.value })}
             required
-            helperText="Müşterinin ürüne ödeyeceği tutar"
+            inputProps={{ min: 1, step: 1 }}
+            helperText="En az 1 ₺. 0 veya negatif fiyat kabul edilmez."
             sx={fieldSx}
           />
         ) : null}

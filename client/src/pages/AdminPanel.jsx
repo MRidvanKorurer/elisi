@@ -518,6 +518,16 @@ export default function AdminPanel({ user, handleLogout }) {
 
   const saveProduct = async () => {
     if (!editing) return;
+    const listPrice = Number(form.price);
+    const discount = Number(form.discountPercentage || 0);
+    if (!Number.isFinite(listPrice) || listPrice < 1) {
+      setError('Fiyat en az 1 ₺ olmalı.');
+      return;
+    }
+    if (!Number.isFinite(discount) || discount < 0 || discount > 90) {
+      setError('İndirim %0 ile %90 arasında olmalı.');
+      return;
+    }
     setSavingProduct(true);
     try {
       const body = new FormData();
@@ -1511,9 +1521,9 @@ export default function AdminPanel({ user, handleLogout }) {
               </TextField>
               <TextField label="Açıklama" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} multiline minRows={4} sx={fieldSx} />
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.4 }}>
-                <TextField label="Fiyat" type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} sx={fieldSx} />
+                <TextField label="Fiyat" type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} inputProps={{ min: 1, step: 1 }} helperText="En az 1 ₺" sx={fieldSx} />
                 <TextField label="Stok" type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))} sx={fieldSx} />
-                <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} sx={fieldSx} />
+                <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} inputProps={{ min: 0, max: 90, step: 1 }} helperText="En fazla %90" sx={fieldSx} />
               </Box>
               <TextField label="Renkler (virgülle)" value={form.colors} onChange={(e) => setForm((p) => ({ ...p, colors: e.target.value }))} sx={fieldSx} />
               <TextField label="Bedenler (virgülle)" value={form.sizes} onChange={(e) => setForm((p) => ({ ...p, sizes: e.target.value }))} sx={fieldSx} />

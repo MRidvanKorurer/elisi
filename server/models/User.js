@@ -26,12 +26,13 @@ const savedCardSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema({
     adSoyad: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     // Google-only hesaplarda şifre olmayabilir
     sifre: { type: String, required: false },
     googleId: { type: String, unique: true, sparse: true },
     kampanyaKodu: { type: String, unique: true, sparse: true },
     kampanyaKullanildi: { type: Boolean, default: false },
+    kampanyaClaimAt: { type: Date, default: null },
     rol: { 
         type: String, 
         enum: ['user', 'admin', 'superadmin', 'seller'], 

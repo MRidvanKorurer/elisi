@@ -144,8 +144,8 @@ export default function HeroBanner({ user, onNavigateAuth }) {
       sx={{
         position: 'relative',
         width: '100%',
-        height: { xs: 'auto', md: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 108px))' },
-        mt: 0,
+        height: { xs: 'auto', md: 'min(calc(100svh / 1.6180339887 + 156px), calc(100svh - 144px))' },
+        mt: 'var(--announce-h)',
         mb: homeSectionGap,
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },

@@ -803,7 +803,7 @@ export default function CheckoutPage({ user }) {
   const payDisabled = loading || !cartItems.length || transferBlocked;
 
   return (
-    <Box sx={{ minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'clip', background: 'linear-gradient(180deg, #FDF4D2 0%, #F4E7C4 100%)', pt: { xs: 10, md: 13 }, pb: { xs: 16, md: 8 } }}>
+    <Box sx={{ minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'clip', background: 'linear-gradient(180deg, #FDF4D2 0%, #F4E7C4 100%)', pt: { xs: 14.5, md: 17.5 }, pb: { xs: 16, md: 8 } }}>
       <Seo title={t('seoTitle')} path="/sepet" noindex />
       <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} sx={{ mt: 8 }}>
         <Alert severity={toast.severity} variant="filled" sx={{ borderRadius: '12px', fontWeight: 700 }}>{toast.message}</Alert>
@@ -984,7 +984,7 @@ export default function CheckoutPage({ user }) {
           </Stack>
 
           {/* SİPARİŞ ÖZETİ (SAĞ PANEL) */}
-          <Paper elevation={0} sx={{ ...cardSx, position: { lg: 'sticky' }, top: { lg: 100 } }}>
+          <Paper elevation={0} sx={{ ...cardSx, position: { lg: 'sticky' }, top: { lg: 136 } }}>
             <Typography fontWeight={800} sx={{ color: '#2E3B55', mb: 2, fontSize: '1.15rem' }}>{t('page.summary', 'Sipariş özeti')}</Typography>
             {cartLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={28} sx={{ color: '#946D6D' }} /></Box>

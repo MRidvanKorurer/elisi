@@ -11,7 +11,7 @@ export default function LegalPage() {
   const key = LEGAL_SLUGS.includes(segment) ? segment : 'gizlilik';
 
   return (
-    <Box sx={{ minHeight: '70vh', pt: { xs: 12, md: 14 }, pb: 8 }}>
+    <Box sx={{ minHeight: '70vh', pt: { xs: 16.5, md: 18.5 }, pb: 8 }}>
       <Seo title={t(`${key}.title`)} path={`/${key}`} />
       <Container maxWidth="md">
         <Typography component="h1" sx={{ fontWeight: 800, color: '#2E3B55', letterSpacing: '-0.03em', fontSize: { xs: '1.7rem', md: '2.2rem' }, mb: 1 }}>

@@ -25,6 +25,7 @@ function LegacyProductRedirect() {
 
 // Bileşen İçe Aktarımları
 import Navbar from './components/Navbar';
+import SellerPrompt from './components/SellerPrompt';
 import Footer from './components/Footer';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import API from './api/api';
@@ -273,6 +274,7 @@ export default function App() {
         )}
 
         {!isAdminRoute && <ScrollToTopButton />}
+        {!isAdminRoute && <SellerPrompt user={user} />}
 
         <Box component="main" sx={{ flexGrow: 1, width: '100%', position: 'relative', zIndex: 0, pb: { xs: isAdminRoute ? 0 : 10, md: 0 } }}>
           <Suspense fallback={<RouteFallback />}>

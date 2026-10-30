@@ -93,10 +93,11 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Yetersiz stok.' });
     }
 
-    const discountRate = Number(product.discountPercentage || 0);
-    const unitPrice = discountRate > 0
-      ? Number((product.price - (product.price * discountRate / 100)).toFixed(2))
-      : product.price;
+    const { unitPriceOf, UNSALEABLE_MESSAGE } = require('../utils/pricing');
+    const unitPrice = unitPriceOf(product);
+    if (!(unitPrice > 0)) {
+      return res.status(400).json({ success: false, message: UNSALEABLE_MESSAGE });
+    }
 
     let cart = await Cart.findOne({ user: req.user._id });
     if (!cart) {

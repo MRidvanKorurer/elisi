@@ -582,9 +582,9 @@ function FilterAside({ children }) {
                 alignSelf: 'flex-start',
                 position: 'sticky',
                 // Fixed navbar (76) + nefes — scroll’da sabit kalsın, fixed hack yok
-                top: { md: 92 },
+                top: { md: 128 },
                 zIndex: 2,
-                maxHeight: 'calc(100dvh - 108px)'
+                maxHeight: 'calc(100dvh - 144px)'
             }}
         >
             <Paper
@@ -593,7 +593,7 @@ function FilterAside({ children }) {
                 sx={{
                     position: 'relative',
                     height: '100%',
-                    maxHeight: 'calc(100dvh - 108px)',
+                    maxHeight: 'calc(100dvh - 144px)',
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     overscrollBehavior: 'contain',
@@ -1184,7 +1184,7 @@ export default function ProductsPage() {
     const categoryPath = activeCategory ? `/kategori/${encodeURIComponent(activeCategory)}` : '';
 
     return (
-        <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FDF4D2 0%, #F7EBC0 100%)', pt: { xs: 9, md: 12 }, pb: { xs: 12, md: 10 } }}>
+        <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FDF4D2 0%, #F7EBC0 100%)', pt: { xs: 13.5, md: 16.5 }, pb: { xs: 12, md: 10 } }}>
             <Seo
                 title={seoTitle}
                 description={seoDescription}

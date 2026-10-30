@@ -17,6 +17,7 @@ const { sanitizeVideoUrl } = require('../utils/productVideo');
 const { sanitizeModelUrl } = require('../utils/productModel');
 const { notifyFavoritesIfDiscounted } = require('../services/whatsappService');
 const { notifyAdmin } = require('../services/emailService');
+const { MIN_PRICE, MAX_DISCOUNT, PRICE_MESSAGE, DISCOUNT_MESSAGE, readListPrice, readDiscount } = require('../utils/pricing');
 
 const getCatalogCategoryIds = async () => {
     const docs = await Category.find({ isActive: true }).sort({ order: 1 }).select('categoryId').lean();
@@ -40,6 +41,8 @@ const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value) && String(n
 const publicMatch = (extra = {}) => ({
     isActive: true,
     approvalStatus: { $nin: ['pending', 'rejected'] },
+    price: { $gte: MIN_PRICE },
+    discountPercentage: { $not: { $gt: MAX_DISCOUNT } },
     ...extra
 });
 
@@ -511,9 +514,19 @@ const createMyProduct = async (req, res) => {
         const galleryFiles = req.files?.gallery || [];
         const modelFile = req.files?.model3d?.[0];
 
+        const listPrice = readListPrice(price);
+        const discount = readDiscount(discountPercentage);
         if (!title || !description || !category || price == null || stock == null || !mainFile) {
             galleryFiles.concat(mainFile ? [mainFile] : [], modelFile ? [modelFile] : []).forEach((file) => removeUpload(publicPath(file)));
             return res.status(400).json({ mesaj: 'Başlık, açıklama, kategori, fiyat, stok ve ana görsel zorunludur.' });
+        }
+        if (listPrice == null) {
+            galleryFiles.concat(mainFile ? [mainFile] : [], modelFile ? [modelFile] : []).forEach((file) => removeUpload(publicPath(file)));
+            return res.status(400).json({ mesaj: PRICE_MESSAGE });
+        }
+        if (discount == null) {
+            galleryFiles.concat(mainFile ? [mainFile] : [], modelFile ? [modelFile] : []).forEach((file) => removeUpload(publicPath(file)));
+            return res.status(400).json({ mesaj: DISCOUNT_MESSAGE });
         }
 
         const product = await Product.create({
@@ -521,7 +534,7 @@ const createMyProduct = async (req, res) => {
             title: String(title).trim(),
             description: String(description).trim(),
             category: String(category).toLowerCase(),
-            price: Number(price),
+            price: listPrice,
             costPrice: Math.max(0, Number(req.body.costPrice) || 0),
             shippingCostCover: Math.max(0, Number(req.body.shippingCostCover) || 0),
             extraCost: Math.max(0, Number(req.body.extraCost) || 0),
@@ -532,7 +545,7 @@ const createMyProduct = async (req, res) => {
             sizes: toList(sizes),
             features: toList(features),
             careInstructions: String(careInstructions).trim(),
-            discountPercentage: Math.min(100, Math.max(0, Number(discountPercentage) || 0)),
+            discountPercentage: discount,
             immediateDelivery: String(immediateDelivery) !== 'false',
             customProductionTime: String(customProductionTime).trim() || '1-3 İş Günü',
             measureNote: String(measureNote).trim(),
@@ -583,13 +596,19 @@ const updateMyProduct = async (req, res) => {
         if (body.title !== undefined) product.title = String(body.title).trim();
         if (body.description !== undefined) product.description = String(body.description).trim();
         if (body.category !== undefined) product.category = String(body.category).toLowerCase().trim();
-        if (body.price !== undefined && body.price !== '') product.price = Number(body.price);
+        if (body.price !== undefined && body.price !== '') {
+            const listPrice = readListPrice(body.price);
+            if (listPrice == null) return res.status(400).json({ mesaj: PRICE_MESSAGE });
+            product.price = listPrice;
+        }
         if (body.costPrice !== undefined) product.costPrice = Math.max(0, Number(body.costPrice) || 0);
         if (body.shippingCostCover !== undefined) product.shippingCostCover = Math.max(0, Number(body.shippingCostCover) || 0);
         if (body.extraCost !== undefined) product.extraCost = Math.max(0, Number(body.extraCost) || 0);
         if (body.stock !== undefined && body.stock !== '') product.stock = Number(body.stock);
         if (body.discountPercentage !== undefined) {
-            product.discountPercentage = Math.min(100, Math.max(0, Number(body.discountPercentage) || 0));
+            const discount = readDiscount(body.discountPercentage);
+            if (discount == null) return res.status(400).json({ mesaj: DISCOUNT_MESSAGE });
+            product.discountPercentage = discount;
         }
         if (body.immediateDelivery !== undefined) product.immediateDelivery = asBool(body.immediateDelivery);
         if (body.customProductionTime !== undefined) {
@@ -636,7 +655,7 @@ const updateMyProduct = async (req, res) => {
             product.isActive = false;
         }
 
-        await product.save();
+        await product.save({ validateModifiedOnly: true });
         notifyFavoritesIfDiscounted(product, previousPricing)
             .catch((error) => console.error('WhatsApp indirim bildirimi:', error.message));
         return res.json({

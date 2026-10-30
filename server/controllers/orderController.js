@@ -7,7 +7,7 @@ const Cart = require('../models/Cart');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, clearAbandonedCardAttempts, releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
+const { WELCOME_PERCENT, normalizeCode, couponDiscountOf, couponAlreadyConsumed, claimWelcomeCoupon, clearAbandonedCardAttempts, releaseWelcomeCoupon } = require('../utils/welcomeCoupon');
 const { evaluatePromo, releasePromoUse } = require('../utils/promoCode');
 const PromoCode = require('../models/PromoCode');
 const Seller = require('../models/Seller');
@@ -20,6 +20,7 @@ const { resolveBank, hasBankAccount } = require('../utils/bank');
 const { buildOrderPayouts } = require('../utils/orderPayouts');
 const { notifyNewOrder } = require('../services/whatsappService');
 const { notifyOrderCreated } = require('../services/emailService');
+const { unitPriceOf, UNSALEABLE_MESSAGE } = require('../utils/pricing');
 
 const money = (value) => Number(Number(value || 0).toFixed(2));
 
@@ -126,13 +127,11 @@ const retrievePayment = (token) => {
 };
 */
 
-const unitPriceOf = (product) => {
-    const discountRate = Number(product.discountPercentage || 0);
-    const price = Number(product.price || 0);
-    return discountRate > 0 ? money(price - (price * discountRate / 100)) : money(price);
-};
-
 exports.createOrder = async (req, res) => {
+    let couponClaimed = false;
+    let couponOwnerId = null;
+    let couponCodeHeld = '';
+    let persistedOrderId = null;
     try {
         const { customerInfo, shippingAddress, orderItems, paymentMethod, savedCardId, couponCode, promoCode } = req.body;
 
@@ -197,13 +196,17 @@ exports.createOrder = async (req, res) => {
             if (product.stock < quantity) {
                 return res.status(400).json({ success: false, message: `${product.title} için yetersiz stok.` });
             }
+            const price = unitPriceOf(product);
+            if (!(price > 0)) {
+                return res.status(400).json({ success: false, message: UNSALEABLE_MESSAGE });
+            }
 
             normalizedItems.push({
                 product: product._id,
                 seller: product.seller || undefined,
                 name: product.title,
                 quantity,
-                price: unitPriceOf(product),
+                price,
                 image: product.image,
                 color: String(item.color || '').trim(),
                 size: String(item.size || '').trim(),
@@ -275,6 +278,16 @@ exports.createOrder = async (req, res) => {
             return res.status(503).json({ success: false, message: 'Havale hesabı henüz tanımlanmamış.' });
         }
 
+        if (appliedCode && req.user) {
+            const claimed = await claimWelcomeCoupon(req.user._id);
+            if (!claimed) {
+                return res.status(400).json({ success: false, message: 'Hoş geldin indirimin yalnızca ilk siparişte geçerlidir.' });
+            }
+            couponClaimed = true;
+            couponOwnerId = req.user._id;
+            couponCodeHeld = appliedCode;
+        }
+
         const order = new Order({
             user: req.user ? req.user._id : null,
             customerInfo: {
@@ -317,20 +330,19 @@ exports.createOrder = async (req, res) => {
         });
 
         const savedOrder = await order.save();
+        persistedOrderId = savedOrder._id;
         try {
             await reserveStock(savedOrder);
             await savedOrder.save();
         } catch (stockError) {
             await deleteOrderAndReleaseCoupon(savedOrder);
+            couponClaimed = false;
             return res.status(stockError.status || 409).json({
                 success: false,
                 message: stockError.message || 'Stok ayrılmadı.'
             });
         }
 
-        if (appliedCode && req.user) {
-            await User.findByIdAndUpdate(req.user._id, { $set: { kampanyaKullanildi: true } });
-        }
         if (appliedPromo) {
             await PromoCode.findOneAndUpdate({ code: appliedPromo }, { $inc: { usedCount: 1 } });
         }
@@ -483,6 +495,10 @@ exports.createOrder = async (req, res) => {
                 .catch((error) => console.error('Sipariş e-postası:', error.message));
         });
     } catch (error) {
+        if (couponClaimed && !persistedOrderId && couponOwnerId) {
+            await releaseWelcomeCoupon({ user: couponOwnerId, couponCode: couponCodeHeld })
+                .catch((releaseError) => console.error('Kupon bırakılamadı:', releaseError.message));
+        }
         console.error('Sipariş oluşturma hatası:', error);
         res.status(500).json({ success: false, message: 'Siparişiniz şu an alınamadı. Bilgilerinizi kontrol edip tekrar deneyin.' });
     }

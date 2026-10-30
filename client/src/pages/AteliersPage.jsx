@@ -28,7 +28,7 @@ import { mediaUrl } from '../api/lookbookService';
 import { categoryLabel } from '../utils/categories';
 import useDebounce from '../hooks/useDebounce';
 
-const PAGE_PT = { xs: '96px', md: '120px' };
+const PAGE_PT = { xs: '132px', md: '156px' };
 const TONES = ['#2E3B55', '#946D6D', '#A290B7', '#6E5252'];
 
 const SORTS = [

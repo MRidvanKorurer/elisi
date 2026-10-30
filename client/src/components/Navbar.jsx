@@ -20,6 +20,7 @@ import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOu
 import Logo from '../assets/logo.svg?react';
 import { cartService, countCartItems } from '../api/cartServices';
 import NavSearch from './NavSearch';
+import AnnouncementRibbon from './AnnouncementRibbon';
 import { isSellerRole, isSuperAdmin } from '../utils/roles';
 
 const iconBtn = (solid) => ({
@@ -113,9 +114,12 @@ export default function Navbar({ setPage, user, handleLogout }) {
         borderBottom: solid ? '1px solid rgba(148,109,109,0.12)' : '1px solid transparent',
         boxShadow: solid ? '0 10px 30px -22px rgba(46,59,85,0.45)' : 'none',
         transition: 'background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
-        top: 0, left: 0, right: 0, zIndex: 1100
+        top: 0, left: 0, right: 0, zIndex: 1100,
+        flexDirection: 'column',
+        alignItems: 'stretch'
       }}
     >
+      <AnnouncementRibbon />
       <SiteContainer>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 0 }, minHeight: { xs: '64px !important', md: '76px !important' }, gap: { xs: 1, md: 2 } }}>
           <Box

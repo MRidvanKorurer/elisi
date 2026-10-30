@@ -43,7 +43,7 @@ const productSchema = new mongoose.Schema(
         price: {
             type: Number,
             required: [true, 'Ürün fiyatı zorunludur.'],
-            min: [0, 'Fiyat 0\'dan küçük olamaz.']
+            min: [1, 'Fiyat en az 1 ₺ olmalı.']
         },
         costPrice: { type: Number, default: 0, min: 0 },
         shippingCostCover: { type: Number, default: 0, min: 0 },
@@ -51,8 +51,8 @@ const productSchema = new mongoose.Schema(
         discountPercentage: {
             type: Number,
             default: 0,
-            min: 0,
-            max: 100
+            min: [0, 'İndirim %0 ile %90 arasında olmalı.'],
+            max: [90, 'İndirim %0 ile %90 arasında olmalı.']
         },
         stock: {
             type: Number,

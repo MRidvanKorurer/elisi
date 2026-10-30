@@ -340,7 +340,7 @@ export default function ProfileDashboard() {
   const initials = formData.name ? formData.name.trim().charAt(0).toUpperCase() : 'N';
 
   return (
-    <Box sx={{ minHeight: '100vh', pt: { xs: 10, md: 13 }, pb: 8 }}>
+    <Box sx={{ minHeight: '100vh', pt: { xs: 14.5, md: 17.5 }, pb: 8 }}>
       <Seo title={t('seoTitle', { ns: 'account' })} path="/hesabim" noindex />
       <Snackbar open={alertConfig.open} autoHideDuration={3600} onClose={() => setAlertConfig((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={alertConfig.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>{alertConfig.message}</Alert>
@@ -366,7 +366,7 @@ export default function ProfileDashboard() {
               backgroundColor: 'rgba(255,255,255,0.72)',
               border: '1px solid rgba(148,109,109,0.12)',
               position: { md: 'sticky' },
-              top: { md: 108 }
+              top: { md: 144 }
             }}
           >
             <Box sx={{

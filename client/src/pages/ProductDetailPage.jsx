@@ -1,5 +1,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 // Ürün detay: teslimat / ölçü / iade paneli ProductFulfillment ile gelir.
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -340,7 +341,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const seoDescription = productDescription(product, locale, product.category ? categoryLabel(product.category, t) : '');
 
   return (
-    <Box sx={{ pt: { xs: 11, md: 14 }, pb: { xs: 14, md: 10 }, minHeight: '100vh' }}>
+    <Box sx={{ pt: { xs: 15.5, md: 18.5 }, pb: { xs: 14, md: 10 }, minHeight: '100vh' }}>
       <Seo
         title={`${title}${product.category ? ` - ${t('product.handmadeCategory', { ns: 'catalog', name: categoryLabel(product.category, t) })}` : ''}`}
         description={seoDescription}
@@ -392,7 +393,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
             alignItems: 'start'
           }}
         >
-          <Box sx={{ minWidth: 0, position: { lg: 'sticky' }, top: { lg: 108 }, overflow: 'visible', zIndex: 2 }}>
+          <Box sx={{ minWidth: 0, position: { lg: 'sticky' }, top: { lg: 144 }, overflow: 'visible', zIndex: 2 }}>
             {mediaView === 'video' && videoSrc ? (
               <Box
                 sx={{
@@ -718,45 +719,56 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         )}
       </SiteContainer>
 
-      <Box
-        sx={{
-          display: { xs: 'flex', md: 'none' },
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 40,
-          gap: 1,
-          px: 2,
-          py: 1.4,
-          pb: 'calc(12px + env(safe-area-inset-bottom))',
-          background: 'rgba(253,244,210,0.92)',
-          backdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(148,109,109,0.14)'
-        }}
-      >
-        <Box sx={{ ...qtyBoxSx, width: 118, flexShrink: 0 }}>
-          <IconButton size="small" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1}>
-            <RemoveIcon fontSize="small" />
-          </IconButton>
-          <Typography fontWeight={800}>{quantity}</Typography>
-          <IconButton size="small" onClick={() => setQuantity((q) => Math.min(stock || 1, q + 1))} disabled={outOfStock || quantity >= stock}>
-            <AddIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleAddToCart}
-          disabled={outOfStock || addingToCart}
-          sx={{ ...cartButtonSx, height: 52 }}
+      {typeof document !== 'undefined' && createPortal(
+        <Box
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1200,
+            alignItems: 'center',
+            gap: 1,
+            px: 1.5,
+            pt: 1.1,
+            pb: 'calc(10px + env(safe-area-inset-bottom))',
+            bgcolor: 'rgba(251, 246, 234, 0.96)',
+            borderTop: '1px solid rgba(46,59,85,0.1)',
+            boxShadow: '0 -10px 30px -18px rgba(46,59,85,0.45)'
+          }}
         >
-          {outOfStock ? t('product.soldOut', { ns: 'catalog' }) : money(discountedPrice)}
-        </Button>
-        <IconButton onClick={handleToggleFavorite} sx={{ ...iconActionSx, width: 52, height: 52 }}>
-          {isFavorite ? <FavoriteIcon sx={{ color: '#946D6D' }} /> : <FavoriteBorderOutlinedIcon sx={{ color: '#946D6D' }} />}
-        </IconButton>
-      </Box>
+          <Box sx={{ minWidth: 0, flexShrink: 0 }}>
+            <Typography sx={{ color: '#946D6D', fontWeight: 800, fontSize: '1.15rem', lineHeight: 1 }}>
+              {money(discountedPrice)}
+            </Typography>
+            {discountRate > 0 && (
+              <Typography sx={{ textDecoration: 'line-through', color: '#A290B7', fontWeight: 700, fontSize: '0.75rem' }}>
+                {money(rawPrice)}
+              </Typography>
+            )}
+          </Box>
+          <Box sx={{ ...qtyBoxSx, width: 92, height: 48, flexShrink: 0, borderRadius: '14px' }}>
+            <IconButton size="small" aria-label={p('less', 'Azalt')} onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1}>
+              <RemoveIcon fontSize="small" />
+            </IconButton>
+            <Typography fontWeight={800}>{quantity}</Typography>
+            <IconButton size="small" aria-label={p('more', 'Artır')} onClick={() => setQuantity((q) => Math.min(stock || 1, q + 1))} disabled={outOfStock || quantity >= stock}>
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleAddToCart}
+            disabled={outOfStock || addingToCart}
+            sx={{ ...cartButtonSx, height: 48, minWidth: 0, px: 1.2, fontSize: '0.92rem', whiteSpace: 'nowrap' }}
+          >
+            {outOfStock ? t('product.soldOut', { ns: 'catalog' }) : t('product.addToCart', { ns: 'catalog' })}
+          </Button>
+        </Box>,
+        document.body
+      )}
 
       {allImages.length > 0 && (
         <Lightbox

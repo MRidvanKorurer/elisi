@@ -5,6 +5,7 @@ const { WELCOME_PERCENT, normalizeCode, generateWelcomeCode, couponAlreadyConsum
 
 const { cookieOptions } = require('../utils/runtime');
 const { notifyAdminSignup, notifyCustomerWelcome } = require('../services/emailService');
+const { normalizeEmail, isValidEmail, findUserByEmail } = require('../utils/accountEmail');
 const COOKIE_OPTIONS = cookieOptions();
 
 const isValidPhone = (telefon = '') => {
@@ -52,6 +53,10 @@ const ensureWelcomeCode = async (user) => {
 const register = async (req, res) => {
     try {
         const { adSoyad, email, sifre, telefon } = req.body;
+        const emailNorm = normalizeEmail(email);
+        if (!isValidEmail(emailNorm)) {
+            return res.status(400).json({ mesaj: 'Geçerli bir e-posta adresi girin.' });
+        }
         if (!sifre || String(sifre).length < 8) {
             return res.status(400).json({ mesaj: 'Şifre en az 8 karakter olmalı.' });
         }
@@ -59,12 +64,12 @@ const register = async (req, res) => {
             return res.status(400).json({ mesaj: phoneError().message, needsPhone: true });
         }
 
-        const userExists = await User.findOne({ email });
+        const userExists = await findUserByEmail(emailNorm);
         if (userExists) {
             return res.status(400).json({ mesaj: 'Bu email adresi zaten kullanımda.' });
         }
 
-        const user = await User.create({ adSoyad, email, sifre, telefon: String(telefon).trim() });
+        const user = await User.create({ adSoyad, email: emailNorm, sifre, telefon: String(telefon).trim() });
         await ensureWelcomeCode(user);
         user.kampanyaKullanildi = false;
 
@@ -100,7 +105,7 @@ const login = async (req, res) => {
     try {
         const { email, sifre } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await findUserByEmail(email);
         if (!user) {
             return res.status(401).json({ mesaj: 'Geçersiz email veya şifre.' });
         }
@@ -287,7 +292,7 @@ const googleAuth = async (req, res) => {
         let isNewUser = false;
 
         if (!user) {
-            user = await User.findOne({ email });
+            user = await findUserByEmail(email);
             if (user) {
                 user.googleId = googleId;
                 if (!user.avatarUrl && avatarUrl) user.avatarUrl = avatarUrl;

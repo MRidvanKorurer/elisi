@@ -139,7 +139,7 @@ export default function SellerProductEditor({
 }) {
   const cover = mainImage?.preview || editing?.image || '';
   const galleryPreview = (editing?.additionalImages || []).filter((url) => !removedImages.includes(url));
-  const discount = Math.min(100, Math.max(0, Number(form.discountPercentage) || 0));
+  const discount = Math.min(90, Math.max(0, Number(form.discountPercentage) || 0));
   const price = Number(form.price) || 0;
   const sale = discount > 0 ? price - (price * discount) / 100 : price;
   const [categoryOptions, setCategoryOptions] = useState(CATEGORY_OPTIONS);
@@ -228,7 +228,7 @@ export default function SellerProductEditor({
             />
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.6, mt: 2 }}>
               <TextField label="Stok" type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))} required sx={fieldSx} />
-              <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} helperText="Vitrinde çizili fiyat görünür" sx={fieldSx} />
+              <TextField label="İndirim %" type="number" value={form.discountPercentage} onChange={(e) => setForm((p) => ({ ...p, discountPercentage: e.target.value }))} inputProps={{ min: 0, max: 90, step: 1 }} helperText="En fazla %90. Vitrinde çizili fiyat görünür." sx={fieldSx} />
             </Box>
             <Typography sx={{ mt: 1.6, fontWeight: 800, color: T.navy }}>
               Vitrin fiyatı {money(sale)}

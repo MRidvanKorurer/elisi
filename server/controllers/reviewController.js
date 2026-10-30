@@ -26,7 +26,7 @@ const hasPurchasedProduct = async (userId, productId) => {
   const order = await Order.findOne({
     user: userId,
     orderStatus: { $in: ['processing', 'shipped', 'delivered'] },
-    paymentStatus: { $ne: 'failed' },
+    paymentStatus: { $in: ['completed', 'over'] },
     'orderItems.product': productId
   }).select('_id');
   return Boolean(order);
@@ -109,7 +109,7 @@ const getReviewEligibility = async (req, res) => {
 
     let reason = '';
     if (!allowed) {
-      reason = 'Bu ürüne yorum yapmak için kayıtlı hesabınızla satın almış olmanız gerekir.';
+      reason = 'Yorum için bu ürünü kayıtlı hesabınızla satın almış ve ödemesi tamamlanmış olmalıdır.';
     } else if (existing && !superAdmin) {
       reason = 'Bu ürüne zaten yorum yaptınız.';
     }
@@ -141,7 +141,7 @@ const createReview = async (req, res) => {
     if (!purchased && !superAdmin) {
       return res.status(403).json({
         success: false,
-        mesaj: 'Yalnızca bu ürünü satın almış kayıtlı kullanıcılar yorum yapabilir.'
+        mesaj: 'Yorum için ödemesi tamamlanmış bir sipariş gerekir. Havale bekleyen sipariş yorum bırakamaz.'
       });
     }
 

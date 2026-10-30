@@ -31,7 +31,7 @@ import { instagramHref, websiteHref } from '../utils/atelierLinks';
 import { scrollPageTo } from '../hooks/useSmoothScroll';
 import useProductGridPageSize, { resolveFetchLimit } from '../hooks/useProductGridPageSize';
 
-const PAGE_PT = { xs: '96px', md: '120px' };
+const PAGE_PT = { xs: '132px', md: '156px' };
 
 const SORTS = [
   { id: 'newest', label: 'En yeniler' },
@@ -443,7 +443,7 @@ export default function AtelierPage() {
           id="atolye-vitrin"
           sx={{
             position: 'sticky',
-            top: { xs: 68, md: 84 },
+            top: { xs: 104, md: 120 },
             zIndex: 4,
             mx: { xs: -2, sm: -3 },
             px: { xs: 2, sm: 3 },
@@ -452,7 +452,7 @@ export default function AtelierPage() {
             bgcolor: 'rgba(253,244,210,0.94)',
             backdropFilter: 'blur(12px)',
             borderBottom: '1px solid rgba(148,109,109,0.12)',
-            scrollMarginTop: '96px'
+            scrollMarginTop: '132px'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 1 }}>

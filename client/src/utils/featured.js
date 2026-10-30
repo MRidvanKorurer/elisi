@@ -8,8 +8,8 @@ export const FEATURED_SLOTS = 12;
 
 export const FEATURED_BANK = {
   name: 'Nik Bag',
-  holder: 'Muhammet Rıdvan Korurer',
-  iban: 'TR26 0006 2000 5890 0006 6103 80'
+  holder: '',
+  iban: ''
 };
 
 export const isReceiptPdf = (value = '') => /\.pdf(\?|$)/i.test(String(value));

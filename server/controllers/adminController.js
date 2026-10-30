@@ -22,6 +22,7 @@ const {
 } = require('../utils/commission');
 const { endLiveFeaturedForProduct } = require('./featuredController');
 const { notifyFavoritesIfDiscounted, getWhatsAppStatus, initWhatsApp, restartWhatsApp } = require('../services/whatsappService');
+const { PRICE_MESSAGE, DISCOUNT_MESSAGE, UNSALEABLE_MESSAGE, readListPrice, readDiscount, isSellablePrice } = require('../utils/pricing');
 
 const serializeUser = (user) => ({
   id: user._id,
@@ -398,8 +399,11 @@ const setProductApproval = async (req, res) => {
     product.approvalStatus = approvalStatus;
     product.rejectionReason = approvalStatus === 'rejected' ? String(rejectionReason).trim() : '';
     product.approvedAt = approvalStatus === 'approved' ? new Date() : undefined;
+    if (approvalStatus === 'approved' && !isSellablePrice(product)) {
+      return res.status(400).json({ mesaj: UNSALEABLE_MESSAGE });
+    }
     product.isActive = approvalStatus === 'approved';
-    await product.save();
+    await product.save({ validateModifiedOnly: true });
 
     return res.json({
       success: true,
@@ -412,7 +416,7 @@ const setProductApproval = async (req, res) => {
 };
 
 const TEXT_FIELDS = ['title', 'description', 'category', 'careInstructions', 'customProductionTime', 'measureNote', 'video'];
-const NUMBER_FIELDS = ['price', 'stock', 'discountPercentage'];
+const NUMBER_FIELDS = ['stock'];
 const BOOL_FIELDS = ['isActive', 'isNewProduct', 'immediateDelivery'];
 const LIST_FIELDS = ['colors', 'sizes', 'features'];
 
@@ -447,6 +451,16 @@ const updateProduct = async (req, res) => {
       if (req.body[field] === undefined || req.body[field] === '') return;
       product[field] = Number(req.body[field]);
     });
+    if (req.body.price !== undefined && req.body.price !== '') {
+      const listPrice = readListPrice(req.body.price);
+      if (listPrice == null) return res.status(400).json({ mesaj: PRICE_MESSAGE });
+      product.price = listPrice;
+    }
+    if (req.body.discountPercentage !== undefined && req.body.discountPercentage !== '') {
+      const discount = readDiscount(req.body.discountPercentage);
+      if (discount == null) return res.status(400).json({ mesaj: DISCOUNT_MESSAGE });
+      product.discountPercentage = discount;
+    }
     BOOL_FIELDS.forEach((field) => {
       if (req.body[field] === undefined) return;
       product[field] = asBool(req.body[field]);
@@ -485,7 +499,7 @@ const updateProduct = async (req, res) => {
       product.model3dUrl = next;
     }
 
-    await product.save();
+    await product.save({ validateModifiedOnly: true });
     notifyFavoritesIfDiscounted(product, previousPricing)
       .catch((error) => console.error('WhatsApp indirim bildirimi:', error.message));
     if (req.body.isSponsored !== undefined && !asBool(req.body.isSponsored) && wasSponsored) {
@@ -502,7 +516,7 @@ const deleteProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
     product.isActive = false;
-    await product.save();
+    await product.save({ validateModifiedOnly: true });
     return res.json({ success: true, mesaj: 'Ürün yayından alındı.', product });
   } catch (error) {
     return res.status(500).json({ mesaj: 'Ürün kaldırılamadı.', hata: error.message });

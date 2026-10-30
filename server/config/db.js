@@ -8,9 +8,7 @@ const connectDB = async () => {
             serverSelectionTimeoutMS: 5000 // Sunucu bulamazsa sonsuza kadar beklemesini engeller
         });
         console.log(`✅ MongoDB Bağlantısı Başarılı : ${conn.connection.host}`);
-        const ensureRoles = require('../utils/ensureRoles');
         const { ensurePlatformBank } = require('../utils/bank');
-        await ensureRoles();
         await ensurePlatformBank();
     } catch (error) {
         console.error(`MongoDB Bağlantı Hatası ❌: ${error.message}`);

@@ -165,7 +165,7 @@ const dispatch = (jobs) => {
 
 const SITE_EMAIL = 'nikbagofficial@gmail.com';
 
-/** Site bildirimlerinin gittiği adres. SUPERADMIN_EMAIL'den ayrıdır; o yalnızca süper admin hesabını belirler. */
+/** Site bildirimlerinin gittiği adres. */
 const superAdminEmail = (explicit) =>
   String(explicit || clean(process.env.ADMIN_NOTIFY_EMAIL) || SITE_EMAIL).trim();
 

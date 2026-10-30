@@ -88,7 +88,7 @@ export default function OrderResultPage({ success }) {
   }, [success, isTransfer, reason, t]);
 
   return (
-    <Box sx={{ minHeight: '70vh', pt: { xs: 12, md: 16 }, pb: 8, px: 2, background: 'linear-gradient(180deg, #FDF4D2 0%, #F7EBC0 100%)' }}>
+    <Box sx={{ minHeight: '70vh', pt: { xs: 16.5, md: 20.5 }, pb: 8, px: 2, background: 'linear-gradient(180deg, #FDF4D2 0%, #F7EBC0 100%)' }}>
       <Seo
         title={copy.title}
         path={success ? '/siparis-basarili' : '/odeme-basarisiz'}

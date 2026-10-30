@@ -9,7 +9,7 @@ export default function NotFoundPage() {
   const navigate = useLocaleNavigate();
 
   return (
-    <Box sx={{ minHeight: '70vh', display: 'grid', placeItems: 'center', pt: { xs: 12, md: 16 }, pb: 10, px: 2 }}>
+    <Box sx={{ minHeight: '70vh', display: 'grid', placeItems: 'center', pt: { xs: 16.5, md: 20.5 }, pb: 10, px: 2 }}>
       <Seo title={t('notFound.title', { ns: 'catalog' })} path="/404" noindex />
       <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
         <Typography component="p" sx={{ fontWeight: 800, letterSpacing: 2, color: '#A290B7' }}>

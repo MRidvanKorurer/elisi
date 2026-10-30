@@ -4,6 +4,25 @@
     "en": "EN",
     "switchTo": "Dili değiştir"
   },
+  "ribbon": {
+    "label": "El emeği, kişiye özel üretim ve sanatçılar",
+    "mark": "El emeği",
+    "handmade": "El emeği ürünler",
+    "ateliers": "Bağımsız atölyeler",
+    "madeByHand": "Her parça elde üretilir",
+    "custom": "Kişiye özel üretim",
+    "art": "Sanat, atölyeden vitrine",
+    "artist": "Sanatçının elinden çıkan parçalar",
+    "sell": "Atölyeni Nik Bag’e taşı"
+  },
+  "sellerPrompt": {
+    "title": "Atölyeni vitrine taşı",
+    "text": "El emeğini, kişiye özel üretimini ve sanatını Nik Bag’de sat. Başvurun incelenir, onaydan sonra mağazan yayına alınır.",
+    "join": "Satıcı ol",
+    "later": "Şimdi değil",
+    "never": "Bir daha gösterme",
+    "close": "Kapat"
+  },
   "nav": {
     "search": "Ara",
     "cart": "Sepet",

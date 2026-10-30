@@ -4,6 +4,25 @@
     "en": "EN",
     "switchTo": "Change language"
   },
+  "ribbon": {
+    "label": "Handmade goods, made to order, and artists",
+    "mark": "Handmade",
+    "handmade": "Handmade goods",
+    "ateliers": "Independent ateliers",
+    "madeByHand": "Every piece is made by hand",
+    "custom": "Made to order",
+    "art": "Art, from the studio to the shop",
+    "artist": "Pieces from the artist’s hand",
+    "sell": "Bring your atelier to Nik Bag"
+  },
+  "sellerPrompt": {
+    "title": "Bring your atelier to the shop",
+    "text": "Sell your handmade work, made-to-order pieces and art on Nik Bag. We review your application, then your shop goes live.",
+    "join": "Become a seller",
+    "later": "Not now",
+    "never": "Don’t show again",
+    "close": "Close"
+  },
   "nav": {
     "search": "Search",
     "cart": "Bag",
