@@ -19,6 +19,21 @@ const { notifyFavoritesIfDiscounted } = require('../services/whatsappService');
 const { notifyAdmin } = require('../services/emailService');
 const { MIN_PRICE, MAX_DISCOUNT, PRICE_MESSAGE, DISCOUNT_MESSAGE, readListPrice, readDiscount } = require('../utils/pricing');
 
+let featuredExpireAt = 0;
+let featuredExpireFlight = null;
+const expireFeaturedSoon = () => {
+    const now = Date.now();
+    if (featuredExpireFlight) return featuredExpireFlight;
+    if (now - featuredExpireAt < 60 * 1000) return Promise.resolve();
+    featuredExpireFlight = expireFeaturedProducts()
+        .catch(() => null)
+        .finally(() => {
+            featuredExpireAt = Date.now();
+            featuredExpireFlight = null;
+        });
+    return featuredExpireFlight;
+};
+
 const getCatalogCategoryIds = async () => {
     const docs = await Category.find({ isActive: true }).sort({ order: 1 }).select('categoryId').lean();
     if (docs.length) return docs.map((doc) => String(doc.categoryId || '').toLowerCase()).filter(Boolean);
@@ -76,7 +91,7 @@ const listProjection = {
 
 const getAllProducts = async (req, res) => {
     try {
-        await expireFeaturedProducts();
+        await expireFeaturedSoon();
         const products = await Product.find(publicMatch())
             .select(LIST_SELECT)
             .sort({ isSponsored: -1, createdAt: -1 })
@@ -90,7 +105,7 @@ const getAllProducts = async (req, res) => {
 
 const getFilteredProducts = async (req, res) => {
     try {
-        await expireFeaturedProducts();
+        await expireFeaturedSoon();
         const {
             search,
             category,
@@ -108,7 +123,7 @@ const getFilteredProducts = async (req, res) => {
         } = req.query;
 
         const currentPage = Math.max(1, parseInt(page, 10) || 1);
-        const pageSize = Math.max(1, parseInt(limit, 10) || 12);
+        const pageSize = Math.min(48, Math.max(1, parseInt(limit, 10) || 12));
         const skip = (currentPage - 1) * pageSize;
 
         const matchStage = publicMatch();
@@ -267,30 +282,27 @@ const getProductById = async (req, res) => {
         }
 
         const ownVideo = sanitizeVideoUrl(product.video);
-        const clipPromise = ownVideo
-            ? Promise.resolve(null)
-            : Lookbook.findOne({ product: product._id, isActive: true }).select('videoUrl').lean();
-
         const payload = product.toObject();
         payload.atelier = HOUSE_ATELIER;
-        payload.favoriteCount = await User.countDocuments({ favoriler: product._id }).catch(() => 0);
 
-        if (product.seller) {
-            const sellerDoc = await Seller.findOne({ user: product.seller, durum: 'approved' }).lean();
-            if (sellerDoc) {
-                const [maker, productCount] = await Promise.all([
-                    User.findById(product.seller).select('adSoyad avatarUrl').lean(),
-                    Product.countDocuments(publicMatch({ seller: product.seller }))
-                ]);
-                payload.atelier = serializePublicAtelier(sellerDoc, maker, { productCount });
-            }
-        }
+        const [favoriteCount, sellerDoc, clip] = await Promise.all([
+            User.countDocuments({ favoriler: product._id }).catch(() => 0),
+            product.seller
+                ? Seller.findOne({ user: product.seller, durum: 'approved' }).lean()
+                : Promise.resolve(null),
+            ownVideo
+                ? Promise.resolve(null)
+                : Lookbook.findOne({ product: product._id, isActive: true }).select('videoUrl').lean()
+        ]);
+        payload.favoriteCount = favoriteCount;
+        payload.video = ownVideo || sanitizeVideoUrl(clip?.videoUrl);
 
-        if (!ownVideo) {
-            const clip = await clipPromise;
-            payload.video = sanitizeVideoUrl(clip?.videoUrl);
-        } else {
-            payload.video = ownVideo;
+        if (sellerDoc) {
+            const [maker, productCount] = await Promise.all([
+                User.findById(product.seller).select('adSoyad avatarUrl').lean(),
+                Product.countDocuments(publicMatch({ seller: product.seller }))
+            ]);
+            payload.atelier = serializePublicAtelier(sellerDoc, maker, { productCount });
         }
 
         payload.fulfillment = req.lang === 'en'
@@ -326,7 +338,7 @@ const recordProductView = async (req, res) => {
 // GET /api/products/bestsellers
 const getBestSellers = async (req, res) => {
     try {
-        await expireFeaturedProducts();
+        await expireFeaturedSoon();
         const bestSellers = await Product.find(publicMatch())
             .select(LIST_SELECT)
             .sort({ soldCount: -1 })
@@ -364,7 +376,7 @@ const createProduct = async (req, res) => {
 // Sponsorlu ürünleri getiren metod
 const getSponsoredProducts = async (req, res) => {
     try {
-        await expireFeaturedProducts();
+        await expireFeaturedSoon();
         const now = new Date();
         const sponsoredProducts = await Product.find(publicMatch({
             isSponsored: true,

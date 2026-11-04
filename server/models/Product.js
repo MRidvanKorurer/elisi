@@ -244,4 +244,9 @@ productSchema.post('save', () => {
     require('../services/contentTranslation').scheduleSweep();
 });
 
+productSchema.index({ isActive: 1, approvalStatus: 1, createdAt: -1 });
+productSchema.index({ isActive: 1, approvalStatus: 1, category: 1, createdAt: -1 });
+productSchema.index({ isActive: 1, approvalStatus: 1, isSponsored: -1, soldCount: -1 });
+productSchema.index({ isActive: 1, discountPercentage: 1 });
+
 module.exports = mongoose.model('Product', productSchema);

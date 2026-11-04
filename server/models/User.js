@@ -48,7 +48,8 @@ const userSchema = new mongoose.Schema({
     kayitliKartlar: [savedCardSchema],
     favoriler: [{ 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Product' 
+        ref: 'Product',
+        index: true
     }]
 }, { timestamps: true });
 

@@ -75,7 +75,14 @@ export default function useSmoothScroll(enabled = true) {
     const observer = new MutationObserver(syncLock);
     observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
 
+    const onVisibility = () => {
+      if (document.hidden) lenis.stop();
+      else lenis.start();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
       observer.disconnect();
       cancelAnimationFrame(frame);
       if (lenisInstance === lenis) lenisInstance = null;

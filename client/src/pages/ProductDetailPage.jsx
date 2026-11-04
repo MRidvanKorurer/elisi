@@ -43,6 +43,7 @@ import userService from '../api/userService';
 import ProductSlider from '../components/ProductSlider';
 import { imgBagOrange } from '../assets/media';
 import { salePriceOf } from '../utils/price';
+import { loadModelViewer } from '../utils/modelViewer';
 import { money } from '../utils/currency';
 import Seo from '../components/Seo';
 import { PageSpinner } from '../components/LoadingButton';
@@ -95,6 +96,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [mediaView, setMediaView] = useState('photo');
+  const [modelReady, setModelReady] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
@@ -182,6 +184,19 @@ export default function ProductDetailPage({ onAddToCart, user }) {
   useEffect(() => {
     setMediaView('photo');
   }, [product?._id, product?.id]);
+
+  useEffect(() => {
+    const src = typeof product?.model3dUrl === 'string' ? product.model3dUrl.trim() : '';
+    if (!src) {
+      setModelReady(false);
+      return undefined;
+    }
+    let active = true;
+    loadModelViewer()
+      .then(() => { if (active) setModelReady(true); })
+      .catch(() => { if (active) setModelReady(false); });
+    return () => { active = false; };
+  }, [product?.model3dUrl]);
 
   useEffect(() => {
     const productId = product?._id || product?.id;
@@ -456,7 +471,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
                 {mediaView === 'video' ? t('product.backToPhotos', { ns: 'catalog' }) : t('product.watchVideo', { ns: 'catalog' })}
               </Box>
             ) : null}
-            {modelSrc ? (
+            {modelSrc && modelReady ? (
               <Box sx={{ mt: 2.6 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, mb: 1.2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0 }}>

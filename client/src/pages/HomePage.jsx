@@ -7,7 +7,7 @@ import Reveal from '../components/Reveal';
 import { useTranslation } from 'react-i18next';
 import Seo from '../components/Seo';
 import { isSuperAdmin } from '../utils/roles';
-import AtelierFilmSection from '../components/AtelierFilmSection';
+const AtelierFilmSection = lazy(() => import('../components/AtelierFilmSection'));
 
 const FeaturedShelf = lazy(() => import('../components/FeaturedShelf'));
 const WeeklyAteliers = lazy(() => import('../components/WeeklyAteliers'));

@@ -2,10 +2,14 @@ import API from './api';
 import { cachedGet } from './cache';
 
 export const productService = {
-  getFilteredProducts: async (filters = {}) => {
-    const response = await API.get('/products/filter', { params: filters });
-    return response.data;
-  },
+  getFilteredProducts: async (filters = {}) => cachedGet(
+    `products:filter:${JSON.stringify(filters)}`,
+    async () => {
+      const response = await API.get('/products/filter', { params: filters });
+      return response.data;
+    },
+    20_000
+  ),
 
   getProductById: async (id) => {
     const response = await API.get(`/products/${id}`);

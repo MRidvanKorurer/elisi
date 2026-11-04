@@ -90,6 +90,17 @@ const themeOptions = {
       styleOverrides: {
         root: { transition: 'transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .35s ease' }
       }
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          '@media (max-width: 899px)': {
+            margin: 12,
+            width: 'calc(100% - 24px)',
+            maxHeight: 'calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
+          }
+        }
+      }
     }
   }
 };

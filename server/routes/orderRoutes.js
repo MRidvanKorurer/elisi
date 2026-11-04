@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createOrder, /* iyzicoCallback, */ getMyOrders, getOrderById, addOrderNote, getGuestOrderThread, addGuestOrderNote } = require('../controllers/orderController');
+const { createOrder, paytrCallback, getMyOrders, getOrderById, addOrderNote, getGuestOrderThread, addGuestOrderNote } = require('../controllers/orderController');
 
 
 
@@ -8,6 +8,7 @@ const { protect, optionalProtect } = require('../middleware/authMiddleware');
 
 
 router.post('/create', optionalProtect, createOrder);
+router.post('/payment/paytr', paytrCallback);
 // Iyzico kapalı
 // router.post('/payment/callback', iyzicoCallback);
 // router.get('/payment/callback', iyzicoCallback); 

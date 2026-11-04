@@ -214,7 +214,7 @@ export default function HeroBanner({ user, onNavigateAuth }) {
               playsInline
               autoPlay
               disablePictureInPicture
-              preload="auto"
+              preload="metadata"
               aria-label={t('hero.alt')}
               sx={mediaSx}
             />

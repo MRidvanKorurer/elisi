@@ -14,7 +14,8 @@ const Seller = require('../models/Seller');
 const { settlementsFromItems, ratesForSellers, allocateOrderDiscounts } = require('../utils/commission');
 // Iyzico kapalı
 // const { clientUrl } = require('../utils/runtime');
-const { reserveStock, releaseReservedStock } = require('../utils/orderStock');
+const { reserveStock, releaseReservedStock, applyPaidStock } = require('../utils/orderStock');
+const { createIframeToken, callbackTrusted, orderIdFromOid, configured: paytrConfigured } = require('../services/paytr');
 const { FREE_SHIPPING_LIMIT, SHIPPING_FEE } = require('../utils/productFulfillment');
 const { resolveBank, hasBankAccount } = require('../utils/bank');
 const { buildOrderPayouts } = require('../utils/orderPayouts');
@@ -139,14 +140,17 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Sepetiniz boş.' });
         }
 
-        const allowedMethods = [/* 'credit_card', */ 'transfer', 'whatsapp'];
+        const allowedMethods = ['credit_card', 'transfer', 'whatsapp'];
         if (!allowedMethods.includes(paymentMethod)) {
-            return res.status(400).json({ success: false, message: 'Kart ödemesi kapalı. Havale/EFT veya WhatsApp ile devam edin.' });
+            return res.status(400).json({ success: false, message: 'Bu ödeme yöntemi kullanılamıyor.' });
+        }
+        if (paymentMethod === 'credit_card' && !paytrConfigured()) {
+            return res.status(503).json({ success: false, message: 'Kart ödemesi henüz tanımlı değil. PayTR mağaza bilgileri eksik.' });
         }
         if (savedCardId) {
             return res.status(400).json({
                 success: false,
-                message: 'Kart ödemesi kapalı. Havale/EFT veya WhatsApp ile devam edin.'
+                message: 'Kayıtlı kart kapalı. Kart bilgisi PayTR sayfasında girilir.'
             });
         }
         /* Iyzico kapalı
@@ -345,6 +349,27 @@ exports.createOrder = async (req, res) => {
 
         if (appliedPromo) {
             await PromoCode.findOneAndUpdate({ code: appliedPromo }, { $inc: { usedCount: 1 } });
+        }
+
+        if (paymentMethod === 'credit_card') {
+            try {
+                const paytrToken = await createIframeToken({ order: savedOrder, req });
+                return res.status(201).json({
+                    success: true,
+                    message: 'Güvenli ödeme formu hazır.',
+                    orderId: savedOrder._id,
+                    paymentMethod,
+                    totalPrice,
+                    paytrToken
+                });
+            } catch (paytrError) {
+                await deleteOrderAndReleaseCoupon(savedOrder);
+                couponClaimed = false;
+                return res.status(paytrError.status || 502).json({
+                    success: false,
+                    message: paytrError.message || 'Kart ödemesi başlatılamadı.'
+                });
+            }
         }
 
         /* Iyzico kapalı
@@ -550,6 +575,48 @@ const finishPaymentCallback = async (req, res) => {
 
 exports.iyzicoCallback = finishPaymentCallback;
 */
+
+exports.paytrCallback = async (req, res) => {
+    const body = req.body || {};
+    if (!callbackTrusted(body)) {
+        return res.status(400).type('text/plain').send('PAYTR notification failed: bad hash');
+    }
+    const orderId = orderIdFromOid(body.merchant_oid);
+    if (!orderId) return res.status(200).type('text/plain').send('OK');
+    try {
+        const order = await Order.findById(orderId);
+        if (!order) return res.status(200).type('text/plain').send('OK');
+        if (order.paymentStatus === 'completed') return res.status(200).type('text/plain').send('OK');
+
+        if (body.status === 'success') {
+            order.paymentStatus = 'completed';
+            order.paidAmount = Number(body.total_amount || 0) / 100;
+            order.paymentMatchedAt = new Date();
+            await applyPaidStock(order);
+            await order.save();
+            notifyOrderCreated({
+                orderId: order._id,
+                buyerName: `${order.customerInfo.firstName} ${order.customerInfo.lastName}`.trim(),
+                buyerEmail: order.customerInfo.email,
+                items: order.orderItems,
+                total: order.totalPrice,
+                paymentCode: order.paymentCode,
+                sellers: []
+            });
+        } else if (order.paymentStatus !== 'failed') {
+            order.paymentStatus = 'failed';
+            order.orderStatus = 'cancelled';
+            await releaseReservedStock(order);
+            await order.save();
+            await releaseWelcomeCoupon(order);
+            await releasePromoUse(order);
+        }
+        return res.status(200).type('text/plain').send('OK');
+    } catch (error) {
+        console.error('PayTR bildirimi:', error.message);
+        return res.status(500).type('text/plain').send('ERR');
+    }
+};
 
 const guestEmailMatches = (order, email) => {
     const given = String(email || '').trim().toLowerCase();

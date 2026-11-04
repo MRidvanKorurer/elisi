@@ -149,7 +149,9 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
   const location = useLocation();
   const reduced = useReducedMotion();
   const inputRef = useRef(null);
+  const fieldWrapRef = useRef(null);
   const isMobile = variant === 'mobile';
+  const [panelMax, setPanelMax] = useState(null);
 
   useEffect(() => {
     if (!isMobile) return undefined;
@@ -194,6 +196,27 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
       inputRef.current?.focus();
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || !open) return undefined;
+    const update = () => {
+      const viewport = window.visualViewport;
+      const field = fieldWrapRef.current?.getBoundingClientRect();
+      if (!viewport || !field) return;
+      const visibleBottom = viewport.offsetTop + viewport.height;
+      const available = visibleBottom - field.bottom - 16;
+      setPanelMax(Math.max(120, Math.floor(available)));
+    };
+    update();
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [isMobile, open, query]);
 
   useEffect(() => {
     if (!open || debouncedTerm.length < 2) {
@@ -497,7 +520,9 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
         mt: 1,
         overflowY: 'auto',
         overflowX: 'hidden',
-        maxHeight: { xs: '58vh', md: '70vh' },
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch',
+        maxHeight: isMobile && panelMax ? panelMax : { xs: 'min(58dvh, 420px)', md: '70vh' },
         borderRadius: '22px',
         border: '1px solid rgba(148,109,109,0.16)',
         background: 'rgba(255,255,255,0.98)',
@@ -505,6 +530,42 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
         boxShadow: '0 30px 60px -24px rgba(46,59,85,0.45)'
       }}
     >
+      {isMobile && (term ? matchedCategories : categories).length > 0 && (
+        <Box
+          sx={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+            display: 'flex',
+            gap: 0.8,
+            overflowX: 'auto',
+            px: 1.4,
+            py: 1.1,
+            bgcolor: '#fff',
+            borderBottom: '1px solid rgba(148,109,109,0.12)',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          {(term ? matchedCategories : categories).map((item) => (
+            <Chip
+              key={item.value}
+              icon={<CategoryIcon value={item.value} iconName={item.iconName} sx={{ fontSize: 16 }} />}
+              label={item.label || categoryLabel(item.value, t)}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => goToCategory(item.value)}
+              sx={{
+                flexShrink: 0,
+                height: 34,
+                fontWeight: 800,
+                bgcolor: '#FBF6EA',
+                color: '#2E3B55',
+                border: '1px solid rgba(46,59,85,0.08)',
+                '& .MuiChip-icon': { color: '#946D6D' }
+              }}
+            />
+          ))}
+        </Box>
+      )}
       {options.map((option, index) => {
         const previous = options[index - 1];
         const showSection = option.section && option.section !== previous?.section;
@@ -553,7 +614,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
               </Box>
             )}
 
-            {option.kind === 'category' && (
+            {option.kind === 'category' && !isMobile && (
               <Box
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
@@ -685,7 +746,7 @@ export default function NavSearch({ solid = true, variant = 'desktop', onNavigat
 
   return (
     <ClickAwayListener onClickAway={() => setOpen(false)}>
-      <Box sx={{ width: '100%', position: 'relative' }}>
+      <Box ref={fieldWrapRef} sx={{ width: '100%', position: 'relative' }}>
         {field}
 
         <AnimatePresence>

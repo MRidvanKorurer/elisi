@@ -23,7 +23,7 @@ import {
 import SiteContainer from '../components/SiteContainer';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
-// import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
+import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -243,6 +243,19 @@ export default function CheckoutPage({ user }) {
   const { t } = useTranslation('checkout');
   const navigate = useLocaleNavigate();
   const [paymentMethod, setPaymentMethod] = useState('transfer');
+  const [paytrToken, setPaytrToken] = useState('');
+
+  useEffect(() => {
+    if (!paytrToken) return undefined;
+    const script = document.createElement('script');
+    script.src = 'https://www.paytr.com/js/iframeResizer.min.js?v2';
+    script.async = true;
+    script.onload = () => {
+      if (window.iFrameResize) window.iFrameResize({}, '#paytriframe');
+    };
+    document.body.appendChild(script);
+    return () => { script.remove(); };
+  }, [paytrToken]);
   const [loading, setLoading] = useState(false);
   const [whatsappLoading, setWhatsappLoading] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
@@ -732,11 +745,10 @@ export default function CheckoutPage({ user }) {
         }));
       } catch { /* ignore */ }
 
-      // Iyzico kapalı
-      // if (paymentMethod === 'credit_card' && response.paymentUrl && !response.usedSavedCard) {
-      //   window.location.href = response.paymentUrl;
-      //   return;
-      // }
+      if (response.paytrToken) {
+        setPaytrToken(response.paytrToken);
+        return;
+      }
 
       await cartService.clearCart();
       window.dispatchEvent(new Event('cartUpdated'));
@@ -892,7 +904,19 @@ export default function CheckoutPage({ user }) {
 
             <Paper elevation={0} sx={cardSx}>
               <SectionTitle step="3" title={t('payment')} hint={t('paymentHint')} />
-              {/* Iyzico / kredi kartı ödemesi kapalı
+              {paytrToken ? (
+                <Box sx={{ mb: 2, borderRadius: '18px', overflow: 'hidden', border: '1px solid rgba(46,59,85,0.12)', bgcolor: '#fff' }}>
+                  <iframe
+                    title={t('cardTitle')}
+                    src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
+                    id="paytriframe"
+                    frameBorder="0"
+                    scrolling="no"
+                    style={{ width: '100%', minHeight: 720, border: 0 }}
+                  />
+                </Box>
+              ) : (
+              <>
               <PayOption
                 selected={paymentMethod === 'credit_card'}
                 onClick={() => setPaymentMethod('credit_card')}
@@ -901,24 +925,10 @@ export default function CheckoutPage({ user }) {
                 subtitle={t('cardSubtitle')}
               />
               <Collapse in={paymentMethod === 'credit_card'}>
-                <Box sx={{ mb: 2 }}>
-                  <Alert severity="info" sx={{ mb: 1.5, borderRadius: '14px' }}>
-                    Kart bilgisi İyzico’nun güvenli sayfasında girilir. Bu sitede saklanmaz.
-                  </Alert>
-                  <TextField
-                    name="identityNumber"
-                    label="T.C. kimlik numarası"
-                    value={formData.identityNumber}
-                    onChange={handleInputChange}
-                    error={!!errors.identityNumber}
-                    helperText={errors.identityNumber || 'İyzico ödemesi için zorunlu'}
-                    slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 11 } }}
-                    sx={fieldSx}
-                    fullWidth
-                  />
-                </Box>
+                <Alert severity="info" sx={{ mb: 2, borderRadius: '14px' }}>
+                  {t('cardPaytrNote', 'Kart bilgisi PayTR’nin güvenli sayfasında girilir. Bu sitede saklanmaz. Türkiye ve yurtdışı kartlar geçerlidir.')}
+                </Alert>
               </Collapse>
-              */}
 
               <PayOption
                 selected={paymentMethod === 'transfer'}
@@ -942,6 +952,8 @@ export default function CheckoutPage({ user }) {
                   ) : null}
                 </Box>
               </Collapse>
+              </>
+              )}
 
               <FormControlLabel
                 sx={{ alignItems: 'flex-start', mt: 1, mb: 1.5, mx: 0 }}
@@ -970,6 +982,7 @@ export default function CheckoutPage({ user }) {
                 }
               />
 
+              {!paytrToken && (
               <Button
                 fullWidth
                 variant="outlined"
@@ -980,6 +993,7 @@ export default function CheckoutPage({ user }) {
               >
                 {whatsappLoading ? t('actions.loading', { ns: 'common' }) : t('page.whatsappOrder', 'WhatsApp ile sipariş')}
               </Button>
+              )}
             </Paper>
           </Stack>
 
@@ -1183,6 +1197,7 @@ export default function CheckoutPage({ user }) {
               <Typography fontWeight={800} sx={{ color: '#2E3B55' }}>{t('charges.total', 'Toplam')}</Typography>
               <Typography fontWeight={800} sx={{ color: '#946D6D', fontSize: '1.45rem' }}>{moneyCharged(total)}</Typography>
             </Box>
+            {!paytrToken && (
             <Button
               fullWidth
               variant="contained"
@@ -1193,6 +1208,7 @@ export default function CheckoutPage({ user }) {
             >
               {payLabel}
             </Button>
+            )}
           </Paper>
         </Box>
       </SiteContainer>
@@ -1200,7 +1216,7 @@ export default function CheckoutPage({ user }) {
       <Paper
         elevation={8}
         sx={{
-          display: { xs: 'flex', md: 'none' },
+          display: paytrToken ? 'none' : { xs: 'flex', md: 'none' },
           position: 'fixed',
           left: 0,
           right: 0,
@@ -1221,6 +1237,7 @@ export default function CheckoutPage({ user }) {
           <Typography variant="caption" sx={{ color: '#6E5252', fontWeight: 700, display: 'block', lineHeight: 1.1 }}>{t('charges.total', 'Toplam')}</Typography>
           <Typography fontWeight={800} sx={{ color: '#2E3B55', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>{money(total)}</Typography>
         </Box>
+        {!paytrToken && (
         <Button
           fullWidth
           variant="contained"
@@ -1236,6 +1253,7 @@ export default function CheckoutPage({ user }) {
         >
           {loading ? t('page.processing', 'İşleniyor...') : t('page.complete', 'Tamamla')}
         </Button>
+        )}
       </Paper>
       <LegalTextDialog
         open={Boolean(legalDoc)}

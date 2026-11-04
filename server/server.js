@@ -1,5 +1,6 @@
 //de
 const dns = require('dns');
+const zlib = require('zlib');
 const path = require('path');
 const express = require('express');
 const dotenv = require('dotenv');
@@ -40,7 +41,15 @@ app.use((req, res, next) => {
   const keepTranslations = req.lang !== 'en' && req.path.startsWith('/api/admin');
   res.json = (body) => {
     const localized = keepTranslations ? body : localizeBody(body, req.lang);
-    return send(hideInternals(localized, res.statusCode));
+    const safe = hideInternals(localized, res.statusCode);
+    const accept = String(req.headers['accept-encoding'] || '');
+    if (req.method === 'HEAD' || !/\bgzip\b/.test(accept)) return send(safe);
+    const payload = Buffer.from(JSON.stringify(safe));
+    if (payload.length < 2048) return send(safe);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Vary', 'Accept-Encoding');
+    return res.send(zlib.gzipSync(payload, { level: 6 }));
   };
   next();
 });
@@ -96,6 +105,17 @@ app.use('/uploads', express.static(uploadRoot(), {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const pathName = req.path;
+  const isPublicCatalog = pathName.startsWith('/api/products')
+    || pathName.startsWith('/api/categories')
+    || pathName.startsWith('/api/lookbook')
+    || (pathName.startsWith('/api/ateliers') && !pathName.includes('/me'));
+  if (isPublicCatalog) res.set('Cache-Control', 'public, max-age=30');
+  next();
 });
 
 app.use((req, res, next) => {
