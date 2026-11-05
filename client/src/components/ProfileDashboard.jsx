@@ -342,7 +342,7 @@ export default function ProfileDashboard() {
   return (
     <Box sx={{ minHeight: '100vh', pt: { xs: 14.5, md: 17.5 }, pb: 8 }}>
       <Seo title={t('seoTitle', { ns: 'account' })} path="/hesabim" noindex />
-      <Snackbar open={alertConfig.open} autoHideDuration={3600} onClose={() => setAlertConfig((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+      <Snackbar open={alertConfig.open} autoHideDuration={3600} onClose={() => setAlertConfig((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={alertConfig.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>{alertConfig.message}</Alert>
       </Snackbar>
 

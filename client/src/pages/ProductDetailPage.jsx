@@ -800,8 +800,7 @@ export default function ProductDetailPage({ onAddToCart, user }) {
         open={snackbar.open}
         autoHideDuration={3200}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ mb: { xs: 10, md: 2 } }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert severity={snackbar.severity} sx={{ width: '100%', borderRadius: '12px', fontWeight: 700 }}>
           {snackbar.message}

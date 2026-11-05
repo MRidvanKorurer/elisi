@@ -91,6 +91,22 @@ const themeOptions = {
         root: { transition: 'transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .35s ease' }
       }
     },
+    MuiSnackbar: {
+      defaultProps: {
+        anchorOrigin: { vertical: 'top', horizontal: 'center' }
+      },
+      styleOverrides: {
+        anchorOriginTopCenter: {
+          top: 'calc(var(--announce-h, 36px) + 72px)',
+          zIndex: 1500,
+          width: 'calc(100% - 24px)',
+          maxWidth: 520,
+          '@media (min-width: 900px)': {
+            top: 'calc(var(--announce-h, 36px) + 96px)'
+          }
+        }
+      }
+    },
     MuiDialog: {
       styleOverrides: {
         paper: {

@@ -309,7 +309,7 @@ export default function Footer() {
         open={toast.open}
         autoHideDuration={2800}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert severity={toast.severity} sx={{ borderRadius: '12px', fontWeight: 700 }}>
           {toast.message}

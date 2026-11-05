@@ -817,7 +817,7 @@ export default function CheckoutPage({ user }) {
   return (
     <Box sx={{ minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'clip', background: 'linear-gradient(180deg, #FDF4D2 0%, #F4E7C4 100%)', pt: { xs: 14.5, md: 17.5 }, pb: { xs: 16, md: 8 } }}>
       <Seo title={t('seoTitle')} path="/sepet" noindex />
-      <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} sx={{ mt: 8 }}>
+      <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={toast.severity} variant="filled" sx={{ borderRadius: '12px', fontWeight: 700 }}>{toast.message}</Alert>
       </Snackbar>
 
