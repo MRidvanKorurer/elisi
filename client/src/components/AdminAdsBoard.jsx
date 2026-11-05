@@ -18,7 +18,7 @@ import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import { PanelCard } from './PanelShell';
-import { T, money, when } from '../utils/panel';
+import { T, money } from '../utils/panel';
 import { FEATURED_PACKAGES } from '../utils/featured';
 import { adminService } from '../api/adminService';
 
@@ -130,11 +130,10 @@ export default function AdminAdsBoard({ query = '', onOpenFeatured, onGift }) {
         <Typography sx={{ color: T.rose, fontWeight: 700, mb: 1.5 }}>{error}</Typography>
       ) : null}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.4, mb: 2 }}>
-        <Stat label="Boş vitrin" value={`${board?.slots?.free ?? 0}/${board?.slots?.total ?? 12}`} hint="Reklama açılabilecek slot" />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.4, mb: 2 }}>
         <Stat label="Reklama uygun" value={board?.totals?.eligible ?? 0} hint="Yayında, stoklu, vitrinde değil" />
         <Stat label="30 gün CTR" value={`%${board?.totals?.ctr ?? 0}`} hint={`${board?.totals?.clicks || 0} tıklama · ${board?.totals?.impressions || 0} gösterim`} />
-        <Stat label="Vitrinde" value={board?.slots?.live ?? 0} hint={board?.slots?.nextFreeAt ? `Sonraki boşluk ${when(board.slots.nextFreeAt)}` : 'Anlık doluluk'} />
+        <Stat label="Vitrinde" value={board?.slots?.live ?? 0} hint="Ürün sayısına sınır yok" />
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.15fr 0.85fr' }, gap: 1.6, mb: 2 }}>
@@ -202,7 +201,7 @@ export default function AdminAdsBoard({ query = '', onOpenFeatured, onGift }) {
                 </Box>
                 <Button
                   size="small"
-                  disabled={Boolean(giftingId) || (board?.slots?.free || 0) <= 0}
+                  disabled={Boolean(giftingId)}
                   onClick={() => gift(pick.productId)}
                   sx={{ fontWeight: 800, textTransform: 'none', color: T.rose, alignSelf: { xs: 'flex-end', sm: 'center' } }}
                 >
@@ -345,7 +344,7 @@ export default function AdminAdsBoard({ query = '', onOpenFeatured, onGift }) {
                   {item.eligible ? (
                     <Button
                       size="small"
-                      disabled={Boolean(giftingId) || (board?.slots?.free || 0) <= 0}
+                      disabled={Boolean(giftingId)}
                       onClick={() => gift(item.id)}
                       sx={{ fontWeight: 800, textTransform: 'none', color: '#fff', bgcolor: T.navy, borderRadius: '10px', px: 1.2, '&:hover': { bgcolor: T.rose } }}
                     >

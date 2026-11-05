@@ -1,5 +1,3 @@
-const FEATURED_SLOTS = 12;
-
 const FEATURED_PACKAGES = {
   3: { days: 3, price: 2000, label: '3 gün', hint: 'Kısa vitrin' },
   5: { days: 5, price: 3500, label: '5 gün', hint: 'Orta vitrin' },
@@ -17,7 +15,6 @@ const packageList = () => Object.values(FEATURED_PACKAGES);
 const liveStatusMatch = () => ({ status: { $in: ['live', 'approved'] } });
 
 module.exports = {
-  FEATURED_SLOTS,
   FEATURED_PACKAGES,
   DEFAULT_BANK,
   packageOf,

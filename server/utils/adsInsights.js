@@ -3,7 +3,6 @@ const Product = require('../models/Product');
 const AdEvent = require('../models/AdEvent');
 const FeaturedRequest = require('../models/FeaturedRequest');
 const { slotsOf, expireFeaturedProducts } = require('../controllers/featuredController');
-const { FEATURED_SLOTS } = require('./featuredPackages');
 const { CATEGORY_LABELS } = require('../constants/categories');
 
 const categoryLabelOf = (value) => CATEGORY_LABELS[String(value || '').toLowerCase()] || value || 'Diğer';
@@ -282,10 +281,12 @@ const buildAdsBoard = async (opts = {}) => {
     generatedAt: now.toISOString(),
     windowDays: daysBetween(from30, now),
     slots: {
-      total: slots?.total || FEATURED_SLOTS,
-      free: slots?.free ?? 0,
+      unlimited: slots?.unlimited !== false,
+      total: slots?.unlimited === false ? (slots?.total ?? null) : null,
+      free: slots?.unlimited === false ? (slots?.free ?? null) : null,
+      used: slots?.used ?? live.length,
       live: live.length,
-      nextFreeAt: slots?.nextFreeAt || null
+      nextFreeAt: null
     },
     totals: {
       impressions,

@@ -16,7 +16,7 @@ import CampaignOutlined from '@mui/icons-material/CampaignOutlined';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 import { PanelCard } from './PanelShell';
-import { T, money, when } from '../utils/panel';
+import { T, money } from '../utils/panel';
 import { sellerService } from '../api/sellerService';
 
 const headCell = {
@@ -127,10 +127,10 @@ export default function SellerAdsBoard({ query = '', products = [], onPromote, o
       ) : null}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.4, mb: 2 }}>
-        <Stat label="Platform boş slot" value={`${board?.slots?.free ?? 0}/${board?.slots?.total ?? 12}`} hint="Ana sayfa vitrin kapasitesi" />
+        <Stat label="Platform vitrini" value={board?.slots?.used ?? board?.slots?.live ?? 0} hint="Yayındaki öne çıkan ürün" />
         <Stat label="Öne çıkarılabilir" value={board?.totals?.eligible ?? 0} hint="Onaylı, stoklu, vitrinde değil" />
         <Stat label="30 gün CTR" value={`%${board?.totals?.ctr ?? 0}`} hint={`${board?.totals?.clicks || 0} tıklama · ${board?.totals?.impressions || 0} gösterim`} />
-        <Stat label="Vitrindeki ürünün" value={board?.slots?.live ?? 0} hint={board?.slots?.nextFreeAt ? `Sonraki boşluk ${when(board.slots.nextFreeAt)}` : 'Kendi vitrin durumun'} />
+        <Stat label="Vitrindeki ürünün" value={board?.slots?.live ?? 0} hint="Kendi vitrin durumun" />
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.15fr 0.85fr' }, gap: 1.6, mb: 2 }}>

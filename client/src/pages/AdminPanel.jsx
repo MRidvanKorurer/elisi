@@ -1072,7 +1072,7 @@ export default function AdminPanel({ user, handleLogout }) {
           <SectionTitle
             overline="REKLAM"
             title="Reklam ve vitrin panosu"
-            subtitle="Hangi ürünün reklama çıkabileceğini, yapay zeka önerilerini ve diğer pazarlardaki talep eğilimlerini buradan izleyin. Vitrine alma işlemi ücretsiz hediye slot kullanır."
+            subtitle="Hangi ürünün reklama çıkabileceğini, yapay zeka önerilerini ve diğer pazarlardaki talep eğilimlerini buradan izleyin. Uygun ürünü süre seçip vitrine alabilirsiniz."
           />
           <AdminAdsBoard
             query={query}

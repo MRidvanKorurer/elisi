@@ -4,8 +4,6 @@ export const FEATURED_PACKAGES = [
   { days: 7, price: 5000, label: '7 gün', hint: 'Tam vitrin' }
 ];
 
-export const FEATURED_SLOTS = 12;
-
 export const FEATURED_BANK = {
   name: 'Nik Bag',
   holder: '',
